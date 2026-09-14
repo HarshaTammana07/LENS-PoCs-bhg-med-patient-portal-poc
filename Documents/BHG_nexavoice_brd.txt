@@ -1,0 +1,92 @@
+
+
+
+  Behavioral Health Group - BHG
+Business Requirements Document
+
+By 
+Vijaya Balli
+
+
+
+
+
+Business Requirements Document (BHG Group)
+1. Executive Summary
+This document outlines the key business requirements for the BHG Group system to manage treatment centers, staff, programs, insurance, costs, and operational information. The system will also support templates for leads and grants, a repository for drugs, master reporting across centers and payors, holiday management, knowledge base/FAQs, organizational references, and administrative controls for users and roles. The goal is to streamline information access, reduce manual updates, and provide agents with a centralized and reliable knowledge platform.
+2. Business Problem
+Currently, BHG’s operational data about treatment centers, staff, insurance coverage, and costs is fragmented. Staff rely on static documents, manual updates, or external systems, which creates inconsistencies and delays in patient handling, intake scheduling, and insurance verification. There is no unified view of treatment centers, staff contacts, or program-specific costs, limiting efficiency and increasing errors when guiding patients. Templates, drug lists, and master reports are also managed separately without a central repository, causing duplication of effort.
+3. Objectives
+•	Provide a centralized platform for treatment center information (location, staff, costs, insurance, schedules).
+•	Standardize and simplify patient intake guidance through updated templates.
+•	Maintain a searchable drug repository categorized by type (sedatives, opioids, others).
+•	Enable automated master reports for payors, centers, programs, and vanity contacts.
+•	Streamline holiday management for corporate and center-specific closures.
+•	Provide agents with a unified knowledge base (guides, FAQs, org chart).
+•	Support secure admin management of users, roles, and access permissions.
+4. Scope
+In Scope:
+•	Treatment Center module (search, staff, costs, insurance, hours, additional info).
+•	Templates (Grant, Lead, Intake email/pre-admission).
+•	Drug repository with add/edit/delete functionality.
+•	Master Reports (Payor, Centers, Vanity Contacts, Programs).
+•	Holidays (Corporate & Center-specific).
+•	User Guide repository (PDFs, downloads).
+•	FAQ section.
+•	Organization Chart.
+•	Admin functionality (Users, Roles).
+Out of Scope:
+•	Integration with external EMR/EHR systems (future phase).
+•	Real-time patient booking workflows.
+•	Automated insurance eligibility verification.
+5. Stakeholders
+•	BHG Operations Team – Business owners of treatment center data.
+•	BHG Staff/Agents – End-users accessing the knowledge base.
+6. High-Level Requirements
+S.No	Requirement Description	Expected Outcome
+1	Enable search of treatment centers by state, city, zip code, or name.	Faster patient guidance and center lookup.
+2	Provide detailed treatment center info (contacts, staff, programs, costs, insurance, hours).	Centralized reference for agents.
+3	Allow staff management with add/edit/delete functionality.	Accurate staff contact records.
+4	Support cost and schedule details by program (MMT, OBOT, etc.).	Accurate intake scheduling.
+5	Provide insurance payor details (provider, type, coverage).	Improve insurance verification.
+6	Support templates for grants, leads, and intake with add/edit capability.	Standardized communication.
+7	Maintain searchable drug repository by category with add/edit/delete options.	Easy access to drug information.
+8	Provide master reports (payors, centers, vanity contacts, programs) with export options.	Simplified reporting.
+9	Manage holidays (corporate and center-specific).	Accurate holiday schedules.
+10	Provide user guides, FAQs, and org charts for knowledge sharing.	Improved onboarding and support.
+11	Admins manage users, roles, and access permissions.	Controlled and secure access.
+7. Assumptions and Constraints
+•	All center and staff data will be provided by BHG operations.
+•	Not all centers have emergency contacts; fields will be optional.
+•	Insurance coverage varies by state/program.
+•	The system must comply with HIPAA and data privacy standards.
+•	Outages and holidays may be updated manually by BHG staff.
+8. Success Criteria
+•	Agents can locate a treatment center and verify program/insurance info in under 2 minutes.
+•	Staff directory and contacts updated within 24 hours of changes.
+•	Templates used consistently across intake and lead management.
+•	Master reports downloadable in standardized format.
+•	90% of staff adopt the new system within 3 months of launch.
+9. Dependencies
+•	Availability of accurate and up-to-date data from BHG centers.
+•	Timely input from Operations and Compliance teams.
+•	IT support for user access, security, and role-based permissions.
+10. Appendix
+•	Sample treatment center data fields.
+•	Example intake email template.
+•	List of program types (MMT, OBOT, Buprenorphine RX, etc.).
+
+
+Program:
+
+Injectables
+IOP
+Methadone/MMT
+OBOT
+OTP
+Subutex
+SUD
+Brixadi
+Sublocade
+Vivitrol
+

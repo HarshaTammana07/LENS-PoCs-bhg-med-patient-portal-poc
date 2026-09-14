@@ -1,0 +1,1513 @@
+
+.  .  
+Table of Contents
+
+
+Table of Contents	2
+Welcome to the BHG AI Notetaker	4
+How the AI Assists You	4
+What the AI Will Never Do	4
+The Sidebar	6
+Your Dashboard — My Work Tab	6
+Session Status Labels	8
+Viewing Your Schedule	8
+Starting a Scheduled Session	9
+Creating a New Ad-hoc Session	9
+The Live Session Screen	12
+AI Insights Panel	13
+Engagement Check Examples	13
+Pausing & Ending a Session	15
+To End the Session	15
+Group Sessions — Taking Attendance	16
+Review Transcript	17
+Editing the Transcript	18
+Correcting Speaker Labels (Bulk)	18
+Generating Notes	20
+Reviewing & Editing Your Note	20
+AI Disclaimer Footer on Notes	21
+Regenerating Notes	21
+What Syncing Means	22
+Individual Session Sync	22
+Group Session Sync Options	23
+SAMMS Sync Page	24
+Admin Dashboard — Admin Overview Tab	25
+Summary Stat Cards	25
+Live Sessions Panel	26
+Counselor Performance Table	26
+Session Management Page	26
+What You Can Do	26
+Admin vs. Counselor View	27
+What the Audit Trail Captures	30
+Your Compliance Responsibilities	30
+AI Disclosure	30
+Human Review Before Sync	30
+Attestation via Sync	30
+Safety Documentation	30
+Confidentiality	30
+What AI Insights Are	31
+What AI Insights Are Not	31
+Your Clinical Responsibilities — A Summary	31
+
+ 
+01  Introduction & What This Tool Does
+
+Welcome to the BHG AI Notetaker
+The BHG AI Notetaker is designed to help you stay fully present with your patients. Instead of splitting your attention between the conversation and your notes, the tool quietly listens, transcribes, and surfaces relevant insights in real time so you can focus on the person in front of you. When the session ends, it generates a structured DAP/PIE note draft that you review, edit, and then sync to SAMMS.
+Think of it as a clinical assistant that handles documentation logistics but every word in the final record is yours to review, refine, and approve before it becomes part of the medical record.
+How the AI Assists You
+•	Transcribes the session in real time
+•	Surfaces live AI Insights - safety flags, CBT opportunities, and engagement check items, during the session
+•	Generates a structured DAP/PIE note draft after you end the session and review the transcript
+•	Tracks whether key items (UDS results, location confirmation) have been addressed
+•	Automatically saves clinician’s edits and logs every action in the audit trail
+
+	The AI works for you ,not the other way around. You are always in control of what goes into the clinical record.
+What the AI Will Never Do
+The AI is designed with clear boundaries to protect both patients and clinicians:
+What the AI Will NOT Do	Why This Matters
+Diagnose a patient with any condition	Diagnosis requires clinical evaluation that is clinician’s responsibility
+State or confirm suicidal/homicidal ideation as fact	SI/HI must be assessed and documented by the clinician
+Invent observations, mood states, or assessments	All clinical content must be grounded in the actual session
+Present AI suggestions as clinical conclusions	Insights are prompts, not diagnoses or treatment decisions
+Sync notes without your explicit action	You are always the last step before anything enters SAMMS
+
+ 
+02  Navigating the Application
+
+Login
+BHG AI Notetaker uses your organisation Microsoft account, there is no separate username or password to remember. You will see the BHG login page with a single Sign in with Microsoft button
+
+Login with your organisation Microsoft account
+
+
+
+
+
+
+
+
+
+
+The Sidebar
+The left-hand sidebar is your main navigation. It collapses to icons for more screen space. Click the arrow at the bottom to expand or collapse it.
+Section	What You Do Here
+Dashboard	Your home screen - today's schedule, quick stats, and what's up next
+Sessions	Full list of your sessions - start, review, and track status
+Session Management	Admin view of all counselors' sessions and sync statuses
+SAMMS Sync	Review and sync your completed notes to SAMMS
+Settings	Account and application preferences
+
+  Expanded side navigation bar view.
+
+ 
+                                                                     Collapsed side navigation bar view.
+Your Dashboard- Counselor view
+When you log in, you land on the Dashboard. My Work shows your:
+•	Up Next -  the next session ready to start, with a one-click Start Session button
+•	Session Schedule - your week's sessions grouped by day with status tags
+•	Today's Session, Notes Pending, and Synced to SAMMS - quick stats
+•	Quick Actions - start a New Session
+•	Average Talk Time Ratio - a real-time visual of the session conversation balance
+ 
+Session Status Labels
+Status	Meaning	What to Do
+Scheduled	Session is upcoming - not yet started	Click Start Session when ready
+Notes Pending	Session is done but notes haven't been synced or generated	Click View Notes to review , generate  and sync
+Synced to SAMMS	Notes are in the medical record	No action needed
+Session not held	Session time has passed and the session was not started	No action needed
+
+
+03  The Sessions List Page
+
+Viewing Your Schedule
+Click Sessions in the sidebar to see all your sessions in chronological order. Filter by status, type, or modality using the filter chips at the top.
+
+ 
+                                                                        The Sessions page with filter chips. 
+
+
+Starting a Scheduled Session
+1.	Step 1: Find your patient in the Sessions list. The next upcoming session shows "Up Next" in teal.
+2.	Step 2: Click the patient card to expand it - you'll see Primary Diagnosis, Counselor, Center, and Last Session history.
+3.	Step 3: Choose the session modality: In-person or Zoom (Telehealth).
+4.	Step 4: For Zoom: paste your Zoom meeting link in the field provided. 
+For In-person: no link needed.
+5.	Step 5: Click Start Session. 
+6.	Step 6: Confirm Patient consent
+7.	Step 7: Allow microphone
+ 
+Expanded patient card- In-person 
+
+
+ 
+Expanded patient card- Zoom
+
+ 
+
+ 
+Creating a New Ad-hoc Session
+8.	Step 1: Click + New Session at the top right of the Sessions page.
+9.	Step 2: Select Individual or Group session type.
+10.	Step 3: Select the Treatment Center from the dropdown.
+11.	Step 4: Search for and add the patient name.
+12.	Step 5: Choose In-person or Zoom. For Zoom, paste your Zoom link.
+13.	Step 6: Choose Start now or Schedule for later- Select date and time
+14.	Step 7: Click Start Session to begin or Save Draft for scheduling a session in future.
+ 
+ 
+ 
+04  Running a Live Session
+
+The Live Session Screen
+Once a session starts, the screen locks into Live Session mode. Navigation is disabled for the entire duration, you will see "Navigation is disabled during session" in the top bar. This keeps you focused on the patient without accidental navigation away.
+The screen is divided into two panels:
+•	Left panel -  AI Insights: Live, real-time suggestions surfaced by the AI as the conversation progresses.
+•	Right panel - Live Transcript: A real-time, timestamped view of what's being said by Counselor and Patient.
+Patient context is shown just below the session header: Primary Diagnosis, Patient ID, Counselor name, Last Session date, and Last Session History.
+
+ 
+The Live Session screen. AI Insights appear on the left; the transcript builds in real time on the right. Note the "Navigation is disabled during session" banner at the top.
+
+AI Insights Panel
+AI Insights are live prompts designed to help you stay therapeutically active without breaking focus. They appear as cards labeled by type:
+Card Type	Indicator	What It Means
+Safety	Red border	A potential safety signal has been detected. A suggested question is shown in red italic text to address it and assess.
+CBT Opportunity	Blue border	A therapeutic opening reframing, cognitive challenge, or exploration prompt.
+Engagement Check	Green border	Tracks required clinical checklist items: UDS results review, location confirmation. 
+
+Engagement Check Examples
+Engagement Check cards surface three standard items every session:
+•	UDS Results Review - "Before we continue, can we check in on your recent UDS results?"
+•	Location Confirmation - "Before we continue, can you confirm your location? I am in ___" 
+
+Engagement Check Reminders
+Reminders to address engagement check cards appear in every session after 10 minutes:
+•	UDS Results Review – “UDS results may not have been reviewed yet”
+•	Location Confirmation - " Location may not have been confirmed yet”
+After the session if the AI insights were addressed during the session they will be marked as: 
+•	UDS Results Review – “UDS results were reviewed”
+•	Location Confirmation - " Location was confirmed”
+If not addressed they will be marked as: 
+•	UDS Results Review – “UDS results were not reviewed this session”
+•	Location Confirmation - " Location was not confirmed this session”
+
+ 
+ 
+	Remember: AI Insights are suggestions, not instructions. Use your clinical judgment to decide whether and how to act on each one.
+Pausing & Ending a Session
+Use the Pause Recording button if you need to briefly step away or handle something off the record. The banner changes to "Recording is paused."
+ 
+When recording is paused, the banner turns pink and a Resume button appears.
+To End the Session
+Click End Session. A confirmation dialog appears — you must click the red End Session button a second time to confirm. This two-step process prevents accidental session endings.
+ 
+"Are you sure you want to end this session?" — click End Session again to confirm.
+	The confirmation modal requires a deliberate second click. You cannot accidentally end a session with a single click.
+Group Sessions - Taking Attendance
+For group sessions, the right panel shows an Attendance tracker instead of a single-patient transcript view.
+15.	Step 1: When the group session starts, the right panel opens to Attendance view.
+16.	Step 2: Find each patient who is present and click Mark Present next to their name.
+17.	Step 3: If you mark someone by mistake, click Undo immediately.
+18.	Step 4: Once attendance is set, collapse the Attendance panel to view the Live Transcript.
+ 
+Group session attendance panel. 
+AI Disclosure Footer
+A footer is permanently visible at the bottom of the Live Session screen. It reads:
+“AI-assisted insight. Final clinical judgment and treatment decisions remain the responsibility of the attending clinician.”
+This footer is always visible regardless of scroll position. It is a reminder that all AI output is advisory your clinical judgment always takes precedence. 
+05  After the Session
+
+Review Transcript
+After ending a session, you are taken to the Review Transcript screen. You can read through the full conversation in a clean chat-style view.
+You have two choices:
+•	Edit Transcript - go to the edit to correct errors, speaker labels, or missing content before generating notes
+•	Skip & Generate Notes - if the transcript looks accurate, skip editing and go straight to note generation
+
+ 
+The Review Transcript screen. 
+
+
+
+
+Editing the Transcript
+If the transcript needs corrections, click Edit Transcript. You can edit individual lines directly or reassign speaker labels.
+Editing the Transcript Individual session
+You can directly reassign speaker labels by clicking on the speaker label and with a single-click it will reassign it to the respective speaker i.e. patient/counsellor.
+ 
+Correcting Speaker Labels in Group session (Bulk)
+19.	Step 1: Click Edit in Bulk at the top right of the Edit Transcript screen.
+20.	Step 2: Check the boxes next to each message you want to reassign.
+21.	Step 3: Click Assign to Speaker , a dropdown will appear with all session participants.
+22.	Step 4: Select the correct speaker. All checked messages update instantly.
+23.	Step 5: When done, click Exit bulk mode.
+
+
+ 
+
+Bulk speaker reassignment.
+	Important: Once you edit the transcript and generate notes, the transcript becomes locked — you cannot edit it again. Make sure all transcript corrections are complete before clicking Save & Generate Notes.
+ 
+06  DAP/PIE Notes
+
+Generating Notes
+After reviewing (and optionally editing) the transcript, the system generates a structured DAP/PIE note draft. Generation typically takes a few seconds.
+
+ 
+Reviewing & Editing Your Note
+The note draft opens in an editable view. Click directly into any section to edit the text. Your changes auto-save continuously. After editing you can click on save.
+ 
+After saving, the note enters view mode.
+AI Disclaimer Footer on Notes
+A footer is permanently visible at the bottom of every DAP/PIE note page. It reads:
+“AI-assisted note generated from the session transcript. Final clinical documentation remains the responsibility of the attending clinician.”
+This footer is fixed it does not scroll away. Its purpose is to ensure that every time a note is reviewed, edited, or read, the clinician is reminded of their documentation responsibility before syncing to SAMMS. It is visible on both the editing view and the saved note view.
+Regenerating Notes
+If you feel the note missed something significant, use the Regenerate Note button (the refresh icon). This creates a new draft from the current transcript.
+	Important: Regenerating replaces the current draft. If you've made manual edits you want to keep, copy them before regenerating.
+ 
+07  Syncing to SAMMS
+
+What Syncing Means
+Syncing a note to SAMMS is clinician’s clinical attestation. It is the equivalent of signing the note. Once synced, the note enters the medical record. By clicking Sync to SAMMS, clinicians are confirming that they have reviewed the AI-generated draft, made all necessary edits, and that the content accurately reflects the session and their clinical judgment.
+	Syncing is clinician’s attestation. Synced notes cannot be edited again.
+Individual Session Sync
+From the note view, click Sync to SAMMS in the top right. The status will update to "Synced to SAMMS" with a checkmark.
+
+ 
+Individual Sync to SAMMS.
+
+
+
+
+
+
+Group Session Sync Options
+For group sessions, Sync to SAMMS has a dropdown with two options:
+Option	When to Use
+Sync This Note	Syncs only the note currently on screen. 
+Sync All Notes	Syncs all notes for all group session patients at once. 
+
+
+ 
+Group session – Sync This Note  
+ 
+Group session Sync All Notes 
+SAMMS Sync Page
+Use the SAMMS Sync page in the sidebar to see all your sessions and their sync status in one place.
+  The SAMMS Sync page - a dedicated view for managing all your pending and completed syncs.
+ 
+
+08  Admin Guide
+
+This section is for users with administrator access. Admins can see all counselors’ sessions, manage sync statuses across the team, and monitor session activity in real time. All standard counselor features still apply admins are also counselors.
+	Admin access is determined by your role in the system. If you do not see Admin Overview or Session Management in your sidebar, contact your site administrator.
+Admin Dashboard - Admin Overview Tab
+Click the Admin Overview tab on the Dashboard to see your full team’s activity at a glance.
+Summary Stat Cards
+Four cards across the top give you an instant team snapshot:
+•	Today's Sessions - total count for the day, broken down into Completed and Scheduled
+•	Notes Pending - total notes not yet synced, with breakdown into Notes Pending and Not Reviewed
+•	Synced to SAMMS -total synced out of total completed sessions; error count shown in red
+•	Sync Rate - percentage of completed sessions with notes synced, with week-over-week comparison
+
+ 
+
+
+Live Sessions Panel
+The right side of the Admin Overview shows a Live Sessions panel , a real-time list of which counselors currently have active sessions. Each entry shows the counselor’s name, patient name, session type, scheduled time, and a red elapsed timer.
+	Red timers indicate a session is actively running. A very long elapsed time may warrant a check-in with the counselor.
+Counselor Performance Table
+Below the stat cards, the Counselor Performance table shows each counselor’s weekly activity:
+Column	What It Shows
+Session	Total number of sessions this week
+Notes Pending	Count of sessions where notes have not been synced to SAMMS
+Synced to SAMMS	Count of sessions successfully synced this week
+Error	Count of failed sync attempts shown in red if any exist
+Avg. Talk-Time Ratio	Visual bar showing the balance of counselor vs. patient speech across sessions
+
+ 
+Counselor Performance table. 
+Session Management Page
+Session Management is the admin's central hub for overseeing all counselors' sessions. Access it from the sidebar or from the Admin Overview via "Go to Session Management."
+The page shows a grouped, collapsible list of sessions by counselor. Click any counselor row to expand it and see each patient’s session details, status, and available actions.
+What You Can Do
+•	Expand a counselor’s row to see all their sessions with status and actions
+•	View any session’s DAP/PIE note by clicking View Note
+•	Push a pending note to SAMMS by clicking Sync in the Actions column
+•	Retry a failed sync using the red Retry button
+
+ 
+Session Management page displaying Counselor’s list.
+
+ 
+Session Management page expands any counselor row to see individual session statuses.
+
+
+Admin vs. Counselor View
+Feature	Counselor View	Admin View
+Dashboard	My Work tab - own sessions only	Admin Overview tab - all counselors
+Session Management	Not visible	Full team view with sync control
+SAMMS Sync	Own sessions only	Can view all (sync own sessions only)
+Counselor Performance table	Not shown	Full table on Admin Overview
+Live Sessions Panel	Not shown	Real-time view of all active sessions
+
+ 
+
+09  Edge Cases & Troubleshooting
+
+Situation: Sync Failed / Error
+
+The session status shows "Error" in red, and a Retry button appears.
+24.	Step 1: Click Retry on the Session Management page or SAMMS Sync page.
+25.	Step 2: Check your internet connection and try again.
+26.	Step 3: If the error persists after two retries, contact your supervisor or IT support.
+27.	Step 4: Do not assume the note reached SAMMS - always confirm the status updates to "Synced to SAMMS."
+
+Situation: Notes Pending After Exit
+
+You closed the session screen before generating notes. The session shows "Notes Pending."
+28.	Step 1: From the Sessions page, click View Transcript vice versa the session is visible on sync to SAMMS page.
+29.	Step 2: You'll be taken to the Review Transcript screen to resume the note workflow.
+30.	Step 3: The session transcript is fully preserved ,nothing is lost.
+
+
+  Notes Pending status appears for the session for which notes are yet to generate 
+ 
+
+10  Compliance & Audit Guidelines
+
+The BHG AI Notetaker is built to support your compliance obligations , not replace your professional responsibilities. Every key action in the tool is automatically timestamped in the audit trail.
+What the Audit Trail Captures
+The audit log records when actions occurred — not what the content was. This protects patient privacy while maintaining clinical accountability:
+Audit Event	What Is Logged
+Session start / end	Timestamp only
+Note generated	Timestamp only
+Note edited	Timestamp of when the note was changed — not what changed
+Note regenerated	Timestamp of when regeneration occurred — not the previous content
+Sync to SAMMS	Timestamp and success/failure status
+Sync retry / failure	Timestamp and error status
+
+	The audit trail records when actions happened, not the content of those actions. It is a timestamp log, not a version history of the note content.
+Your Compliance Responsibilities
+AI Disclosure
+You must inform the patient at the start of each session that AI-assisted transcription and note generation is being used. The Engagement Check card tracks this as Addressed / Not Addressed.
+Human Review Before Sync
+Every note must be reviewed by you before it reaches SAMMS. Syncing without reading the note is a documentation liability.
+Attestation via Sync
+Clicking Sync to SAMMS serves as your clinical attestation. Ensure everything in the note is accurate and complete before syncing.
+Safety Documentation
+Any safety concern flagged by the AI — or arising in session — must be assessed by you and documented accurately. The AI flags possible signals; you confirm and record outcomes.
+ Confidentiality
+All session data, transcripts, and notes are protected under HIPAA. Do not share session content outside of authorised clinical channels.
+ 
+11  AI Use Guidelines for Counselors
+
+What AI Insights Are
+AI Insights are real-time prompts generated from the live transcript. They surface things you might want to address , potential safety signals, therapeutic openings, or required clinical checklist items. They are always a starting point for your clinical thinking, never a conclusion.
+What AI Insights Are Not
+•	AI Insights are not diagnoses. A Safety card is a prompt to ask — not a clinical finding.
+•	AI Insights are not mandatory. You decide whether and how to use each suggestion.
+•	AI Insights are not always correct. The AI works from audio transcription, which can mishear or misattribute.
+•	AI Insights are not a substitute for your therapeutic relationship and judgment.
+Your Clinical Responsibilities — A Summary
+Responsibility	What This Means
+You conduct the session.	The AI listens and takes notes. You lead the clinical relationship.
+You assess safety.	When a Safety card appears, you decide whether to address it, how, and what the outcome is.
+You review every note.	The AI draft is a starting point. The final note is yours.
+You sync when ready.	Syncing = attestation. Do not rush it.
+You hold diagnostic responsibility.	The AI will never tell you what a patient has. That determination is always yours.
+
+
+
+This guide is for training purposes. Clinical documentation requirements may vary by organisational policy. Always follow BHG's current clinical documentation standards and consult your supervisor with any questions about appropriate use of the AI Notetaker.
+
+
+
+
+
+
+BRD
+
+
+
+ 
+
+. ​​
+ 
+
+ 
+
+Document Control 
+
+Field  
+
+Details  
+
+Document Title  
+
+Business Requirements Document — BHG AI Counselor Note Taker  
+
+Version  
+
+3.0  
+
+Status  
+
+Draft  
+
+Author  
+
+BHG Development Team  
+
+Date Created  
+
+March 13, 2026  
+
+Last Updated  
+
+July 1, 2026  
+
+Stakeholders  
+
+Samson Teklemariam, Bonnie Lou Roberts , Keisha Haynes, Kamala Greene Genece, Patric Morgan, Paul Di Vincenzo , Benjamin Nordstrom, Christine Martin  
+
+ 
+
+ 
+
+1. Executive Summary 
+
+The BHG AI Counselor Note Taker is a web-based application designed to assist counselors at Behavioral Health Group (BHG) in documenting clinical sessions using AI-powered transcription and note generation. The application will integrate with BHG’s existing EMR system (SAMMS) and communication platform (Zoom Pro) to streamline the documentation workflow, reduce administrative burden on counselors, and improve the quality and consistency of clinical documentation across all 21 states where BHG operates treatment centers.  
+
+The system captures session audio via an AI bot that joins Zoom Pro telehealth calls or through an in-browser recording feature for in-person sessions. It provides real-time AI-generated clinical nudges during sessions, automatically generates DAP or PIE formatted notes from session transcripts, and enables manual sync of finalized notes to SAMMS. Counselors retain full control over reviewing, editing, and approving notes before they are pushed to SAMMS, where supervisor co-signature and the standard EMR workflow continue as usual.  
+
+ 
+2. Project Objectives 
+
+Reduce counselor documentation time by automating clinical note generation from session audio and transcripts  
+
+Improve clinical documentation quality and consistency through AI-assisted prompts, evidence-based practice nudges, and standardized note formatting  
+
+Maintain strict HIPAA compliance and patient confidentiality throughout every step of the documentation workflow  
+
+Integrate seamlessly with SAMMS (EMR) for pulling appointment/session data and pushing finalized notes  
+
+Support multiple session types including in-person individual, telehealth individual (Zoom Pro), and unplanned walk-in sessions  
+
+Provide admin-level analytics and performance metrics for clinical quality oversight and counselor performance tracking  
+
+Support both DAP note format (used in 20 states) and PIE note format (used in North Carolina) based on treatment center configuration  
+
+Enable counselors to focus on patient interaction during sessions rather than manual notetaking 
+
+3. Scope 
+
+3.1 In Scope (Phase 1)  
+
+Web-based application accessible via modern browsers (Chrome, Edge, Firefox, Safari)  
+
+Microsoft Azure AD Single Sign-On (SSO) authentication  
+
+Role-based access control with two roles: Counselor and Admin  
+
+Session management: viewing, filtering, & creating adhoc sessions  
+
+Actual time-based session tracking 
+
+Tracking of patients joining the session though zoom call 
+
+AI-powered real-time audio transcription during active sessions  
+
+Real-time clinical nudges displayed to the counselor during sessions  
+
+Automatic AI generation of DAP and PIE formatted clinical notes from transcripts  
+
+Transcript review, editing before generating notes  
+
+Note review, editing, and regeneration capabilities  
+
+Manual sync of finalized and approved notes to SAMMS  
+
+Note locking after SAMMS sync (SAMMS becomes system of record)  
+
+Admin dashboard with counselor performance analytics and metrics  
+
+Zoom Pro integration via AI bot joining telehealth calls  
+
+In-browser audio recording for in-person sessions  
+
+English language support only   
+
+3.2 Out of Scope (Phase 1)  
+
+Multilingual support (Spanish and other languages - planned for future phases)  
+
+Native mobile application (iOS/Android)  
+
+Automatic SAMMS sync (manual sync only in Phase 1)  
+
+Medical team access and workflows  
+
+PRC/Admin billing workflows  
+
+8x8 audio platform integration (to be evaluated for future phases)  
+
+Direct patient-facing features 
+
+Offline recording and upload from personal devices  
+
+Reset edited notes to AI generated notes 
+
+Tracking patient joining session for In-person group session 
+
+Integration with online meeting platforms other than Zoom 
+
+ 
+
+ 
+
+4. User Roles and Access 
+
+The application implements role-based access control with two roles:  
+
+Role  
+
+Access Level  
+
+Description  
+
+Counselor  
+
+Own records only  
+
+Can view and manage only their own sessions, transcripts, and notes. Can create sessions, start recordings, review/edit transcripts, edit generated notes, and manually sync approved notes to SAMMS. Access spans all assigned treatment centers.  
+
+Admin  
+
+System-wide  
+
+Full access to all counselor records, sessions, transcripts, and notes across all treatment centers. Can view analytics dashboards and oversee the entire documentation workflow. Can configure session inactivity thresholds. 
+
+Key access rules:  
+
+Counselor A cannot view, edit, or approve Counselor B’s sessions, transcripts, or notes  
+
+Admins have unrestricted read and management access across all treatment centers and all counselor records  
+
+A single counselor may be assigned to multiple treatment centers (e.g., a counselor working at both Center A and Center B)  
+
+Sessions from all assigned centers are visible to the counselor, with filtering options by center, 
+
+Supervisor co-signature workflow occurs within SAMMS after notes are synced, not within this application  
+
+ 
+
+5. Authentication 
+
+5.1 Authentication Method  
+
+Use Microsoft Azure AD Single Sign-On (SSO) to login into the application  
+
+All BHG staff have Microsoft 365 accounts with Teams access  
+
+Multi-Factor Authentication (MFA) via Microsoft Authenticator  
+
+5.2 Session Management  
+
+Session timeout after configurable period of inactivity  
+
+Automatic logout with unsaved work warning  
+
+Single active session per user (prevent concurrent logins)  
+
+Note: Detailed authentication requirements and security configurations to be finalized with Paul Di Vincenzo and Patrick from IT. 
+
+ 
+
+6. Functional Requirements 
+
+6.1 Login Page 
+
+The login page is the entry point for all users.  
+
+Requirements:  
+
+Display BHG branding (logo, brand colors) on the login page  
+
+Provide a “Sign in with Microsoft” button that initiates Azure AD SSO flow  
+
+On successful authentication, retrieving user profile (name, email, role, assigned treatment centers) from the system  
+
+If the user has only one assigned treatment center, auto-select it and navigate directly to the dashboard  
+
+Displaying appropriate error messages for failed authentication attempts  
+
+Redirect unauthenticated users attempting to access any page back to the login screen 
+
+6.2 Dashboard (Landing Page) 
+
+The dashboard is the first page shown after logging in and treatment center selection. It provides an at-a-glance overview tailored to the user’s role.  
+
+6.2.1 Counselor Dashboard  
+
+Welcome message with counselor’s name 
+
+Upcoming Session with patient details and “Start Session” action 
+
+Sessions Schedule: list with sessions (Scheduled, Notes Pending, Completed) scheduled for past 3 days, today and tomorrow 
+
+Session Statistics cards: Today’s sessions, Notes pending, Synced to SAMMS 
+
+Quick Actions: New Session 
+
+Talk-Time Ratio: Counselor vs Patient speaking percentage 
+
+6.2.2 Admin Dashboard  
+
+All counselor dashboard metrics plus the following: 
+
+Admin Overview: 
+
+Aggregated view of all counselors 
+
+Total sessions, notes pending, synced to SAMMS, sync rate 
+
+Counselor performance summary (sessions, notes, errors) 
+
+My Work: 
+
+Metrics specific to logged-in admin activities 
+
+All functionalities from Counselor dashboard 
+
+Live Sessions: ongoing sessions of all counselors with duration 
+
+Talk-Time Analysis: average counselor vs patient ratio 
+
+Sync Rate: The system shall display the Sync Rate, calculated as the percentage of all eligible clinical notes (including synchronized, failed, and pending notes) that have been successfully synchronized with SAMMS. 
+
+6.3 Sessions Workflow 
+
+The Sessions page is the core operational page where counselors manage their clinical sessions.  
+
+6.3.1 Session List View  
+
+Display all sessions for the logged-in counselor, sorted by date (most recent first) (Today and Tomorrow) 
+
+Each session card/row displays: session time, patient name(s), session type (In-Person/Zoom), treatment center name, session status (Scheduled, In-Progress, Completed, Notes Pending, Synced to SAMMS), treatment center, icons to differentiate single or group session 
+
+Filtering capabilities: by treatment center, by date range, by session type, by status, by patient name search, by modality  
+
+Sorting: by date (ascending/descending), by status, by patient name  
+
+Infinite scroll for large session lists up to 50 
+
+Admin users can view sessions across all counselors with an additional counselor name filter 
+
+6.3.2 Modality  
+
+The application must support the following session types:  
+
+ 
+
+ 
+
+Modality  
+
+Description  
+
+Participants  
+
+Recording Method  
+
+Individual In-Person  
+
+One-on-one counseling session conducted face-to-face at the treatment center  
+
+1 counselor + 1 patient  
+
+In-browser audio recording via web portal  
+
+Individual Telehealth  
+
+One-on-one counseling session conducted via Zoom Pro video call  
+
+1 counselor + 1 patient  
+
+AI bot joins Zoom Pro call and captures audio  
+
+General Group  
+
+Open group therapy session where any patient from a counselor’s caseload may attend  
+
+1 counselor + multiple patients  
+
+AI bot joins Zoom Pro call or in-browser recording for in-person groups  
+
+Unplanned/Walk-in  
+
+Ad-hoc session when a patient arrives without a scheduled appointment and the counselor has availability  
+
+1 counselor + 1 patient  
+
+Counselor creates session on the spot and uses in-browser recording  
+
+ 
+
+6.3.3 Creating a New Session - Adhoc Session 
+
+For unplanned/walk-in sessions that are not pre-scheduled in SAMMS:  
+
+Counselor clicks “New Session” from the Sessions page or Dashboard  
+
+A form collects: patient selection (search by name), session type (individual/group), modality (in-person), treatment center (pre-filled with active center)  
+
+If the session type is Telehealth, a zoom meeting link should be provided 
+
+For group sessions: ability to add multiple patients  
+
+Upon creation, the page navigates to live session screen or appears in the session list with status “Up Next” if scheduled for later  
+
+6.3.4 Scheduled Sessions (from SAMMS)  
+
+Sessions scheduled in the SAMMS appointment scheduler are automatically pulled into the application:  
+
+The system periodically syncs with SAMMS to retrieve upcoming appointments for the counselor  
+
+Synced sessions display the appointment details: patient, date/time, type, treatment center  
+
+Counselors cannot edit the scheduling details of SAMMS-synced sessions (read-only from SAMMS)  
+
+A counselor working at multiple centers will see sessions from all centers, with the center name displayed on each session  
+
+ 
+
+6.4 Active Session: Recording, Transcription, and Nudges 
+
+This is the core real-time experience when a counselor is actively conducting a session with a patient.  
+
+6.4.1 Starting a Session  
+
+6.4.1.1 Adhoc Session: 
+
+Counselor opens the session 
+
+Select the treatment center, patient, session type and clicks “Start Session” for In-Person. 
+
+For Zoom, as the counselor provides the meeting link and starts the session, AI bot joins the call and starts the session.   
+
+If there is a session using waiting rooms, the counselor will be notified with a message saying, ‘AI bot waiting to join the session’.  
+
+Counselor should manually admit the Bot. Once bot joins the call, counselor will be notified from the application starting the session transcription. 
+
+6.4.1.2 Scheduled Session: 
+
+After scheduled sessions are synced from SAMMS, session page will display the list of scheduled sessions. 
+
+For Zoom session:  
+
+Counselor opens the session card 
+
+Visit type is set as Zoom. 
+
+The meeting link will be auto populated as we pull the meeting link from SAMMS along with the appointment. 
+
+Once counselor confirms the details and clicks on the start session, AI bot will join the meeting. 
+
+The session will start with recording, and the transcript will be captured 
+
+For in-person:  
+
+Counselor opens the session 
+
+Visit type is set to In-person 
+
+Counselor will click on the Start session button, and the transcript will be captured 
+
+A session timer starts showing elapsed time 
+
+The session status changes to “In-Progress”  
+
+A pause button appears to pause the session in middle 
+
+6.4.2 Real-Time Transcription  
+
+As the session progresses, the AI generates a live transcript displayed on the session page  
+
+The transcript shows speaker identification (Counselor vs Patient) with timestamps  
+
+For group sessions: the AI attempts to distinguish between multiple speakers with names (if names are mentioned in the session) (Patient 1, Patient 2, etc.)  
+
+The transcript auto-scrolls to show the latest content  
+
+The counselor can see the transcript in real-time but is not expected to interact with it during the session (focus is on the patient)  
+
+6.4.3 Real-Time Clinical Nudges  
+
+During an active session, the AI analyzes the conversation in real-time and provides contextual nudges to the counselor. Nudges appear in a dedicated panel on the session page, visually distinct from the transcript.  
+
+Nudge Categories:  
+
+Nudge Category  
+
+Description  
+
+When triggered  
+
+Example  
+
+Confidentiality & AI Disclosure  
+
+Remind the counselor to inform the patient about AI-assisted documentation and obtain verbal acknowledgment  
+
+Automatically at session start  
+
+“Reminder: Inform the patient that AI is assisting with documentation today so you can focus on them.”  
+
+Location Confirmation  
+
+Prompt to confirm the physical location of both the patient and the counselor for billing/compliance  
+
+Automatically at session start  
+
+“Please confirm your location and the patient’s location for the record.”  
+
+Emergency Protocol  
+
+Remind the counselor of emergency procedures in case of patient crisis  
+
+Automatically at session start  
+
+“Reminder: If the patient is in crisis, end the session and call 911. Follow BHG emergency protocol.”  
+
+Evidence-Based Practice (EBP)  
+
+Suggest therapeutic techniques, motivational interviewing questions, and clinical prompts based on the conversation context  
+
+Contextual — AI detects relevant conversation topics  
+
+“Consider asking: On a scale of 1–5, how ready do you feel to make this change?”  
+
+Assessment Recommendation  
+
+Prompt the counselor to administer a clinical assessment based on patient statements indicating risk  
+
+AI detects keywords related to self-harm, depression, substance use escalation, etc.  
+
+“The patient mentioned not wanting to be here. Consider administering a suicide risk assessment (C-SSRS).”  
+
+Nudge Behavior:  
+
+Nudges appear non-intrusively in a main panel, so they don’t distract from the patient interaction  
+
+When a mandatory prompt has not yet been discussed or confirmed during the session, the system shall display an appropriate pending status message, such as “Location may not have been confirmed yet.”  
+
+Once the required topic is identified as discussed or confirmed within the session conversation, the status shall automatically update to “Addressed.”  
+
+The addressed/not addressed status shall be visually distinguishable for quick counselor review, such as:  
+
+‘Not Addressed’ marking for unaddressed prompts  
+
+‘Addressed’ marking for addressed prompts 
+
+Future phases may allow custom nudge templates per treatment center or program  
+
+ 6.4.4 Ending a Session  
+
+Counselor clicks “End Session” to stop recording/transcription  
+
+A confirmation dialog appears: “Are you sure you want to end this session?”  
+
+Upon confirmation, the recording stops and audio is finalized  
+
+For Zoom Pro sessions: the AI bot leaves the call  
+
+Session status changes to “Completed — Generating Notes”  
+
+The AI begins processing the full transcript to generate formatted clinical notes (this may take 20-40 seconds)  
+
+Session duration is recorded  
+
+Audio file is saved and can be accessible in the transcript screen  
+
+Talk-time analytics are computed (counselor vs patient speaking percentages) for Individual sessions 
+
+Detect inactivity (silence/no interaction) and, after 5 minutes, display a warning to the counselor; if inactivity continues for another 5 minutes, automatically end the session and stop recording, with the total inactivity window (10 minutes) being configurable. 
+
+6.5 Post-Session: Transcript Review and Editing 
+
+After a session ends, the counselor can review and edit the full transcript before notes are finalized.  
+
+The complete session transcript is displayed with speaker labels and actual start and end timestamps   
+
+The counselor can click on any text segment to edit it (e.g., correct a misheard medical term, fix dialect-related transcription errors)  
+
+The original AI-generated text is preserved alongside the edited version for audit purposes  
+
+After session is completed, counselor can edit the transcript and click “Save & Generate Notes” to generate the notes  
+
+After the notes are generated, if the counselor makes any edits to the notes and save them. 
+
+Counselors can click “Regenerate Notes” to generate the clinical notes if they are not satisfied with initial draft. 
+
+Talk-time breakdown is displayed: percentage of session time the counselor spoke vs the patient spoke  
+
+For group sessions: individual participant talk-time percentages are shown 
+
+Session audio files are accessible for reference  
+
+6.6 AI-Generated Clinical Notes  
+
+The AI automatically generates formatted clinical notes from the session transcript. The note format is determined by the treatment center’s state configuration.  
+
+6.6.1 Note Formats  
+
+Format  
+
+Used In  
+
+Sections  
+
+Section Descriptions  
+
+DAP  
+
+20 states (majority of BHG centers)  
+
+Data, Assessment, Plan  
+
+Data: Objective and subjective information gathered during the session. Assessment: Clinical interpretation, progress evaluation, and diagnostic impressions. Plan: Treatment goals, next steps, and follow-up actions.  
+
+PIE  
+
+North Carolina only  
+
+Plan, Intervention, Evaluation  
+
+Plan: Treatment goals and objectives. Intervention: Specific clinical actions taken during the session. Evaluation: Patient response and progress toward goals.  
+
+ 6.6.2 Note Generation Process  
+
+Individual session: 
+
+After the session ends (or after transcript edits are complete), the AI processes the transcript  
+
+The AI generates each section of the note (D/A/P or P/I/E) as separate text fields, matching the format used in SAMMS  
+
+Each section is displayed in an editable text area on the Note Review page  
+
+The counselor reviews each section and can make edits directly in the text fields  
+
+The “Regenerate notes” button allows the counselor to ask the AI to regenerate note  
+
+The note also includes auto-populated metadata: session date, session duration, patient name(s), counselor name, treatment center, session type, modality  
+
+A “View Transcript” link is available to cross-reference the generated notes with the source transcript  
+
+After reviewing the notes, counselors click on SYNC TO SAMMS button to sync the notes to SAMMS. 
+
+ When the counselor opens the transcript, an audio section is available where the counselor can listen to the session recording if needed. 
+
+When the counselor opens the transcript, each conversation segment included a “Play audio from here” option, which allows playback starting from the corresponding timestamp. 
+
+The SAMMS SYNC page shall display only records where the session has been completed, and valid notes have been generated.  
+
+Records in Transcript review stage shall be displayed on the Notes page with button ‘View Transcript’ 
+
+This applies to both individual and group session records.  
+
+Group session: All functionalities from Individual Session apply to Group Session as well 
+
+Multiple patients are displayed at the top of the screen as selectable tabs 
+
+A “+ more” option is available to view additional patients in a dropdown list 
+
+On selecting a patient, the corresponding notes for that patient are displayed 
+
+The counselor can switch between patients to review notes individually 
+
+Notes are maintained separately for each patient within the same session 
+
+The counselor reviews note for each patient one after the other 
+
+Actions such as edit, regenerate, and approve are performed at the individual patient level 
+
+A “Sync to SAMMS” option is available with multiple actions 
+
+The system provides an option to sync the current patient only 
+
+The system provides an option to sync all patients 
+
+On clicking sync for a patient, a confirmation popup is displayed 
+
+The user must confirm before syncing the note 
+
+The confirmation message indicates that once synced, the note cannot be edited 
+
+On clicking sync for all patients, a confirmation popup is displayed 
+
+All patient notes are synced together upon confirmation 
+
+Once synced, notes cannot be edited 
+
+The selected patient is highlighted in the patient list 
+
+The dropdown displays additional patients beyond the visible tabs 
+
+Sync actions are accessible from the top right of the screen 
+
+ 
+
+6.7 SAMMS Integration and Sync  
+
+SAMMS is BHG’s Electronic Medical Record (EMR) system and the system of record for all clinical documentation. The AI Note Taker integrates with SAMMS for both pulling session data and pushing finalized notes.  
+
+6.7.1 Data Pull from SAMMS  
+
+Counselor appointment/session schedules are pulled from the SAMMS scheduler  
+
+Patient demographic information is pulled from SAMMS for session context  
+
+Treatment center configuration (name, state, note template type) is maintained in sync with SAMMS  
+
+Sync frequency and method to be determined based on SAMMS API capabilities  
+
+6.7.2 Note Sync to SAMMS  
+
+Sync is manual only — the counselor must explicitly click “Sync to SAMMS” for each approved note  
+
+Before syncing, a confirmation dialog shows the note summary and asks the counselor to confirm  
+
+The note data (D/A/P or P/I/E sections) is pushed to the corresponding fields in SAMMS  
+
+Session metadata (date, duration, type, modality, patient, counselor) is included in the sync payload  
+
+Upon successful sync, the note status in the AI application changes to “Synced”  
+
+Once synced, the note is locked in the AI application — no further editing is allowed. SAMMS becomes the system of record.  
+
+Any subsequent edits must be made directly in SAMMS by the counselor or supervisor  
+
+Supervisor co-signature occurs within SAMMS, not within the AI application  
+
+A sync history log is maintained showing: sync timestamp, counselor, note ID, success/failure status  
+
+If sync fails (e.g., SAMMS unavailable), the counselor is notified and can retry  
+
+ 
+
+6.7.3 SAMMS API Requirements (To Be Confirmed)  
+
+The following API capabilities are required from SAMMS and need to be confirmed with the Informatics team:  
+
+API type: REST, SOAP 
+
+Endpoint for pulling counselor appointment schedules by date range and treatment center  
+
+Endpoint for pulling patient demographic data (name, ID, assigned counselor, treatment center)  
+
+Endpoint for pushing DAP/PIE note content into the correct fields in SAMMS  
+
+Authentication mechanism for API access (API keys, OAuth tokens, service accounts)  
+
+Data field mapping: exact field names and table structure for DAP/PIE note storage  
+
+Rate limits and data transfer constraints  
+
+If APIs are not available: alternative integration methods (direct DB access, CSV/file-based import, SFTP)  
+
+6.8 Sessions Page  
+
+A dedicated page in the application for managing the sync workflow between the AI Note Taker and SAMMS. 
+
+List of all sessions with details: Patient Name, Session Type, Session Modality, Treatment Center 
+
+Status indicators: Notes Pending, Synced to SAMMS 
+
+Actions available per session: 
+
+Sync (for Notes Pending) 
+
+Retry (for failed sync attempts) 
+
+View Note 
+
+View Transcript 
+
+Ability to trigger sync for individual sessions 
+
+Search functionality to filter sessions by patient name 
+
+Filter options for session attributes (e.g., treatment center, status) 
+
+Visual indicators for sync status (pending, success) 
+
+Error handling with retry capability for failed sync attempts 
+
+6.9 Session Management (Admin) 
+
+A dedicated page in the application for managing the sync workflow between the AI Note Taker and SAMMS. 
+
+Overview tiles showing: Ready to Sync Note count, Synced notes count, Sync Errors count 
+
+List of all notes with their sync status (Notes pending, Synced, Error) 
+
+List of counselor names displayed; on clicking a counselor, it expands to show the notes associated with that counselor 
+
+Ability to select individual notes and click “Sync to SAMMS” 
+
+Bulk sync option for multiple approved notes 
+
+Error details and retry capability for failed syncs 
+
+Sync history with timestamps and status 
+
+Filter by: treatment center, counselor, date range, sync status 
+
+Admin can review notes associated with each counselor one after the other and perform actions same as counselor 
+
+6.10 Settings 
+
+Admin-only access: Only Admin users can view settings page and modify session inactivity settings; counselors do not have access to these configurations 
+
+Configurable parameters: 
+
+Session inactivity warning time (default: 5 minutes) 
+
+Auto-end duration after warning (default: additional 5 minutes) 
+
+Validation: 
+
+Configured values must fall within a defined acceptable range (if enforced) to ensure system stability and prevent misuse 
+
+6.11 Navigation Structure  
+
+The application uses a left sidebar navigation with the following menu items:  
+
+Menu Item 
+
+Icon 
+
+Available To 
+
+Description 
+
+Dashboard 
+
+Grid/Home 
+
+All roles 
+
+Landing page with session overview, metrics, and quick actions 
+
+Sessions 
+
+Calendar 
+
+All roles 
+
+Session list, session details, and navigation to active sessions 
+
+Session Management 
+
+Users/List 
+
+Admin 
+
+Manage sessions across counselors and view aggregated data 
+
+SAMMS Sync 
+
+Sync/Refresh 
+
+All roles 
+
+View sync status, manage sync to SAMMS, and retry failed syncs 
+
+Settings 
+
+Gear 
+
+Admin 
+
+Application settings and configurations 
+
+Logout 
+
+Exit 
+
+All roles 
+
+Logout from the application  
+
+The sidebar is collapsible to maximize content area  
+
+When collapsed, only icons are shown; when expanded, icons + labels are displayed  
+
+The main content area dynamically adjusts width when sidebar is toggled  
+
+The top header bar shows active treatment center with a dropdown switcher, user profile with initials avatar, and a search bar  
+
+BHG logo is displayed at the top of the sidebar  
+
+7. Non-Functional Requirements  
+
+Category  
+
+Requirement  
+
+Details  
+
+Security  
+
+HIPAA Compliance  
+
+All data handling, storage, and transmission must comply with HIPAA regulations. Business Associate Agreements (BAAs) must be in place with all third-party AI and cloud providers.  
+
+Security  
+
+Authentication  
+
+Azure AD SSO with MFA. Session tokens with configurable expiry. CSRF protection in all forms.  
+
+Security  
+
+Authorization  
+
+Role-based access control enforced at both UI and API levels. Counselors cannot access other counselors’ data even by manipulating API requests.  
+
+Privacy  
+
+Data Residency  
+
+All data stored within the United States. No session data stored on personal devices.  
+
+Privacy  
+
+Data Retention  
+
+Audio recordings, transcripts, and notes retained by BHG data retention policy (to be defined).  
+
+Performance  
+
+Transcription Latency  
+
+Real-time transcription with less than 3 seconds delay from speech to text display.  
+
+Performance  
+
+Nudge Delivery  
+
+AI nudges delivered within 5 seconds of the triggering conversation context.  
+
+Performance  
+
+Note Generation  
+
+DAP/PIE notes generated within 40 seconds of session end.  
+
+Performance  
+
+Page Load  
+
+All pages load within 2 seconds on standard broadband connections.  
+
+Availability  
+
+Uptime  
+
+99.5% uptime during business hours (6 AM – 10 PM across all US time zones).  
+
+Scalability  
+
+Concurrent Users  
+
+Support concurrent sessions across all treatment centers without performance degradation.  
+
+Browser Support  
+
+Compatibility  
+
+Chrome (latest 2 versions), Edge (latest 2 versions), Firefox (latest 2 versions), Safari (latest 2 versions).  
+
+Language  
+
+Phase 1  
+
+English only. Multilingual support planned for future phases.  
+
+Audit Trail  
+
+Logging  
+
+Track all significant events: login/logout, session start/end, transcript edits (with before/after), note edits, SAMMS sync events, user management changes.  
+
+8. UI/UX Requirements  
+
+Counselor-facing views should be simple and uncluttered — the primary goal is to minimize distraction from patient interaction 
+
+Admin views include richer data visualizations, tables, and analytics charts  
+
+Responsive web design optimized for desktop (primary) 
+
+Consistent use of BHG logo, iconography, and typography across all pages  
+
+Wireframes and mockups to be shared with the clinical team for review and feedback before development  
+
+Color is never used as the sole means of conveying information. Every status and tag uses both color and a label or icon 
+
+AI nudge urgency levels use color, icon shape, and text label together. A colorblind counselor can distinguish a safety signal from a clinical opportunity without relying on red vs blue alone. eye without demanding immediate action  
+
+8.1 Specifications: 
+
+Minimal, clean, and professional interface using BHG brand colors:  
+
+Primary: #00334A - used for primary actions. Contrast ratio against white: 12.4:1 (exceeds AA and AAA thresholds) 
+
+Secondary: # 0296D6 - used for secondary actions, links, AI-generated content indicators, and focus states. Contrast ratio against white: 4.6:1 (meets AA for normal text, large text, and UI components) 
+
+Light blue: # DBF2FB - used for backgrounds and selected states 
+
+Minimum body text size 12px, preferably 13–14px for clinical reading contexts. Line height minimum 1.5 for paragraph text. Letter spacing is not overridden in ways that reduce legibility 
+
+No content flashes more than 3 times per second, which is the seizure threshold 
+
+The active session screen is designed for dual-screen use: counselors may have Zoom on one monitor and the AI Note Taker on the other 
+
+At non-maximized widths, the primary AI insights panel remains fully readable 
+
+Minimum tested viewport for the session screen: 960px wide. Below this width, a simplified single-column layout activates 
+
+9. Assumptions 
+
+All BHG counselors have Microsoft 365 accounts with Teams access and can authenticate via Azure AD  
+
+SAMMS has or will have API capability for pulling appointments, patient's data and pushing clinical notes  
+
+BHG clinical leadership will develop and deliver training to counselors on using the AI Note Taker  
+
+BHG will update patient consent forms to include AI-assisted documentation disclosure before go-live  
+
+Session scheduling primarily happens in SAMMS; the AI app pulls this data rather than duplicating scheduling functionality  
+
+Adhoc sessions are scheduled in the application and generated   
+
+Zoom Pro is the primary telehealth platform for video sessions and supports an AI bot joining calls  
+
+Counselors have access to computers with microphones for in-person session recording  
+
+Internet connectivity is available at all treatment centers during session hours  
+
+10. Dependencies 
+
+Dependency  
+
+Owner  
+
+Status  
+
+Impact if delayed  
+
+Microsoft Azure AD SSO configuration   
+
+Paul Di Vincenzo / Patrick (IT)  
+
+Confirmed  
+
+Blocks user authentication; development can proceed with mock auth  
+
+SAMMS API availability, documentation, and field mapping  
+
+Paul Di Vincenzo (Informatics)  
+
+In Progress  
+
+Blocks SAMMS data pull and note sync features; core session/note features can proceed independently  
+
+PIE note template format and field specifications  
+
+Clinical Leadership (Samson, Bonnie Lou, Keisha)   
+
+Confirmed  
+
+Blocks PIE note generation for North Carolina centers; DAP can proceed  
+
+DAP note sample templates and field specifications  
+
+Clinical Leadership (Samson, Bonnie Lou, Keisha)  
+
+Provided  
+
+Blocks DAP note generation for North Carolina centers; DAP can proceed   
+
+Patient consent form updates  
+
+Clinical Leadership (Samson, Boni Lou, Keisha)  
+
+Planned before go-live  
+
+Blocks production rollout; does not block development  
+
+Staff training plan and materials  
+
+Clinical Leadership + Dev Team  
+
+In Progress 
+
+Blocks production rollout; does not block development  
+
+Zoom Pro API access for AI bot integration  
+
+Patric Morgan  
+
+Provided  
+
+Blocks telehealth recording feature; in-person recording can proceed  
+
+LLM+STT  
+
+Patric / Paul  
+
+Provided  
+
+Currently using Seanergy licenses  
+
+ 
+
+ 
+
+ 
+
+11. Glossary 
+
+Term  
+
+Definition  
+
+SAMMS  
+
+BHG’s Electronic Medical Record (EMR) system used for patient records, appointment scheduling, and clinical documentation storage  
+
+DAP Notes  
+
+Clinical documentation format used in 20 states: Data (objective/subjective session information), Assessment (clinical interpretation), Plan (next steps and goals)  
+
+PIE Notes  
+
+Clinical documentation format used in North Carolina: Plan (treatment goals), Intervention (actions taken), Evaluation (patient response and progress)  
+
+Zoom Pro  
+
+Video telehealth platform used by BHG for individual and group counseling sessions conducted remotely  
+
+SSO  
+
+Single Sign-On — authentication method allowing users to log in once with Microsoft Azure AD credentials to access the application  
+
+Nudges  
+
+Real-time AI-generated clinical prompts and suggestions displayed to counselors during active sessions to support best practices  
+
+ 
+
+ 

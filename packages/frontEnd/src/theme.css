@@ -1,0 +1,91 @@
+/* ============================================================
+   APP THEME — edit colors here; the whole app picks them up
+   via CSS variables (same idea as a Tailwind theme config).
+
+   Currently: LIGHT (white) mode — swap the semantic block
+   back to dark values if you prefer the previous look.
+   ============================================================ */
+
+:root {
+  color-scheme: light;
+
+  /* ── Brand / semantic (edit these) ─────────────────────── */
+  --color-background: #F5F8FA;
+  --color-surface: #FFFFFF;
+  --color-surface-light: #EFF5F7;
+
+  --color-primary: #00334A;
+  --color-secondary: #007FA8;
+  --color-accent: #0296D6;
+  --color-accent-light: #48B9E5;
+
+  --color-button: #00334A;
+  --color-button-hover: #002536;
+
+  --color-text: #162A33;
+  --color-text-secondary: #52666F;
+  --color-muted: #788B93;
+  --color-border: #DCE6EA;
+
+  /* ── Status (optional tweaks) ──────────────────────────── */
+  --color-danger: #ef4444;
+  --color-warning: #f59e0b;
+  --color-success: #10b981;
+
+  /* ── Mapped aliases used across the app (don’t rename) ─── */
+  --bg: var(--color-background);
+  --bg-alt: var(--color-surface-light);
+  --surface: var(--color-surface);
+  --surface-raised: #ffffff;
+  --border: var(--color-border);
+  --border-light: #F1F5F9;
+
+  --primary: var(--color-primary);
+  --primary-dark: #002536;
+  --primary-light: #E2F2F8;
+  --button: var(--color-button);
+  --button-hover: var(--color-button-hover);
+  --secondary: var(--color-secondary);
+  --accent: var(--color-accent);
+  --accent-light: #DBF2FB;
+
+  --text-primary: var(--color-text);
+  --text-main: var(--color-text);
+  --text-secondary: var(--color-text-secondary);
+  --text-muted: var(--color-muted);
+  --text-inverse: #ffffff;
+
+  --danger: var(--color-danger);
+  --danger-light: rgba(239, 68, 68, 0.1);
+  --warning: var(--color-warning);
+  --warning-light: rgba(245, 158, 11, 0.1);
+  --success: var(--color-success);
+  --success-light: rgba(16, 185, 129, 0.1);
+
+  --purple: var(--color-primary);
+  --purple-light: var(--primary-light);
+
+  --sidebar-bg: var(--color-surface);
+  --sidebar-hover: var(--color-surface-light);
+  --sidebar-active: var(--primary-light);
+  --sidebar-text: var(--color-text-secondary);
+  --sidebar-text-active: var(--color-primary);
+  --sidebar-border: var(--color-border);
+  --sidebar-width: 260px;
+  --topbar-height: 68px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.07), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.09), 0 2px 5px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12), 0 3px 8px rgba(0, 0, 0, 0.06);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.15), 0 6px 16px rgba(0, 0, 0, 0.08);
+
+  --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}

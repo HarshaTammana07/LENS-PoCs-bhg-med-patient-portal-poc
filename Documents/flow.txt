@@ -1,0 +1,266 @@
+A good BHG end-to-end patient journey looks like this:
+
+AWARENESS / NEED FOR HELP
+        ↓
+Patient realizes they need treatment
+or is referred by:
+• Hospital / ER
+• Court / probation
+• Family
+• Another provider
+• Community organization
+• Self-referral
+        ↓
+CONTACT BHG
+        ↓
+Patient may:
+• Call BHG / contact center
+• Walk into a treatment center
+• Come through referral
+• Use online / intake channels
+        ↓
+PRE-ADMISSION / INTAKE LEAD
+        ↓
+BHG collects initial information:
+• Name / demographics
+• Contact information
+• Substance-use situation
+• Preferred treatment center
+• Referral source
+• Insurance information
+• Appointment preference
+        ↓
+INITIAL ELIGIBILITY / ACCESS CHECK
+        ↓
+BHG determines:
+• Is the patient appropriate for the program?
+• Which clinic should they attend?
+• OTP / OBOT / other program?
+• Insurance / Medicaid / Medicare / self-pay?
+• Is prior authorization required?
+• Is financial assistance needed?
+        ↓
+APPOINTMENT / PPA CREATED
+        ↓
+Patient gets:
+• Intake appointment
+• Treatment center
+• Date / time
+• Counselor / provider routing
+        ↓
+PATIENT ARRIVES FOR FIRST VISIT
+        ↓
+IDENTITY + REGISTRATION
+        ↓
+• ID verification
+• Insurance card
+• Patient demographics
+• Consent forms
+• Financial setup
+        ↓
+CLINICAL INTAKE
+        ↓
+• Medical examination
+• Substance-use history
+• Withdrawal assessment / COWS
+• Counselor interview
+• ASAM assessment
+• Pregnancy assessment if relevant
+• Risk / safety evaluation
+        ↓
+CLINICAL DECISION
+        ↓
+Is patient appropriate for treatment?
+        │
+   ┌────┴────┐
+   │         │
+  NO        YES
+   │         │
+Referral /   ↓
+alternate   ENROLLMENT
+care         ↓
+          Patient becomes
+          part of active census
+              ↓
+        TREATMENT PLAN
+              ↓
+     Medication + Counseling
+       + Labs + Support
+              ↓
+      MEDICATION ORDER
+              ↓
+     Physician/provider creates
+     legal medication instruction
+              ↓
+         FIRST DOSE
+              ↓
+      Ongoing treatment begins
+              ↓
+ ┌───────────────────────────────────┐
+ │            DAILY / PERIODIC LOOP  │
+ │                                   │
+ │ Check-In                          │
+ │    ↓                              │
+ │ Dosing Window                     │
+ │    ↓                              │
+ │ Medication / Take-Home            │
+ │    ↓                              │
+ │ Counseling / Darts                │
+ │    ↓                              │
+ │ UA / Labs                         │
+ │    ↓                              │
+ │ Reassessment                      │
+ │    ↓                              │
+ │ Billing / Claims / Payment        │
+ └───────────────────────────────────┘
+              ↓
+       PATIENT PROGRESS
+              ↓
+ Stable → more take-homes / less frequent visits
+ OR
+ Issues → holds / reassessment / increased monitoring
+              ↓
+        CONTINUE TREATMENT
+              ↓
+ Eventually:
+ • Successful discharge
+ • Transfer to another clinic
+ • Leave treatment
+ • Restart later
+
+This matches the BHG operating model very closely. In the source, the formal patient journey is described as intake / PPA → medical exam + counselor + consents → first dose → daily treatment loop → reassessment → discharge, transfer, or restart.
+
+The most important thing to understand is that there are really three journeys happening in parallel.
+
+1. Access journey
+Need Help
+→ Find BHG
+→ Contact / Referral
+→ PPA
+→ Appointment
+→ Eligibility
+→ Insurance / Payment Setup
+→ Intake
+
+This determines whether the patient can actually enter treatment. BHG's source specifically connects this area to appointments, Salesforce IDs, referral sources, eligibility, payer assignment, prior authorization, hardship, and self-pay setup.
+
+2. Clinical journey
+Clinical Intake
+→ Enrollment
+→ Treatment Plan
+→ Medication Order
+→ Dose
+→ Counseling
+→ UA / Labs
+→ Reassessment
+→ Continued Treatment
+→ Discharge / Transfer
+
+Once enrolled, the patient becomes part of the census. From there, the recurring BHG experience is primarily check-in → dosing → counseling when required → UA/labs → reassessment.
+
+3. Financial journey
+
+This is happening behind the clinical journey:
+
+Insurance Card / Self-Pay
+        ↓
+Eligibility Verification
+        ↓
+Payer Assignment
+        ↓
+Prior Authorization
+        ↓
+Treatment Delivered
+        ↓
+Bill / Insurance Claim
+        ↓
+Paid / Denied
+        ↓
+AR Follow-Up / Rebill
+
+For patients without sufficient coverage, there can also be:
+
+Payment Issue
+→ Hardship / FMP
+→ Continue Treatment where approved
+
+That part matters because BHG is not simply providing clinical treatment; it also has to make sure the treatment is reimbursable and the patient can remain in care.
+
+How I would represent the complete BHG journey in one business-level flow
+Awareness / Referral
+        ↓
+Contact BHG
+        ↓
+Pre-Admission / PPA
+        ↓
+Appointment
+        ↓
+Eligibility + Insurance + Financial Review
+        ↓
+First-Day Intake
+        ↓
+Medical + Counseling + Assessments + Consent
+        ↓
+Enrollment
+        ↓
+Medication Order
+        ↓
+First Dose
+        ↓
+──────────── ACTIVE TREATMENT ────────────
+
+Check-In
+   ↓
+Dose
+   ↓
+Counseling
+   ↓
+UA / Labs
+   ↓
+Billing / Claim
+   ↓
+Periodic Reassessment
+   ↓
+Treatment Plan Changes
+   ↓
+Repeat
+
+──────────────────────────────────────────
+        ↓
+Progress / Stability
+        ↓
+Take-Home Privileges / Reduced Visits
+        ↓
+Long-Term Retention
+        ↓
+Discharge / Transfer / Restart
+
+And from a systems perspective, the same journey becomes:
+
+Patient / Referral
+      ↓
+Salesforce / Intake / PPA
+      ↓
+SAMMS Appointment
+      ↓
+SAMMS Patient Registration
+      ↓
+SAMMS Enrollment
+      ↓
+Orders
+      ↓
+Check-In
+      ↓
+Dose
+      ↓
+Darts / Counseling
+      ↓
+UA / Labs / Forms
+      ↓
+Bills / Claims / Auth
+      ↓
+BHG_DR / Fabric
+      ↓
+Gold / Semantic Models
+      ↓
+Power BI / Analytics / AI
