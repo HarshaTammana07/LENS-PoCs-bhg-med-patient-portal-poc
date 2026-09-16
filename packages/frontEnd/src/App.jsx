@@ -19,6 +19,7 @@ import {
   Progress,
   SupportFaq,
   Treatment,
+  TreatmentRecords,
 } from './pages/BhgPatientPages';
 import {
   AdminAppointments,
@@ -45,6 +46,7 @@ const patientPages = {
   payments: <Payments />,
   documents: <Documents />,
   progress: <Progress />,
+  records: <TreatmentRecords />,
   center: <Center />,
   profile: <Profile />,
   notifications: <Notifications />,

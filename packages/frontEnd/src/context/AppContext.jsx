@@ -137,9 +137,25 @@ export function AppProvider({ children }) {
         created: now,
         status: 'New',
         response: '',
+        messageId,
       };
       return { ...state, messages, workItems: [workItem, ...state.workItems] };
     });
+  }, []);
+
+  const addThreadReply = useCallback(({ threadId, sender, text, time = 'Just now' }) => {
+    setDemoState((state) => ({
+      ...state,
+      messages: state.messages.map((item) => item.id === threadId
+        ? {
+          ...item,
+          preview: text,
+          time,
+          unread: false,
+          thread: [...item.thread, { id: `reply-${Date.now()}`, sender, time, text }],
+        }
+        : item),
+    }));
   }, []);
 
   const createRequest = useCallback(({ type, title, detail, appointmentId, page = 'messages' }) => {
@@ -223,10 +239,15 @@ export function AppProvider({ children }) {
       const request = state.workItems.find((item) => item.id === id);
       if (!request) return state;
       const now = 'Just now';
-      const fromName = request.type === 'Financial assistance' ? 'Danielle Brooks' : 'BHG Knoxville';
-      const fromRole = request.type === 'Financial assistance' ? 'Patient Financial Counselor' : 'Treatment Center';
+      const linkedMessage = request.messageId
+        ? state.messages.find((item) => item.id === request.messageId)
+        : null;
+      const fromName = linkedMessage?.from
+        || (request.type === 'Financial assistance' ? 'Danielle Brooks' : 'BHG Knoxville');
+      const fromRole = linkedMessage?.role
+        || (request.type === 'Financial assistance' ? 'Patient Financial Counselor' : 'Treatment Center');
       const reply = { id: `reply-${Date.now()}`, sender: fromName, time: now, text: response };
-      const messages = request.messageId
+      const messages = linkedMessage
         ? state.messages.map((item) => item.id === request.messageId
           ? { ...item, preview: response, time: now, unread: true, thread: [...item.thread, reply] }
           : item)
@@ -295,6 +316,7 @@ export function AppProvider({ children }) {
       markNotificationRead,
       markMessageRead,
       sendMessage,
+      addThreadReply,
       createRequest,
       updatePatient,
       acknowledgeDocument,
@@ -319,6 +341,7 @@ export function AppProvider({ children }) {
       markNotificationRead,
       markMessageRead,
       sendMessage,
+      addThreadReply,
       createRequest,
       updatePatient,
       acknowledgeDocument,
