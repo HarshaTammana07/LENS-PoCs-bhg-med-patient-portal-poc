@@ -10,13 +10,17 @@ export const DEMO_STATE_KEY = 'bhg-connected-demo-state-v1';
 
 const messageDetails = {
   'MSG-301': [
-    { id: 'r-301-1', sender: 'Alicia Monroe', time: 'Today · 8:12 AM', text: 'Hi Jordan, I’m looking forward to seeing you Thursday at 10:30 AM. We can review your recent screening and recovery goals together.' },
+    { id: 'r-301-1', sender: 'Alicia Monroe', time: 'Sep 12 · 4:10 PM', text: 'Hi Jordan, your last screening looked stable. I’d like to review your recovery goals and weekly routine at our Thursday visit.' },
+    { id: 'r-301-2', sender: 'You', time: 'Sep 13 · 9:05 AM', text: 'Thank you. I’ve been keeping up with the morning routine we discussed.' },
+    { id: 'r-301-3', sender: 'Alicia Monroe', time: 'Today · 8:12 AM', text: 'That’s great progress. I’m looking forward to seeing you Thursday at 10:30 AM — we can build on what’s working and adjust anything that feels hard.' },
   ],
   'MSG-298': [
     { id: 'r-298-1', sender: 'BHG Knoxville', time: 'Yesterday · 2:45 PM', text: 'Our medication window hours are unchanged this week. Please arrive before 11:30 AM on clinic days.' },
+    { id: 'r-298-2', sender: 'BHG Knoxville', time: 'Yesterday · 2:46 PM', text: 'If you need a schedule exception, reply here or call the front desk before your visit.' },
   ],
   'MSG-287': [
-    { id: 'r-287-1', sender: 'Danielle Brooks', time: 'Sep 10 · 11:20 AM', text: 'Your TennCare coverage was verified and remains active. No action is needed at this time.' },
+    { id: 'r-287-1', sender: 'Danielle Brooks', time: 'Sep 9 · 3:40 PM', text: 'Hi Jordan, I reviewed your TennCare authorization for outpatient treatment services.' },
+    { id: 'r-287-2', sender: 'Danielle Brooks', time: 'Sep 10 · 11:20 AM', text: 'Your coverage is active through December 31, 2026. No action is needed at this time. Reach out if your plan changes.' },
   ],
 };
 

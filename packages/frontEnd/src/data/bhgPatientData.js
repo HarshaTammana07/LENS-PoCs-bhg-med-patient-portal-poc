@@ -297,6 +297,70 @@ export const labStatus = {
   ],
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Hold / Visit Status  (maps to tbl_CHECKIN.ciHOLD + clinic rules)
+// status: 'clear' | 'hold' | 'action-needed'
+// ─────────────────────────────────────────────────────────────────────────────
+export const visitHoldStatus = {
+  status: 'clear',                          // 'clear' | 'hold' | 'action-needed'
+  label: 'Ready for today',
+  detail: 'No holds are active on your account. You may proceed to the medication window during the posted hours.',
+  windowTime: '5:30 – 11:30 AM',
+  windowLabel: 'Medication window',
+  checkedAt: 'Today · 6:00 AM',
+  holds: [],                                // empty = no active holds
+  // To demo a hold, swap the block below in:
+  // status: 'hold',
+  // label: 'Account hold — contact center',
+  // detail: 'There is an item on your account that must be resolved before your next medication visit. Please call or visit BHG Knoxville before arriving at the window.',
+  // holds: [
+  //   { type: 'Counseling compliance', detail: 'A required counseling session is overdue. Contact Alicia Monroe to schedule.', severity: 'high' },
+  // ],
+  history: [
+    { date: 'Sep 14', status: 'clear',  label: 'Ready' },
+    { date: 'Sep 13', status: 'clear',  label: 'Ready' },
+    { date: 'Sep 12', status: 'clear',  label: 'Ready' },
+    { date: 'Sep 11', status: 'clear',  label: 'Ready' },
+    { date: 'Sep 10', status: 'clear',  label: 'Ready' },
+    { date: 'Sep 9',  status: 'clear',  label: 'Ready' },
+    { date: 'Sep 8',  status: 'hold',   label: 'Hold — resolved' },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Take-Home Earned Status  (maps to tbl_Orders Sunday–Saturday, tbl_TakeHomeRiskAssessment)
+// ─────────────────────────────────────────────────────────────────────────────
+export const takeHomeDetail = {
+  approvedDays: 2,
+  maxDays: 6,                               // DEA phase maximum (stabilization phase)
+  days: [
+    { day: 'Mon', label: 'Monday',    status: 'observed' },
+    { day: 'Tue', label: 'Tuesday',   status: 'approved' },
+    { day: 'Wed', label: 'Wednesday', status: 'approved' },
+    { day: 'Thu', label: 'Thursday',  status: 'observed' },
+    { day: 'Fri', label: 'Friday',    status: 'observed' },
+    { day: 'Sat', label: 'Saturday',  status: 'observed' },
+    { day: 'Sun', label: 'Sunday',    status: 'closed'   },
+  ],
+  lastAssessment: 'August 7, 2026',
+  nextAssessment: 'October 2, 2026',
+  assessedBy: 'Dr. Marcus Hill',
+  agreement: 'Take-Home Medication Agreement signed August 7, 2026',
+  phase: 'Stabilization',
+  phaseSummary: 'Patients in the stabilization phase may earn up to 2 take-home days. Progress toward additional days is reviewed at each care-plan visit.',
+  // What earns / reduces take-home days — grounded in DEA/OTP rules
+  earningFactors: [
+    { label: 'Medication visit consistency',  met: true,  detail: '91% on-time this period' },
+    { label: 'Counseling attendance',         met: true,  detail: '4 of last 5 sessions attended' },
+    { label: 'UDS monitoring compliance',     met: true,  detail: 'All screens completed as scheduled' },
+    { label: 'No positive UDS for diversion', met: true,  detail: 'Consistent results last 60 days' },
+    { label: 'Balance current',               met: false, detail: '$45 balance due September 28' },
+  ],
+  riskLevel: 'Low',
+  diversion: 'No diversion concerns on file',
+  safeguardNote: 'Take-home medications must be stored securely and taken only as directed. Contact the center before any changes.',
+};
+
 export const requiredActions = [
   {
     id: 'action-takehome',
@@ -714,3 +778,235 @@ export const supportFaqs = [
     ],
   },
 ];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TREATMENT RECORDS DATA
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Medication order history — tbl_Orders_2016 (OrderNum, MedType, Dose, Doctor,
+// EffectiveDate, ExpirationDate, Active, Notes)
+export const orderHistory = [
+  {
+    id: 'ORD-881',
+    med: 'Methadone',
+    dose: '90 mg',
+    type: 'Observed + 2 take-home days',
+    effectiveDate: 'September 3, 2026',
+    expirationDate: 'December 31, 2026',
+    prescriber: 'Dr. Marcus Hill',
+    status: 'Active',
+    notes: 'Dose increase from 80 mg. Take-home Tuesday and Wednesday approved.',
+  },
+  {
+    id: 'ORD-774',
+    med: 'Methadone',
+    dose: '80 mg',
+    type: 'Observed only',
+    effectiveDate: 'July 15, 2026',
+    expirationDate: 'September 2, 2026',
+    prescriber: 'Dr. Marcus Hill',
+    status: 'Superseded',
+    notes: 'Initial stabilization dose. No take-home approved at this phase.',
+  },
+  {
+    id: 'ORD-701',
+    med: 'Methadone',
+    dose: '60 mg',
+    type: 'Observed only',
+    effectiveDate: 'May 1, 2026',
+    expirationDate: 'July 14, 2026',
+    prescriber: 'Dr. Marcus Hill',
+    status: 'Superseded',
+    notes: 'Induction and early stabilization. Dose titrated upward per clinical assessment.',
+  },
+  {
+    id: 'ORD-612',
+    med: 'Methadone',
+    dose: '30 mg',
+    type: 'Observed only — induction',
+    effectiveDate: 'March 14, 2026',
+    expirationDate: 'April 30, 2026',
+    prescriber: 'Dr. Marcus Hill',
+    status: 'Superseded',
+    notes: 'Starting induction dose. COWS score 14 on admission day.',
+  },
+];
+
+// Recent dose history — tbl_DOSE (DtMedDate, Dose, Bottletype, BlVoid, StrVoidReason)
+// Patient-safe: date, mg, visit type, status. No DEA/inventory fields.
+export const medicationHistory = [
+  { id: 'D-4201', date: 'Sep 14, 2026', mg: 90, visitType: 'Observed', status: 'Given',     location: 'BHG Knoxville' },
+  { id: 'D-4198', date: 'Sep 13, 2026', mg: 90, visitType: 'Take-home', status: 'Take-home', location: 'Tuesday take-home' },
+  { id: 'D-4195', date: 'Sep 12, 2026', mg: 90, visitType: 'Take-home', status: 'Take-home', location: 'Wednesday take-home' },
+  { id: 'D-4192', date: 'Sep 11, 2026', mg: 90, visitType: 'Observed', status: 'Given',     location: 'BHG Knoxville' },
+  { id: 'D-4189', date: 'Sep 10, 2026', mg: 90, visitType: 'Observed', status: 'Given',     location: 'BHG Knoxville' },
+  { id: 'D-4186', date: 'Sep 9,  2026', mg: 90, visitType: 'Observed', status: 'Given',     location: 'BHG Knoxville' },
+  { id: 'D-4183', date: 'Sep 8,  2026', mg: 90, visitType: 'Observed', status: 'Missed',    location: '— (unexcused)' },
+  { id: 'D-4180', date: 'Sep 7,  2026', mg: 90, visitType: 'Take-home', status: 'Take-home', location: 'Tuesday take-home' },
+  { id: 'D-4177', date: 'Sep 6,  2026', mg: 90, visitType: 'Take-home', status: 'Take-home', location: 'Wednesday take-home' },
+  { id: 'D-4174', date: 'Sep 5,  2026', mg: 90, visitType: 'Observed', status: 'Given',     location: 'BHG Knoxville' },
+];
+
+// Counseling session log — tbl_DartsSrv (DsDtStart, DsTxtSrv, DstxtStaff,
+// DsdblUnits, DsTelehealthSession, DsSigclt)
+export const counselingSessions = [
+  {
+    id: 'DS-2901',
+    date: 'September 3, 2026',
+    dateShort: 'SEP 03',
+    type: 'Individual counseling',
+    serviceType: 'Individual',
+    counselor: 'Alicia Monroe, LPC-MHSP',
+    duration: '50 min',
+    format: 'In person',
+    telehealth: false,
+    patientSigned: true,
+    billable: true,
+    summary: 'Recovery supports, take-home plan, and updated treatment goals reviewed.',
+  },
+  {
+    id: 'DS-2867',
+    date: 'August 20, 2026',
+    dateShort: 'AUG 20',
+    type: 'Recovery skills group',
+    serviceType: 'Group',
+    counselor: 'Alicia Monroe, LPC-MHSP',
+    duration: '60 min',
+    format: 'In person',
+    telehealth: false,
+    patientSigned: true,
+    billable: true,
+    summary: 'Group session focused on coping strategies and peer recovery support.',
+  },
+  {
+    id: 'DS-2841',
+    date: 'August 7, 2026',
+    dateShort: 'AUG 07',
+    type: 'Individual counseling',
+    serviceType: 'Individual',
+    counselor: 'Alicia Monroe, LPC-MHSP',
+    duration: '50 min',
+    format: 'In person',
+    telehealth: false,
+    patientSigned: true,
+    billable: true,
+    summary: 'Treatment plan review and take-home medication risk assessment completed.',
+  },
+  {
+    id: 'DS-2802',
+    date: 'July 24, 2026',
+    dateShort: 'JUL 24',
+    type: 'Recovery skills group',
+    serviceType: 'Group',
+    counselor: 'Alicia Monroe, LPC-MHSP',
+    duration: '60 min',
+    format: 'Telehealth',
+    telehealth: true,
+    patientSigned: true,
+    billable: true,
+    summary: 'Telehealth group via secure video. Coping skills and relapse prevention discussed.',
+  },
+  {
+    id: 'DS-2771',
+    date: 'July 10, 2026',
+    dateShort: 'JUL 10',
+    type: 'Individual counseling',
+    serviceType: 'Individual',
+    counselor: 'Alicia Monroe, LPC-MHSP',
+    duration: '50 min',
+    format: 'In person',
+    telehealth: false,
+    patientSigned: true,
+    billable: true,
+    summary: 'Goals review and social supports assessed. Housing and employment discussed.',
+  },
+  {
+    id: 'DS-2734',
+    date: 'June 26, 2026',
+    dateShort: 'JUN 26',
+    type: 'Recovery skills group',
+    serviceType: 'Group',
+    counselor: 'Alicia Monroe, LPC-MHSP',
+    duration: '60 min',
+    format: 'In person',
+    telehealth: false,
+    patientSigned: true,
+    billable: true,
+    summary: '90-day milestone session. Progress review and next-phase planning.',
+  },
+];
+
+// BAM (Brief Addiction Monitor) assessments — tbl_BamForm + tbl_BamScore
+// Shows date + three subscale scores (Use, Risk, Protective) — not question-level answers
+export const bamAssessments = [
+  {
+    id: 'BAM-0903',
+    date: 'September 3, 2026',
+    dateShort: 'SEP 03',
+    completedWith: 'Alicia Monroe, LPC-MHSP',
+    interval: 'Monthly',
+    scores: [
+      { subscale: 'Substance Use',    score: 1, maxScore: 12, lower: true,  interpretation: 'Lower is better — reflects less substance use in the past 30 days' },
+      { subscale: 'Risk Factors',     score: 3, maxScore: 20, lower: true,  interpretation: 'Lower is better — fewer risk factors for relapse' },
+      { subscale: 'Protective Factors', score: 14, maxScore: 16, lower: false, interpretation: 'Higher is better — stronger recovery supports and coping skills' },
+    ],
+    clinicianNote: 'Scores reflect continued improvement in protective factors. Review at next session.',
+  },
+  {
+    id: 'BAM-0807',
+    date: 'August 7, 2026',
+    dateShort: 'AUG 07',
+    completedWith: 'Alicia Monroe, LPC-MHSP',
+    interval: 'Monthly',
+    scores: [
+      { subscale: 'Substance Use',    score: 2, maxScore: 12, lower: true,  interpretation: 'Lower is better' },
+      { subscale: 'Risk Factors',     score: 5, maxScore: 20, lower: true,  interpretation: 'Lower is better' },
+      { subscale: 'Protective Factors', score: 12, maxScore: 16, lower: false, interpretation: 'Higher is better' },
+    ],
+    clinicianNote: 'Risk factors decreasing month over month. Protective factors strengthening.',
+  },
+  {
+    id: 'BAM-0710',
+    date: 'July 10, 2026',
+    dateShort: 'JUL 10',
+    completedWith: 'Alicia Monroe, LPC-MHSP',
+    interval: 'Monthly',
+    scores: [
+      { subscale: 'Substance Use',    score: 3, maxScore: 12, lower: true,  interpretation: 'Lower is better' },
+      { subscale: 'Risk Factors',     score: 7, maxScore: 20, lower: true,  interpretation: 'Lower is better' },
+      { subscale: 'Protective Factors', score: 10, maxScore: 16, lower: false, interpretation: 'Higher is better' },
+    ],
+    clinicianNote: 'Initial baseline post-stabilization. Tracking improvement over time.',
+  },
+];
+
+// Intake / admission assessment summary — tbl_AdmissionAssessmentSummary
+// Patient-safe: recommendation, summary narrative, ASAM level, date signed.
+// No raw dimension scores or diagnosis codes.
+export const intakeSummary = {
+  date: 'March 14, 2026',
+  program: 'Opioid Treatment Program (OTP)',
+  asamLevel: '1.0 \u2014 Outpatient Services',
+  recommendation: 'Opioid Treatment Program with methadone',
+  clinicalSummary:
+    'You were assessed as appropriate for outpatient opioid treatment at the OTP level. Your care plan was designed around medication-assisted treatment, regular counseling, and monitoring to support long-term recovery.',
+  patientSignedDate: 'March 14, 2026',
+  assessedBy: 'Dr. Marcus Hill + Alicia Monroe, LPC-MHSP',
+  cowsScore: 14,
+  cowsInterpretation: 'Moderate withdrawal symptoms on admission day \u2014 informed your starting medication dose.',
+  sixDimensions: [
+    { name: 'Acute intoxication / withdrawal',  summary: 'Moderate opioid withdrawal symptoms present. Addressed with induction dose.' },
+    { name: 'Biomedical conditions',             summary: 'No acute medical contraindications to OTP treatment identified.' },
+    { name: 'Emotional / behavioral',           summary: 'Mild anxiety noted. Counseling plan includes coping-skills focus.' },
+    { name: 'Readiness to change',               summary: 'Patient expressed motivation for treatment and willingness to engage.' },
+    { name: 'Relapse / continued use potential', summary: 'Moderate risk. Frequent monitoring and counseling cadence recommended.' },
+    { name: 'Recovery / living environment',     summary: 'Stable housing. Limited immediate recovery supports \u2014 group therapy added to plan.' },
+  ],
+};
+
+// Emergency contact — tbl_CLIENTDEMO2: Clt911Name, Clt911Ph, Clt911Relation
+export const emergencyContact = {
+  name: 'Morgan Williams',
+  phone: '(865) 555-0291',
+  relation: 'Sister',
+};

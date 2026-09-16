@@ -28,6 +28,7 @@ const careNav = [
   { id: 'appointments', label: 'Appointments', icon: CalendarDays },
   { id: 'counseling', label: 'Counseling', icon: MessageCircle },
   { id: 'labs', label: 'Lab & UDS', icon: TestTube2 },
+  { id: 'records', label: 'Treatment Records', icon: FileText },
   { id: 'progress', label: 'Recovery Progress', icon: Target },
 ];
 
