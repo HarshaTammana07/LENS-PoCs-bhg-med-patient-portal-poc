@@ -35,7 +35,7 @@ import {
   Video,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { generateCounselingSessionSummary, generateUdsMonitoringSummary } from '../lib/aiDemo';
+import { generateUdsMonitoringSummary } from '../lib/aiDemo';
 import { getCenterMapsUrl, sharedCounselingSessionNotes, supportFaqs } from '../data/bhgPatientData';
 import { DemoBanner, Field, RequestStatus, WorkflowDrawer, WorkflowModal } from '../components/PrototypeUI';
 
@@ -846,7 +846,20 @@ export function Treatment() {
 }
 
 export function Medication() {
-  const { treatment, weeklySchedule, center, navigate } = useApp();
+  const { treatment, weeklySchedule, center, navigate, createRequest, addToast } = useApp();
+  const [showReviewRequest, setShowReviewRequest] = useState(false);
+  const [reviewReason, setReviewReason] = useState('I have a question about how I am feeling');
+
+  const requestReview = () => {
+    createRequest({
+      type: 'Medication review request',
+      title: 'Request review by a medical provider',
+      detail: reviewReason,
+      page: 'medication',
+    });
+    addToast('Your request was sent for clinical review. Do not change your medication routine unless instructed.');
+    setShowReviewRequest(false);
+  };
   return (
     <div className="bhg-page animate-fade-in">
       <PageHeader
@@ -857,7 +870,7 @@ export function Medication() {
       />
       <div className="bhg-two-column">
         <Card className="bhg-feature-card">
-          <SectionTitle title="Current medication plan" />
+          <SectionTitle title="Current medication plan" description="View only — medication decisions remain with your authorized medical provider." />
           <div className="bhg-medication-name">
             <span className="bhg-large-icon"><Pill size={25} /></span>
             <div><h2>{treatment.medication}</h2><p>Current order: {treatment.currentOrder}</p></div>
@@ -865,6 +878,7 @@ export function Medication() {
           <DetailRow label="Prescriber" value={treatment.prescriber} />
           <DetailRow label="Order updated" value={treatment.orderUpdated} />
           <DetailRow label="Next review" value={treatment.nextReview} />
+          <button type="button" className="bhg-button bhg-button-secondary" onClick={() => setShowReviewRequest(true)}>Request a medication review</button>
         </Card>
         <Card>
           <SectionTitle title="Take-home plan" />
@@ -890,18 +904,34 @@ export function Medication() {
         <span>Schedule questions or a missed visit? Call the center before changing your medication routine.</span>
         <button onClick={() => navigate('center')}>Contact center</button>
       </div>
+      {showReviewRequest && (
+        <WorkflowModal
+          title="Request a medication review"
+          subtitle="This sends a concern to the clinical team; it does not change your prescription or dose."
+          onClose={() => setShowReviewRequest(false)}
+          footer={<><button type="button" className="bhg-button bhg-button-secondary" onClick={() => setShowReviewRequest(false)}>Cancel</button><button type="button" className="bhg-button" onClick={requestReview}>Send for review</button></>}
+        >
+          <DemoBanner>For urgent symptoms or emergencies, contact the treatment center or emergency services instead of using this form.</DemoBanner>
+          <Field label="What would you like the medical provider to review?">
+            <select value={reviewReason} onChange={(event) => setReviewReason(event.target.value)}>
+              <option>I have a question about how I am feeling</option>
+              <option>I want to discuss side effects</option>
+              <option>I have a medication schedule question</option>
+              <option>I want to discuss my next medication-plan review</option>
+            </select>
+          </Field>
+        </WorkflowModal>
+      )}
     </div>
   );
 }
 
 export function Appointments() {
-  const { appointments, createRequest, addToast, navigate } = useApp();
+  const { appointments, appointmentProposals, respondToAppointmentProposal, createRequest, addToast } = useApp();
   const [selected, setSelected] = useState(null);
   const [mode, setMode] = useState('details');
   const [reason, setReason] = useState('I need a different date or time');
   const [note, setNote] = useState('');
-  const [aiSummary, setAiSummary] = useState(null);
-  const [generatingAi, setGeneratingAi] = useState(false);
   const upcoming = appointments.filter((item) => appointmentTiming(item) === 'upcoming');
   const past = appointments.filter((item) => appointmentTiming(item) === 'past');
   const sessionNotes = selected ? getSessionNotes(selected) : null;
@@ -909,8 +939,6 @@ export function Appointments() {
   const closeDrawer = () => {
     setSelected(null);
     setMode('details');
-    setAiSummary(null);
-    setGeneratingAi(false);
     setReason('I need a different date or time');
     setNote('');
   };
@@ -920,8 +948,6 @@ export function Appointments() {
     setMode(nextMode);
     setReason('I need a different date or time');
     setNote('');
-    setAiSummary(null);
-    setGeneratingAi(false);
   };
 
   const submitChange = () => {
@@ -936,22 +962,6 @@ export function Appointments() {
     closeDrawer();
   };
 
-  const runAiSummary = () => {
-    if (generatingAi || aiSummary || !selected?.aiDemo) return;
-    setGeneratingAi(true);
-    window.setTimeout(() => {
-      setAiSummary(generateCounselingSessionSummary(selected));
-      setGeneratingAi(false);
-      addToast('AI session summary generated.', 'info');
-    }, 1200);
-  };
-
-  const openFollowUp = (item) => {
-    closeDrawer();
-    navigate(item.page);
-    addToast(item.detail, 'info');
-  };
-
   const drawerTitle = mode === 'change' ? 'Request an appointment change' : selected?.title;
   const drawerSubtitle = selected ? `${selected.date} at ${selected.time} · ${selected.provider}` : '';
 
@@ -962,6 +972,26 @@ export function Appointments() {
         title="Appointments"
         description="Upcoming clinic-managed visits and your previous counseling and provider appointments."
       />
+
+      {appointmentProposals?.length > 0 && (
+        <section className="bhg-appointment-section">
+          <SectionTitle title="Appointment offers" description="Review times proposed by your clinician. Accepted offers are added to your schedule." />
+          <div className="bhg-stack">
+            {appointmentProposals.map((proposal) => (
+              <Card className="bhg-card-compact" key={proposal.id}>
+                <SectionTitle title={proposal.title} description={`${proposal.date} at ${proposal.time} · ${proposal.provider}`} />
+                <div className="bhg-meta-line"><span><MapPin size={15} /> {proposal.location}</span><PillBadge tone={proposal.status === 'Accepted' ? 'success' : proposal.status === 'Change requested' ? 'warning' : 'primary'}>{proposal.status}</PillBadge></div>
+                {proposal.status === 'Awaiting patient response' && (
+                  <div className="bhg-lab-actions">
+                    <button type="button" className="bhg-button" onClick={() => { respondToAppointmentProposal(proposal.id, 'Accepted'); addToast('Appointment accepted and added to your schedule.'); }}>Accept time</button>
+                    <button type="button" className="bhg-button bhg-button-secondary" onClick={() => { respondToAppointmentProposal(proposal.id, 'Change requested'); addToast('Your request for another time was sent.'); }}>Request another time</button>
+                  </div>
+                )}
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="bhg-appointment-section">
         <SectionTitle title="Upcoming schedule" description="These visits are arranged by BHG staff — not self-booked in the portal." />
@@ -1011,11 +1041,6 @@ export function Appointments() {
                 {appointmentTiming(selected) === 'upcoming' && (
                   <button type="button" className="bhg-button" onClick={() => setMode('change')}>Request a change</button>
                 )}
-                {selected.aiDemo && sessionNotes && (
-                  <button type="button" className="bhg-button" disabled={generatingAi || Boolean(aiSummary)} onClick={runAiSummary}>
-                    <Sparkles size={15} /> {generatingAi ? 'Summarizing…' : aiSummary ? 'Summary ready' : 'Summarize with AI'}
-                  </button>
-                )}
               </>
             )
           }
@@ -1041,7 +1066,7 @@ export function Appointments() {
                 ) : sessionNotes ? (
                   <div className="bhg-safe-callout"><MessageCircle size={18} /><span>{sessionNotes.patientSummary}</span></div>
                 ) : null}
-                {appointmentTiming(selected) === 'upcoming' && selected.modality === 'Telehealth' && (
+                {appointmentTiming(selected) === 'upcoming' && /telehealth|zoom/i.test(selected.modality) && (
                   <button type="button" className="bhg-button bhg-button-secondary" onClick={() => addToast('Telehealth device check completed.', 'success')}>
                     <Video size={16} /> Test device
                   </button>
@@ -1068,25 +1093,6 @@ export function Appointments() {
                 </div>
               )}
 
-              {aiSummary && (
-                <div className="bhg-ai-summary">
-                  <strong><Sparkles size={15} /> AI summary · {aiSummary.confidence}% confidence</strong>
-                  <p>{aiSummary.text}</p>
-                  <small>{aiSummary.disclaimer}</small>
-                  {aiSummary.followUps?.length > 0 && (
-                    <div className="bhg-follow-up-list">
-                      <strong>Suggested follow-up</strong>
-                      {aiSummary.followUps.map((item) => (
-                        <button key={item.id} type="button" className="bhg-follow-up-item" onClick={() => openFollowUp(item)}>
-                          <span>{item.label}</span>
-                          <small>{item.detail}</small>
-                          <ArrowRight size={14} />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
             </>
           )}
 

@@ -6,7 +6,7 @@ import {
   patient,
 } from './bhgPatientData';
 
-export const DEMO_STATE_KEY = 'bhg-connected-demo-state-v1';
+export const DEMO_STATE_KEY = 'bhg-connected-demo-state-v5';
 
 const messageDetails = {
   'MSG-301': [
@@ -47,15 +47,105 @@ export function createInitialDemoState() {
     notifications: notifications.map((item) => ({ ...item })),
     workItems: [
       {
+        id: 'REQ-1106',
+        type: 'Missed-visit follow-up',
+        title: 'Reschedule individual counseling',
+        detail: 'I missed yesterday’s appointment because my ride was unavailable. Can I get another time?',
+        patient: 'Kendall Wright',
+        centerId: 'jackson-tn',
+        created: 'Today · 9:18 AM',
+        status: 'New',
+        response: '',
+      },
+      {
+        id: 'REQ-1105',
+        type: 'Transportation support',
+        title: 'Help getting to the center',
+        detail: 'I need help understanding transportation options for my next in-person visit.',
+        patient: 'Casey Morgan',
+        centerId: 'jackson-tn',
+        created: 'Today · 8:54 AM',
+        status: 'In review',
+        response: '',
+      },
+      {
+        id: 'REQ-1104',
+        type: 'Appointment offer response',
+        title: 'Recovery plan follow-up',
+        detail: 'The patient requested a different Zoom appointment time.',
+        patient: 'Jamie Carter',
+        centerId: 'knoxville-citico',
+        created: 'Today · 8:31 AM',
+        status: 'New',
+        response: '',
+      },
+      {
+        id: 'REQ-1103',
+        type: 'Medication review request',
+        title: 'Question for medical provider',
+        detail: 'I would like to discuss how I have been feeling before my next medication-plan review.',
+        patient: 'Taylor Brooks',
+        centerId: 'knoxville-citico',
+        created: 'Today · 8:05 AM',
+        status: 'New',
+        response: '',
+      },
+      {
+        id: 'REQ-1102',
+        type: 'Treatment support',
+        title: 'Recovery goal check-in',
+        detail: 'I completed the coping exercise and would like to review the next step.',
+        patient: 'Cameron Ellis',
+        centerId: 'knoxville-bernard',
+        created: 'Today · 7:46 AM',
+        status: 'In review',
+        response: '',
+      },
+      {
+        id: 'REQ-1101',
+        type: 'Appointment change',
+        title: 'Individual counseling',
+        detail: 'Could I move my Zoom counseling session to later in the afternoon?',
+        patient: 'Jordan Williams',
+        centerId: 'knoxville-bernard',
+        created: 'Today · 7:22 AM',
+        status: 'New',
+        response: '',
+      },
+      {
         id: 'REQ-1001',
         type: 'Financial assistance',
         title: 'Coverage question',
         detail: 'Please confirm whether transportation support is available.',
         patient: patient.name,
+        centerId: 'knoxville-bernard',
         created: 'Sep 10 · 9:20 AM',
         status: 'Resolved',
         response: 'A patient financial counselor will discuss available transportation resources at your next visit.',
       },
+    ],
+    appointmentProposals: [
+      {
+        id: 'OFFER-1001',
+        patient: patient.name,
+        centerId: 'knoxville-bernard',
+        title: 'Recovery plan follow-up',
+        date: 'September 29, 2026',
+        dateShort: 'SEP 29',
+        time: '11:00 AM',
+        provider: 'Morgan Reed, LPC-MHSP',
+        location: 'Secure Zoom visit',
+        modality: 'Zoom',
+        duration: '30 minutes',
+        preparation: 'Choose accept or request another time. This is not confirmed until you respond.',
+        status: 'Awaiting patient response',
+        created: 'Sep 14 · 10:15 AM',
+      },
+    ],
+    appointmentOutcomes: [
+      { id: 'OUT-1001', patient: 'Jordan Williams', centerId: 'knoxville-bernard', service: 'Individual counseling', date: 'Sep 3', outcome: 'Completed', followUp: 'Patient-facing summary published' },
+      { id: 'OUT-1002', patient: 'Jamie Carter', centerId: 'knoxville-citico', service: 'Individual counseling', date: 'Sep 12', outcome: 'Patient did not attend', followUp: 'Outreach due today' },
+      { id: 'OUT-1003', patient: 'Taylor Brooks', centerId: 'knoxville-citico', service: 'Recovery skills group', date: 'Sep 10', outcome: 'Completed', followUp: 'No additional action' },
     ],
     activity: [
       { id: 'ACT-1', title: 'Coverage verified', detail: 'TennCare Demo Plan confirmed active.', time: 'Sep 10' },
@@ -74,6 +164,8 @@ export function loadDemoState() {
       ...stored,
       patient: { ...initial.patient, ...stored.patient },
       appointments: mergeAppointments(stored.appointments),
+      appointmentProposals: stored.appointmentProposals || initial.appointmentProposals,
+      appointmentOutcomes: stored.appointmentOutcomes || initial.appointmentOutcomes,
     };
   } catch {
     return createInitialDemoState();

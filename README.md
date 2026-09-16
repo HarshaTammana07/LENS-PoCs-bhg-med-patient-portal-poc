@@ -1,6 +1,6 @@
 # BHG Connected Care Portal
 
-An interactive, browser-persistent proof of concept for Behavioral Health Group’s outpatient addiction-treatment domain. It includes connected patient and clinic-operations experiences.
+An interactive, browser-persistent proof of concept for Behavioral Health Group’s outpatient addiction-treatment domain. It includes connected Patient Portal and Clinician Portal experiences.
 
 ## Patient experience
 
@@ -17,7 +17,7 @@ An interactive, browser-persistent proof of concept for Behavioral Health Group�
 - Treatment-center hours, directions, and crisis contacts
 - BHG Support Assistant for portal guidance, schedules, coverage, and care-team navigation
 
-Patient requests appear in the clinic-operations queue. Clinic responses return to patient messages, notifications, and request status. Demo state persists across refreshes and can be reset from the operations dashboard.
+Patient requests appear in the Clinician Portal queue. Clinician responses return to patient messages, notifications, and request status. Clinicians can offer appointments, record visit outcomes, and create missed-visit follow-up; patients can accept an offered time or request another one. Medication-review requests are routed for clinical review without allowing counselor prescribing or dose changes. Demo state persists across refreshes and can be reset from the Clinician Dashboard.
 
 The experience uses supportive, patient-facing language and fictional demonstration data. It does not provide medical advice.
 
@@ -47,7 +47,7 @@ Open:
 ## Demo sign-in
 
 - Patient: `patient@demo.com`
-- Clinic operations: `admin@demo.com`
+- Clinician Portal: `admin@demo.com`
 - Password: `Password123`
 
 ## Production integration direction

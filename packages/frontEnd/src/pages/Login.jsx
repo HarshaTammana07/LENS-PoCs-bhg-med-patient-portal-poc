@@ -37,18 +37,18 @@ export default function Login({ onLogin }) {
           <BhgLogo size="sidebar" alt="Behavioral Health Group" />
         </div>
         <div className="bhg-login-message">
-          <span className="bhg-login-kicker">{role === 'admin' ? 'Connected care. Safe operations. One clinic.' : 'Your care. Your progress. Your privacy.'}</span>
-          <h1>{role === 'admin' ? 'Run today’s treatment operations with clarity.' : 'Support for every step of your recovery.'}</h1>
+          <span className="bhg-login-kicker">{role === 'admin' ? 'Connected care. Clear follow-up. One clinical view.' : 'Your care. Your progress. Your privacy.'}</span>
+          <h1>{role === 'admin' ? 'Coordinate each patient’s next step with clarity.' : 'Support for every step of your recovery.'}</h1>
           <p>
             {role === 'admin'
-              ? 'Manage clinic census, medication check-ins, appointments, counseling, UDS workflows, and coverage in one secure view.'
+              ? 'Manage caseload, appointments, outcomes, recovery goals, patient requests, and care coordination in one secure view.'
               : 'View your medication schedule, counseling appointments, care team and coverage information in one secure place.'}
           </p>
           <div className="bhg-login-points">
             {role === 'admin' ? (
               <>
-                <div><Building2 size={20} /><span><strong>Monitor the medication window</strong> and clinic census.</span></div>
-                <div><ClipboardCheck size={20} /><span><strong>Coordinate scheduled care</strong> and required services.</span></div>
+                <div><Building2 size={20} /><span><strong>See your caseload</strong> and prioritized follow-up.</span></div>
+                <div><ClipboardCheck size={20} /><span><strong>Coordinate appointments</strong>, outcomes, and recovery goals.</span></div>
                 <div><ShieldCheck size={20} /><span><strong>Protect treatment information</strong> through role-based access.</span></div>
               </>
             ) : (
@@ -79,7 +79,7 @@ export default function Login({ onLogin }) {
               Patient portal
             </button>
             <button type="button" className={role === 'admin' ? 'active' : ''} onClick={() => selectRole('admin')}>
-              Clinic operations
+              Clinician portal
             </button>
           </div>
 
@@ -110,7 +110,7 @@ export default function Login({ onLogin }) {
           <button className="bhg-forgot-button" type="button">Forgot your password?</button>
 
           <div className="bhg-demo-note">
-            <strong>{role === 'admin' ? 'Admin demo account' : 'Patient demo account'}</strong>
+            <strong>{role === 'admin' ? 'Clinician demo account' : 'Patient demo account'}</strong>
             <span>{role === 'admin' ? 'admin@demo.com' : 'patient@demo.com'}</span>
             <span>Password123</span>
           </div>

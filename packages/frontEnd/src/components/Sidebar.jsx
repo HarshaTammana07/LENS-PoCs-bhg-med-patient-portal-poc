@@ -47,13 +47,13 @@ const accountNav = [
 ];
 
 const adminNav = [
-  { id: 'admin-dashboard', label: 'Operations Overview', icon: LayoutDashboard, badge: 'work' },
-  { id: 'admin-patients', label: 'Patients', icon: UsersRound },
-  { id: 'admin-check-ins', label: 'Check-in & Dosing', icon: UserRoundCheck },
-  { id: 'admin-appointments', label: 'Appointments', icon: CalendarDays },
-  { id: 'admin-counseling', label: 'Counseling', icon: ClipboardCheck },
+  { id: 'admin-dashboard', label: 'Clinician Dashboard', icon: LayoutDashboard, badge: 'work' },
+  { id: 'admin-patients', label: 'My Caseload', icon: UsersRound },
+  { id: 'admin-appointments', label: 'Appointments & Outcomes', icon: CalendarDays },
+  { id: 'admin-counseling', label: 'Counseling & Goals', icon: ClipboardCheck },
+  { id: 'admin-care-coordination', label: 'Care Coordination', icon: HeartHandshake },
+  { id: 'admin-check-ins', label: 'Medication Visit Status', icon: UserRoundCheck },
   { id: 'admin-labs', label: 'UDS & Labs', icon: TestTube2 },
-  { id: 'admin-billing', label: 'Coverage & Billing', icon: CreditCard },
 ];
 
 export default function Sidebar() {
@@ -66,14 +66,18 @@ export default function Sidebar() {
     patient,
     unreadCount,
     unreadMessages,
-    openWorkItems,
+    workItems,
+    selectedTreatmentCenterId,
     userRole,
   } = useApp();
   const isAdmin = userRole === 'admin';
+  const selectedOpenWorkItems = workItems.filter((item) => item.status !== 'Resolved' && (
+    selectedTreatmentCenterId === 'all' || (item.centerId || 'knoxville-bernard') === selectedTreatmentCenterId
+  )).length;
 
   const renderItems = (items) =>
     items.map(({ id, label, icon: Icon, badge }) => {
-      const count = badge === 'messages' ? unreadMessages : badge === 'notifications' ? unreadCount : badge === 'work' ? openWorkItems : 0;
+      const count = badge === 'messages' ? unreadMessages : badge === 'notifications' ? unreadCount : badge === 'work' ? selectedOpenWorkItems : 0;
       return (
         <button
           type="button"
@@ -94,11 +98,11 @@ export default function Sidebar() {
       <div className="sidebar-logo">
         <BhgLogo size="sidebar" alt="Behavioral Health Group" />
       </div>
-      <div className="bhg-portal-label">{isAdmin ? 'Clinic Operations' : 'Patient Portal'}</div>
-      <nav className="sidebar-nav" aria-label={isAdmin ? 'Clinic operations portal' : 'Patient portal'}>
+      <div className="bhg-portal-label">{isAdmin ? 'Clinician Portal' : 'Patient Portal'}</div>
+      <nav className="sidebar-nav" aria-label={isAdmin ? 'Clinician portal' : 'Patient portal'}>
         {isAdmin ? (
           <>
-            <div className="sidebar-section-label">BHG Knoxville</div>
+            <div className="sidebar-section-label">My clinical work</div>
             {renderItems(adminNav)}
           </>
         ) : (
@@ -117,7 +121,7 @@ export default function Sidebar() {
           <span className="sidebar-user-avatar">{user?.initials || patient.initials}</span>
           <span className="sidebar-user-info">
             <strong className="sidebar-user-name">{user?.name || patient.name}</strong>
-            <small className="sidebar-user-id">{isAdmin ? user?.title : patient.id}</small>
+            <small className="sidebar-user-id">{isAdmin ? 'Clinician' : patient.id}</small>
           </span>
         </button>
         <button className="bhg-sign-out" onClick={logout}>

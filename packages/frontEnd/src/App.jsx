@@ -23,7 +23,7 @@ import {
 } from './pages/BhgPatientPages';
 import {
   AdminAppointments,
-  AdminBilling,
+  AdminCareCoordination,
   AdminCheckIns,
   AdminCounseling,
   AdminDashboard,
@@ -59,7 +59,7 @@ const adminPages = {
   'admin-appointments': <AdminAppointments />,
   'admin-counseling': <AdminCounseling />,
   'admin-labs': <AdminLabs />,
-  'admin-billing': <AdminBilling />,
+  'admin-care-coordination': <AdminCareCoordination />,
 };
 
 function ProtectedPage() {
@@ -79,7 +79,7 @@ function LoginRoute() {
 
   const handleLogin = async (email, password, role) => {
     await login(email, password, role);
-    addToast(role === 'admin' ? 'Welcome to BHG clinic operations.' : 'Welcome back to your BHG portal.');
+    addToast(role === 'admin' ? 'Welcome to the BHG Clinician Portal.' : 'Welcome back to your BHG portal.');
     navigate(role === 'admin' ? '/admin-dashboard' : '/dashboard', { replace: true });
   };
 

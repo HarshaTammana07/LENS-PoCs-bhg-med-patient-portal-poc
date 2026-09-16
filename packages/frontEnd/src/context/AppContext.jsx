@@ -4,7 +4,14 @@ import * as portalData from '../data/bhgPatientData';
 import { createInitialDemoState, DEMO_STATE_KEY, loadDemoState } from '../data/bhgDemoState';
 
 const AppContext = createContext(null);
-const SESSION_KEY = 'bhg-portal-session-v3';
+const SESSION_KEY = 'bhg-portal-session-v4';
+
+const clinicianTreatmentCenters = [
+  { id: 'all', name: 'All treatment centers', shortName: 'All centers' },
+  { id: 'knoxville-bernard', name: 'BHG Knoxville Bernard Treatment Center', shortName: 'Knoxville Bernard' },
+  { id: 'knoxville-citico', name: 'BHG Knoxville Citico Treatment Center', shortName: 'Knoxville Citico' },
+  { id: 'jackson-tn', name: 'BHG Jackson TN Treatment Center', shortName: 'Jackson TN' },
+];
 
 function loadSession() {
   try {
@@ -21,6 +28,7 @@ export function AppProvider({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [toasts, setToasts] = useState([]);
   const [demoState, setDemoState] = useState(loadDemoState);
+  const [selectedTreatmentCenterId, setSelectedTreatmentCenterId] = useState('all');
 
   const currentPage = location.pathname.split('/').filter(Boolean)[0] || 'dashboard';
   const isLoggedIn = Boolean(user);
@@ -30,6 +38,7 @@ export function AppProvider({ children }) {
   const requiredActions = portalData.requiredActions.filter((item) =>
     item.id !== 'action-consent' || demoState.documents.some((document) => document.id === 'DOC-4' && document.status === 'Review due')
   );
+  const selectedTreatmentCenter = clinicianTreatmentCenters.find((item) => item.id === selectedTreatmentCenterId) || clinicianTreatmentCenters[0];
 
   const navigate = useCallback(
     (page, options) => {
@@ -69,7 +78,7 @@ export function AppProvider({ children }) {
           name: 'Morgan Reed',
           initials: 'MR',
           role: 'admin',
-          title: 'Clinic Operations Manager',
+          title: 'Clinician',
         },
       },
     };
@@ -134,6 +143,7 @@ export function AppProvider({ children }) {
         title: subject,
         detail: body,
         patient: state.patient.name,
+        centerId: 'knoxville-bernard',
         created: now,
         status: 'New',
         response: '',
@@ -177,6 +187,7 @@ export function AppProvider({ children }) {
         title,
         detail: messageText,
         patient: state.patient.name,
+        centerId: 'knoxville-bernard',
         created: now,
         status: 'New',
         response: '',
@@ -281,6 +292,84 @@ export function AppProvider({ children }) {
     });
   }, []);
 
+  const proposeAppointment = useCallback((proposal) => {
+    const id = `OFFER-${Date.now()}`;
+    const now = 'Just now';
+    setDemoState((state) => ({
+      ...state,
+      appointmentProposals: [{ ...proposal, id, status: 'Awaiting patient response', created: now }, ...state.appointmentProposals],
+      notifications: [{
+        id: `N-${Date.now()}`,
+        title: 'New appointment time offered',
+        detail: `${proposal.title} · ${proposal.date} at ${proposal.time}`,
+        time: now,
+        unread: true,
+        page: 'appointments',
+      }, ...state.notifications],
+      activity: [{ id: `ACT-${Date.now()}`, title: 'Appointment time offered', detail: `${proposal.date} at ${proposal.time}`, time: now }, ...state.activity],
+    }));
+    return id;
+  }, []);
+
+  const respondToAppointmentProposal = useCallback((id, response) => {
+    const now = 'Just now';
+    setDemoState((state) => {
+      const proposal = state.appointmentProposals.find((item) => item.id === id);
+      if (!proposal || proposal.status !== 'Awaiting patient response') return state;
+      const accepted = response === 'Accepted';
+      return {
+        ...state,
+        appointmentProposals: state.appointmentProposals.map((item) => item.id === id ? { ...item, status: response } : item),
+        appointments: accepted ? [{ ...proposal, id: `APT-${Date.now()}`, timing: 'upcoming', status: 'Upcoming', requestStatus: null }, ...state.appointments] : state.appointments,
+        workItems: [{
+          id: `REQ-${Date.now()}`,
+          type: 'Appointment offer response',
+          title: proposal.title,
+          detail: accepted ? `Patient accepted ${proposal.date} at ${proposal.time}.` : 'Patient requested a different date or time.',
+          patient: state.patient.name,
+          created: now,
+          status: accepted ? 'Resolved' : 'New',
+          response: accepted ? 'Appointment added to the patient schedule.' : '',
+        }, ...state.workItems],
+        notifications: [{
+          id: `N-${Date.now()}`,
+          title: accepted ? 'Appointment confirmed' : 'Change request sent',
+          detail: accepted ? `${proposal.title} is now on your schedule.` : 'Your clinician will offer another time.',
+          time: now,
+          unread: true,
+          page: 'appointments',
+        }, ...state.notifications],
+      };
+    });
+  }, []);
+
+  const recordAppointmentOutcome = useCallback(({ patient, centerId, service, outcome, followUp }) => {
+    const now = 'Just now';
+    setDemoState((state) => ({
+      ...state,
+      appointmentOutcomes: [{ id: `OUT-${Date.now()}`, patient, centerId, service, date: 'Today', outcome, followUp }, ...state.appointmentOutcomes],
+      notifications: patient === state.patient.name ? [{
+        id: `N-${Date.now()}`,
+        title: outcome === 'Patient did not attend' ? 'We missed you at your appointment' : 'Visit status updated',
+        detail: followUp,
+        time: now,
+        unread: true,
+        page: 'appointments',
+      }, ...state.notifications] : state.notifications,
+      workItems: outcome === 'Patient did not attend' ? [{
+        id: `REQ-${Date.now()}`,
+        type: 'Missed-visit follow-up',
+        title: service,
+        detail: followUp,
+        patient,
+        centerId,
+        created: now,
+        status: 'New',
+        response: '',
+      }, ...state.workItems] : state.workItems,
+    }));
+  }, []);
+
   const resetDemo = useCallback(() => {
     const initial = createInitialDemoState();
     setDemoState(initial);
@@ -309,6 +398,10 @@ export function AppProvider({ children }) {
       unreadCount,
       unreadMessages,
       openWorkItems,
+      clinicianTreatmentCenters,
+      selectedTreatmentCenterId,
+      setSelectedTreatmentCenterId,
+      selectedTreatmentCenter,
       navigate,
       login,
       logout,
@@ -321,6 +414,9 @@ export function AppProvider({ children }) {
       updatePatient,
       acknowledgeDocument,
       resolveWorkItem,
+      proposeAppointment,
+      respondToAppointmentProposal,
+      recordAppointmentOutcome,
       resetDemo,
     }),
     [
@@ -333,6 +429,8 @@ export function AppProvider({ children }) {
       unreadCount,
       unreadMessages,
       openWorkItems,
+      selectedTreatmentCenterId,
+      selectedTreatmentCenter,
       requiredActions,
       navigate,
       login,
@@ -346,6 +444,9 @@ export function AppProvider({ children }) {
       updatePatient,
       acknowledgeDocument,
       resolveWorkItem,
+      proposeAppointment,
+      respondToAppointmentProposal,
+      recordAppointmentOutcome,
       resetDemo,
     ]
   );
