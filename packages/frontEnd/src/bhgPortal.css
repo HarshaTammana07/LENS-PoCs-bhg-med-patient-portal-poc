@@ -69,7 +69,8 @@
 .bhg-today-main .bhg-eyebrow { color: #87D5F2; }
 .bhg-today-main h2 { font-size: 23px; letter-spacing: -.025em; }
 .bhg-today-main > p { color: rgba(255,255,255,.72); font-size: 12.5px; margin-top: 4px; }
-.bhg-inline-status { display: flex; align-items: center; gap: 7px; color: #C7F4DC; font-size: 11.5px; font-weight: 650; margin-top: 13px; }
+.bhg-inline-status { display: flex; align-items: center; flex-wrap: wrap; gap: 7px 14px; color: #C7F4DC; font-size: 11.5px; font-weight: 650; margin-top: 13px; }
+.bhg-inline-status span { display: inline-flex; align-items: center; gap: 6px; }
 .bhg-today-actions { display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
 .bhg-today-actions .bhg-button { background: white; color: var(--primary); }
 .bhg-today-actions .bhg-text-button { color: #C8EAF6; justify-content: center; }
@@ -179,6 +180,7 @@
 .bhg-detail-row { min-height: 42px; padding: 10px 0; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; justify-content: space-between; gap: 18px; font-size: 11.5px; }
 .bhg-detail-row span { color: var(--text-muted); }
 .bhg-detail-row strong { text-align: right; font-size: 11.5px; }
+.bhg-card-action { margin-top: 14px; }
 .bhg-care-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
 .bhg-care-item { padding: 15px; background: var(--bg-alt); border-radius: 11px; color: var(--secondary); }
 .bhg-care-item h3 { color: var(--text-primary); font-size: 12.5px; margin-top: 10px; }
@@ -206,6 +208,7 @@
 .bhg-treatment-visit-row small { margin-top: 3px; color: var(--text-muted); font-size: 10px; }
 .bhg-date-tile.compact { width: 50px; height: 54px; }
 .bhg-date-tile.compact strong { font-size: 17px; }
+.bhg-treatment-inline-safety { margin-top: 14px; }
 .bhg-care-item-link { width: 100%; text-align: left; cursor: pointer; border: 1px solid transparent; transition: var(--transition); }
 .bhg-care-item-link:hover { border-color: #9CCDDD; transform: translateY(-1px); }
 .bhg-care-item-link > span { display: inline-flex; align-items: center; gap: 3px; margin-top: 10px; font-size: 10.5px; font-weight: 750; }
@@ -221,19 +224,23 @@
 .bhg-schedule-date strong, .bhg-schedule-type strong { font-size: 12px; }
 .bhg-schedule-date span, .bhg-schedule-type span { font-size: 10.5px; color: var(--text-muted); margin-top: 2px; }
 
-.bhg-appointment { display: grid; grid-template-columns: 62px 1fr auto; gap: 18px; align-items: center; }
-.bhg-date-tile { width: 58px; height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px; color: var(--primary); background: var(--primary-light); }
+.bhg-appointment { display: grid; grid-template-columns: 56px 1fr auto; gap: 14px; align-items: center; }
+.bhg-date-tile { width: 52px; height: 58px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px; color: var(--primary); background: var(--primary-light); }
 .bhg-date-tile span { font-size: 10px; font-weight: 800; }
 .bhg-date-tile strong { font-size: 21px; line-height: 1.1; }
-.bhg-appointment-main h2 { font-size: 16px; margin: 8px 0 2px; }
+.bhg-appointment-main h2 { font-size: 15px; margin: 7px 0 2px; }
 .bhg-appointment-main > p { color: var(--text-secondary); font-size: 11.5px; }
 .bhg-appointment-main > small { color: var(--text-muted); font-size: 10.5px; display: block; margin-top: 8px; }
 .bhg-meta-line, .bhg-meta-stack { display: flex; gap: 16px; margin-top: 9px; color: var(--text-secondary); font-size: 10.5px; }
 .bhg-meta-line span, .bhg-meta-stack span { display: flex; align-items: center; gap: 6px; }
 .bhg-meta-stack { flex-direction: column; gap: 10px; margin: 16px 0 20px; font-size: 12px; }
-.bhg-appointment-actions { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.bhg-appointment-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
 .bhg-appointment-section { margin-bottom: 22px; }
 .bhg-appointment-section .bhg-section-title { margin-bottom: 12px; }
+.bhg-appointment-tabs { display: flex; gap: 8px; overflow-x: auto; padding: 5px; margin-bottom: 14px; border: 1px solid var(--border); border-radius: 10px; background: white; }
+.bhg-appointment-tabs button { min-height: 34px; flex: 0 0 auto; padding: 7px 12px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--text-secondary); font-size: 11.5px; font-weight: 800; }
+.bhg-appointment-tabs button:hover { color: var(--primary); background: var(--primary-light); }
+.bhg-appointment-tabs button.active { color: white; background: var(--primary); }
 .bhg-labs-stats { margin-bottom: 16px; }
 .bhg-lab-hero .bhg-lab-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 14px; }
 .bhg-lab-ai-summary { margin-top: 14px; }
@@ -247,15 +254,36 @@
 .bhg-lab-workflow-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
 .bhg-lab-workflow-head strong { font-size: 12px; color: var(--text-primary); }
 .bhg-lab-workflow-step p { color: var(--text-secondary); font-size: 10.5px; line-height: 1.55; }
-.bhg-lab-expect-list { grid-template-columns: 1fr; margin-bottom: 8px; }
+.bhg-lab-privacy-card { display: flex; flex-direction: column; }
+.bhg-lab-privacy-card .bhg-safe-callout { margin-bottom: 14px; }
+.bhg-safe-callout + .bhg-topic-list,
+.bhg-safe-callout + .bhg-lab-expect-list { margin-top: 14px; }
+.bhg-lab-expect-list { margin-bottom: 16px; }
+.bhg-lab-privacy-card .bhg-link-row { margin-top: auto; }
 .bhg-lab-privacy-list { margin: 12px 0 0 18px; color: var(--text-secondary); font-size: 11px; line-height: 1.6; }
-.bhg-lab-history { margin: -4px -6px -6px; }
-.bhg-lab-history-row { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; padding: 12px 6px; border-top: 1px solid var(--border-light); }
+.bhg-lab-history { margin: -4px -6px -6px; display: grid; gap: 4px; }
+.bhg-lab-history-row { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; padding: 12px 6px; border-top: 1px solid var(--border-light); text-align: left; }
 .bhg-lab-history-row:first-child { border-top: 0; }
+.bhg-lab-history-row.bhg-clickable-row { width: 100%; grid-template-columns: auto 1fr auto auto; border: 1px solid transparent; border-radius: 10px; background: transparent; cursor: pointer; transition: all .18s ease; outline: none; }
+.bhg-lab-history-row.bhg-clickable-row:hover, .bhg-lab-history-row.bhg-clickable-row:focus-visible { background: var(--primary-light); border-color: #C5E3EF; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,26,38,.05); }
 .bhg-lab-history-row strong, .bhg-lab-history-row span, .bhg-lab-history-row small { display: block; }
 .bhg-lab-history-row strong { font-size: 12.5px; color: var(--text-primary); }
 .bhg-lab-history-row span { margin-top: 2px; color: var(--text-secondary); font-size: 10.5px; }
 .bhg-lab-history-row small { margin-top: 3px; color: var(--text-muted); font-size: 10px; }
+.bhg-lab-history-title-row { display: flex; align-items: center; gap: 8px; }
+.bhg-lab-id-chip { display: inline-block; padding: 2px 6px; border-radius: 4px; background: rgba(0,26,38,.06); color: var(--text-secondary); font-size: 9.5px; font-weight: 700; font-family: monospace; }
+.bhg-row-chevron { color: var(--text-muted); transition: transform .18s ease, color .18s ease; }
+.bhg-lab-history-row.bhg-clickable-row:hover .bhg-row-chevron { color: var(--primary); transform: translateX(3px); }
+
+.bhg-screening-detail-body { display: grid; gap: 18px; padding-bottom: 10px; }
+.bhg-screening-detail-header { padding: 16px; border-radius: 12px; background: var(--bg-alt); border: 1px solid var(--border); }
+.bhg-screening-detail-header h3 { font-size: 15px; margin: 10px 0 4px; color: var(--text-primary); font-weight: 800; }
+.bhg-screening-detail-header p { font-size: 11.5px; color: var(--text-muted); margin: 0; }
+.bhg-screening-section h4 { font-size: 11px; font-weight: 800; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .04em; }
+.bhg-screening-plan-box { display: flex; gap: 12px; padding: 14px; border-radius: 10px; background: #EAF7F1; border: 1px solid #B8E6D0; color: #1E6046; font-size: 11.5px; line-height: 1.5; }
+.bhg-screening-plan-box .bhg-plan-icon { flex: 0 0 auto; margin-top: 2px; color: #27815F; }
+.bhg-screening-plan-box strong { display: block; margin-bottom: 4px; color: #144432; font-size: 12px; }
+.bhg-drawer-actions { display: flex; gap: 9px; flex-wrap: wrap; width: 100%; justify-content: flex-end; }
 
 .bhg-session-notes { display: grid; gap: 14px; }
 .bhg-session-notes ul { margin: 8px 0 0 18px; color: var(--text-secondary); font-size: 11.5px; line-height: 1.6; }
@@ -900,7 +928,7 @@
 }
 .bhg-weekly-strip {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
   gap: 5px;
 }
 .bhg-weekly-day {
@@ -1410,7 +1438,7 @@
 /* ── Day-of-week visual ── */
 .bhg-takehome-days {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
   gap: 5px;
 }
 .bhg-th-day {

@@ -146,7 +146,7 @@ function buildReply(text, data) {
     const appointment = data.appointments[0];
     return {
       title: 'Your next counseling visit',
-      text: `${appointment.title} with ${appointment.provider} is confirmed for ${appointment.date} at ${appointment.time}. Counseling is a required part of your OTP care plan — attending consistently supports both your recovery and your take-home status. If you need to request a change, use the Appointments page.`,
+      text: `${appointment.title} with ${appointment.provider} is confirmed for ${appointment.date} at ${appointment.time}. Counseling is a required part of your MMT care plan — attending consistently supports both your recovery and your take-home status. If you need to request a change, use the Appointments page.`,
       facts: [
         { icon: CalendarDays, label: 'Date and time', value: `${appointment.date} \u00b7 ${appointment.time}` },
         { icon: MapPin, label: 'Location', value: appointment.location },
@@ -180,7 +180,7 @@ function buildReply(text, data) {
   if (/\b(faq|help center|help page|common question|how does|what is otp|what is moud)\b/.test(value)) {
     return {
       title: 'Help & FAQ',
-      text: 'Browse answers about medication visits, counseling, UDS privacy, coverage, and what to do in different situations. Topics include how OTP works, take-home eligibility, and who to call.',
+      text: 'Browse answers about medication visits, counseling, UDS privacy, coverage, and what to do in different situations. Topics include how MMT works, take-home eligibility, and who to call.',
       page: 'help',
       actionLabel: 'Open Help & FAQ',
     };
@@ -190,7 +190,7 @@ function buildReply(text, data) {
   if (/\b(uds|urine|drug screen|lab|result|test|screening)\b/.test(value)) {
     return {
       title: 'Your latest UDS status',
-      text: `A ${data.labStatus.latest.type.toLowerCase()} was collected ${data.labStatus.latest.collected} and its current status is "${data.labStatus.latest.status}." UDS is a routine part of OTP care — it is reviewed privately with your counselor, not displayed in full here. Your next review is planned at your counseling session on ${data.labStatus.latest.reviewWhen}.`,
+      text: `A ${data.labStatus.latest.type.toLowerCase()} was collected ${data.labStatus.latest.collected} and its current status is "${data.labStatus.latest.status}." UDS is a routine part of MMT care — it is reviewed privately with your counselor, not displayed in full here. Your next review is planned at your counseling session on ${data.labStatus.latest.reviewWhen}.`,
       facts: [
         { icon: CalendarDays, label: 'Collected', value: data.labStatus.latest.collected },
         { icon: HeartHandshake, label: 'Review with', value: data.labStatus.latest.reviewWith },
