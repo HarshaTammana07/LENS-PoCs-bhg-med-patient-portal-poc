@@ -133,7 +133,7 @@ export function createInitialDemoState() {
         date: 'September 29, 2026',
         dateShort: 'SEP 29',
         time: '11:00 AM',
-        provider: 'Morgan Reed, LPC-MHSP',
+        provider: 'Alicia Monroe',
         location: 'Secure Zoom visit',
         modality: 'Zoom',
         duration: '30 minutes',

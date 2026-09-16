@@ -35,7 +35,7 @@ import {
   Video,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { generateUdsMonitoringSummary } from '../lib/aiDemo';
+import { generateCounselingSessionSummary, generateUdsMonitoringSummary } from '../lib/aiDemo';
 import { getCenterMapsUrl, sharedCounselingSessionNotes, supportFaqs } from '../data/bhgPatientData';
 import { DemoBanner, Field, RequestStatus, WorkflowDrawer, WorkflowModal } from '../components/PrototypeUI';
 
@@ -55,6 +55,14 @@ function isCounselingAppointment(appointment) {
   return /counseling|group/i.test(appointment?.title || '');
 }
 
+function isMedicationAppointment(appointment) {
+  return /medication/i.test(appointment?.title || '');
+}
+
+function displayProviderName(provider = '') {
+  return provider.replace(/,\s*LPC-MHSP\b/gi, '').replace(/,\s*LPC\b/gi, '');
+}
+
 function getSessionNotes(appointment) {
   if (appointment?.sessionNotes) return appointment.sessionNotes;
   if (isCounselingAppointment(appointment) && appointmentTiming(appointment) === 'past') {
@@ -64,6 +72,8 @@ function getSessionNotes(appointment) {
 }
 
 function AppointmentCard({ appointment, onDetails, onChange }) {
+  const canRequestChange = appointmentTiming(appointment) === 'upcoming' && !isMedicationAppointment(appointment);
+
   return (
     <Card className="bhg-appointment">
       <div className="bhg-date-tile">
@@ -73,7 +83,7 @@ function AppointmentCard({ appointment, onDetails, onChange }) {
       <div className="bhg-appointment-main">
         <div><PillBadge tone={appointmentStatusTone(appointment.status)}>{appointment.status}</PillBadge></div>
         <h2>{appointment.title}</h2>
-        <p>{appointment.provider}</p>
+        <p>{displayProviderName(appointment.provider)}</p>
         <div className="bhg-meta-line">
           <span><Clock3 size={15} /> {appointment.time} · {appointment.duration}</span>
           <span><MapPin size={15} /> {appointment.location}</span>
@@ -83,7 +93,7 @@ function AppointmentCard({ appointment, onDetails, onChange }) {
       <div className="bhg-appointment-actions">
         {appointment.requestStatus && <PillBadge tone="warning">{appointment.requestStatus}</PillBadge>}
         <ActionButton secondary onClick={() => onDetails(appointment)}>View details</ActionButton>
-        {appointmentTiming(appointment) === 'upcoming' && (
+        {canRequestChange && (
           <button type="button" className="bhg-text-button" onClick={() => onChange(appointment)}>Request a change</button>
         )}
       </div>
@@ -496,21 +506,31 @@ export function Dashboard() {
     progress,
     weeklySchedule,
     visitHoldStatus,
-    takeHomeDetail,
     navigate,
   } = useApp();
   const [showHelp, setShowHelp] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showAllSteps, setShowAllSteps] = useState(false);
-  const nextStepsPreview = 3;
-  const visibleSteps = showAllSteps ? requiredActions : requiredActions.slice(0, nextStepsPreview);
-  const hiddenStepCount = Math.max(requiredActions.length - nextStepsPreview, 0);
+  const dashboardSteps = requiredActions.slice(0, 6);
+  const nextStepsPreview = 4;
+  const visibleSteps = showAllSteps ? dashboardSteps : dashboardSteps.slice(0, nextStepsPreview);
+  const hiddenStepCount = Math.max(dashboardSteps.length - nextStepsPreview, 0);
   const nextAppointment = appointments[0];
   const unreadMessages = messages.filter((message) => message.unread).length;
   const latestRequest = workItems[0];
   const overallGoalProgress = Math.round(
     progress.currentGoals.reduce((sum, goal) => sum + goal.progress, 0) / progress.currentGoals.length
   );
+  const holdSummary = visitHoldStatus.status === 'clear' ? 'No holds active' : visitHoldStatus.label;
+  const shortDay = (item) => item.date.split(',')[0];
+  const clinicDays = weeklySchedule
+    .filter((item) => item.status !== 'Take-home')
+    .map(shortDay)
+    .join(', ');
+  const takeHomeDays = weeklySchedule
+    .filter((item) => item.status === 'Take-home')
+    .map(shortDay)
+    .join(', ');
 
   return (
     <div className="bhg-page bhg-dashboard animate-fade-in">
@@ -551,7 +571,11 @@ export function Dashboard() {
             <div className="bhg-today-main">
               <div className="bhg-eyebrow">Today’s medication visit</div>
               <h2>Arrive before 11:30 AM</h2>
-              <p>{center.shortName} · Window open until 11:30 AM · {treatment.visitStatusDetail}</p>
+              <div className="bhg-inline-status">
+                <span><ShieldCheck size={14} /> {holdSummary}</span>
+                <span><Pill size={14} /> Clinic: {clinicDays}</span>
+                <span><Pill size={14} /> Take-home: {takeHomeDays || 'None this week'}</span>
+              </div>
             </div>
             <div className="bhg-today-actions">
               <ActionButton onClick={() => navigate('medication')}>View schedule <ArrowRight size={15} /></ActionButton>
@@ -569,11 +593,6 @@ export function Dashboard() {
               <span className="bhg-request-card-link">View request details <ChevronRight size={15} /></span>
             </button>
           )}
-        </div>
-
-        <div className="bhg-dashboard-status-row">
-          <HoldStatusCard visitHoldStatus={visitHoldStatus} center={center} navigate={navigate} />
-          <TakeHomeStatusCard takeHomeDetail={takeHomeDetail} navigate={navigate} />
         </div>
 
         <div className="bhg-metric-grid bhg-metric-grid-compact">
@@ -693,97 +712,56 @@ export function Dashboard() {
 }
 
 export function Treatment() {
-  const { treatment, patient, careTeam, counseling, appointments, progress, center, labStatus, navigate } = useApp();
-
-  const carePillars = [
-    {
-      title: 'Medication care',
-      detail: `${treatment.medication} ${treatment.currentOrder} · ${treatment.takeHomeStatus}. Observed visits at ${center.shortName}.`,
-      Icon: Pill,
-      page: 'medication',
-    },
-    {
-      title: 'Counseling',
-      detail: `${counseling.plan}. Next session ${appointments[0].dateShort} at ${appointments[0].time}.`,
-      Icon: MessageCircle,
-      page: 'counseling',
-    },
-    {
-      title: 'Health monitoring',
-      detail: `${labStatus.latest.type} collected ${labStatus.latest.collected}. Results reviewed privately with your counselor.`,
-      Icon: TestTube2,
-      page: 'labs',
-    },
-    {
-      title: 'Coverage & support',
-      detail: `${treatment.payer} · ${treatment.authorization}. Financial and recovery support available through your care team.`,
-      Icon: UsersRound,
-      page: 'payments',
-    },
-  ];
+  const { treatment, patient, careTeam, counseling, appointments, center, navigate } = useApp();
+  const nextVisits = appointments.filter((appointment) => appointmentTiming(appointment) === 'upcoming').slice(0, 3);
 
   return (
     <div className="bhg-page bhg-treatment-page animate-fade-in">
       <PageHeader
         eyebrow="My care"
         title="My treatment"
-        description={`Your active ${treatment.programShort} plan at ${center.shortName}.`}
+        description="Your current care plan, schedule, and care team."
         action={<PillBadge tone="success">{treatment.status} treatment</PillBadge>}
       />
 
-      <div className="bhg-treatment-stats">
-        <div><strong>{patient.daysInTreatment}</strong><span>Days in treatment</span></div>
-        <div><strong>{treatment.phase}</strong><span>Current phase</span></div>
-        <div><strong>2 days</strong><span>Approved take-home</span></div>
-        <div><strong>{treatment.nextReview}</strong><span>Next plan review</span></div>
-      </div>
-
-      <div className="bhg-two-column bhg-two-column-wide">
+      <div className="bhg-two-column">
         <Card className="bhg-feature-card">
           <div className="bhg-feature-heading">
             <span className="bhg-large-icon"><HeartHandshake size={25} /></span>
             <div>
-              <PillBadge tone="success">{treatment.status}</PillBadge>
-              <h2>{treatment.program}</h2>
-              <p>Enrolled {patient.enrolledSince} · Patient ID {patient.id}</p>
+              <PillBadge tone="success">{treatment.programShort}</PillBadge>
+              <h2>{treatment.phase} care plan</h2>
+              <p>Enrolled {patient.enrolledSince} · {patient.daysInTreatment} days in treatment</p>
             </div>
           </div>
           <div className="bhg-detail-grid bhg-detail-grid-treatment">
-            <div><span>Current phase</span><strong>{treatment.phase}</strong></div>
-            <div><span>Next care-plan review</span><strong>{treatment.nextReview}</strong></div>
-            <div><span>Assigned counselor</span><strong>{careTeam[0].name}</strong></div>
-            <div><span>Medical provider</span><strong>{treatment.prescriber}</strong></div>
-            <div><span>Last plan update</span><strong>{treatment.lastPlanUpdate}</strong></div>
-            <div><span>Coverage authorization</span><strong>{treatment.authorization}</strong></div>
+            <div><span>Program</span><strong>{treatment.programShort}</strong></div>
+            <div><span>Medication</span><strong>{treatment.medication} {treatment.currentOrder}</strong></div>
+            <div><span>Clinic visits</span><strong>Monday and Saturday</strong></div>
+            <div><span>Take-home</span><strong>Tuesday and Wednesday</strong></div>
           </div>
-          <p className="bhg-treatment-note">{treatment.lastPlanFocus}</p>
+          <div className="bhg-safe-callout bhg-treatment-inline-safety">
+            <AlertCircle size={18} />
+            <span>{treatment.safetyNote}</span>
+          </div>
         </Card>
 
-        <Card className="bhg-treatment-phase-card">
-          <SectionTitle title="What your phase means" description={`${treatment.phase} in an OTP program`} />
-          <p className="bhg-body-copy">{treatment.phaseSummary}</p>
-          <div className="bhg-treatment-focus">
-            {progress.currentGoals.map((goal) => (
-              <div key={goal.title}>
-                <strong>{goal.title}</strong>
-                <span>{goal.note}</span>
-                <div className="bhg-progress-track"><span style={{ width: `${goal.progress}%` }} /></div>
-              </div>
-            ))}
-          </div>
-          <button type="button" className="bhg-link-row" onClick={() => navigate('progress')}>
-            View full recovery progress <ArrowRight size={16} />
+        <Card>
+          <SectionTitle title="Care team" description="The people connected to this plan." />
+          <DetailRow label="Primary counselor" value={careTeam[0].name} />
+          <DetailRow label="Medical provider" value={treatment.prescriber} />
+          <DetailRow label="Clinic" value={`${center.shortName} · ${center.medicationWindow}`} />
+          <button type="button" className="bhg-link-row" onClick={() => navigate('care-team')}>
+            View care team <ArrowRight size={16} />
           </button>
         </Card>
       </div>
 
       <div className="bhg-two-column">
         <Card>
-          <SectionTitle title="Medication & take-home plan" description="Patient view only — contact the center before any changes." />
-          <DetailRow label="Medication" value={`${treatment.medication} ${treatment.currentOrder}`} />
-          <DetailRow label="Prescriber" value={treatment.prescriber} />
-          <DetailRow label="Order updated" value={treatment.orderUpdated} />
-          <DetailRow label="Take-home days" value={treatment.takeHomeDetail} />
+          <SectionTitle title="Medication schedule" description="This week's clinic and take-home routine." />
+          <DetailRow label="Clinic visits" value="Monday and Saturday observed medication visits" />
+          <DetailRow label="Take-home" value="Tuesday and Wednesday" />
           <DetailRow label="Medication window" value={center.medicationWindow} />
           <button type="button" className="bhg-link-row" onClick={() => navigate('medication')}>
             View weekly medication schedule <ArrowRight size={16} />
@@ -791,21 +769,20 @@ export function Treatment() {
         </Card>
 
         <Card>
-          <SectionTitle title="Counseling & required services" description="Clinic-managed appointments — not self-scheduled in the portal." />
+          <SectionTitle title="Counseling" description="Your next scheduled support." />
           <DetailRow label="Counseling plan" value={counseling.plan} />
-          <DetailRow label="Last session" value={`${counseling.lastSession.date} · ${counseling.lastSession.focus}`} />
           <DetailRow label="Next counseling visit" value={`${appointments[0].date} at ${appointments[0].time}`} />
           <DetailRow label="Next group session" value={`${appointments[1].date} · ${appointments[1].modality}`} />
-          <button type="button" className="bhg-link-row" onClick={() => navigate('counseling')}>
+          <button type="button" className="bhg-link-row" onClick={() => navigate('appointments')}>
             Open counseling details <ArrowRight size={16} />
           </button>
         </Card>
       </div>
 
       <Card>
-        <SectionTitle title="Upcoming treatment visits" description="Counseling, group, and provider reviews on your BHG calendar." />
+        <SectionTitle title="Upcoming visits" description="The next items on your BHG calendar." />
         <div className="bhg-treatment-visits">
-          {appointments.map((appointment) => (
+          {nextVisits.map((appointment) => (
             <button key={appointment.id} type="button" className="bhg-treatment-visit-row" onClick={() => navigate('appointments')}>
               <div className="bhg-date-tile compact">
                 <span>{appointment.dateShort.split(' ')[0]}</span>
@@ -821,26 +798,10 @@ export function Treatment() {
             </button>
           ))}
         </div>
+        <button type="button" className="bhg-link-row" onClick={() => navigate('appointments')}>
+          View all visits <ArrowRight size={16} />
+        </button>
       </Card>
-
-      <Card>
-        <SectionTitle title="Your OTP care at a glance" description="How your current BHG plan supports recovery day to day." />
-        <div className="bhg-care-grid">
-          {carePillars.map(({ title, detail, Icon, page }) => (
-            <button type="button" className="bhg-care-item bhg-care-item-link" key={title} onClick={() => navigate(page)}>
-              <Icon size={20} />
-              <h3>{title}</h3>
-              <p>{detail}</p>
-              <span>Open <ChevronRight size={14} /></span>
-            </button>
-          ))}
-        </div>
-      </Card>
-
-      <div className="bhg-safe-callout bhg-treatment-safety">
-        <AlertCircle size={18} />
-        <span>{treatment.safetyNote}</span>
-      </div>
     </div>
   );
 }
@@ -849,6 +810,8 @@ export function Medication() {
   const { treatment, weeklySchedule, center, navigate, createRequest, addToast } = useApp();
   const [showReviewRequest, setShowReviewRequest] = useState(false);
   const [reviewReason, setReviewReason] = useState('I have a question about how I am feeling');
+  const clinicDays = weeklySchedule.filter((item) => item.status !== 'Take-home').map((item) => item.day).join(', ');
+  const takeHomeDays = weeklySchedule.filter((item) => item.status === 'Take-home').map((item) => item.day).join(', ');
 
   const requestReview = () => {
     createRequest({
@@ -870,25 +833,23 @@ export function Medication() {
       />
       <div className="bhg-two-column">
         <Card className="bhg-feature-card">
-          <SectionTitle title="Current medication plan" description="View only — medication decisions remain with your authorized medical provider." />
+          <SectionTitle title="This week's routine" description="Clinic days and take-home days at a glance." />
           <div className="bhg-medication-name">
             <span className="bhg-large-icon"><Pill size={25} /></span>
-            <div><h2>{treatment.medication}</h2><p>Current order: {treatment.currentOrder}</p></div>
+            <div><h2>{treatment.medication}</h2><p>{treatment.currentOrder} · {center.medicationWindow}</p></div>
           </div>
-          <DetailRow label="Prescriber" value={treatment.prescriber} />
-          <DetailRow label="Order updated" value={treatment.orderUpdated} />
-          <DetailRow label="Next review" value={treatment.nextReview} />
-          <button type="button" className="bhg-button bhg-button-secondary" onClick={() => setShowReviewRequest(true)}>Request a medication review</button>
+          <DetailRow label="Clinic visits" value={clinicDays} />
+          <DetailRow label="Take-home" value={takeHomeDays || 'None this week'} />
+          <DetailRow label="Location" value={center.shortName} />
         </Card>
         <Card>
-          <SectionTitle title="Take-home plan" />
-          <h3 className="bhg-callout-title">{treatment.takeHomeStatus}</h3>
-          <p className="bhg-body-copy">{treatment.takeHomeDetail}</p>
+          <SectionTitle title="Questions or concerns" description="Send a note if something about your medication feels different." />
           <div className="bhg-safe-callout"><ShieldCheck size={18} /><span>{treatment.safetyNote}</span></div>
+          <button type="button" className="bhg-button bhg-button-secondary bhg-card-action" onClick={() => setShowReviewRequest(true)}>Request a medication review</button>
         </Card>
       </div>
       <Card>
-        <SectionTitle title="This week" description={`${center.name} · ${center.medicationWindow}`} />
+        <SectionTitle title="Weekly schedule" description={`${center.shortName} · ${center.medicationWindow}`} />
         <div className="bhg-schedule-list">
           {weeklySchedule.map((item) => (
             <div key={item.date} className={`bhg-schedule-row ${item.active ? 'active' : ''}`}>
@@ -927,18 +888,25 @@ export function Medication() {
 }
 
 export function Appointments() {
-  const { appointments, appointmentProposals, respondToAppointmentProposal, createRequest, addToast } = useApp();
+  const { appointments, appointmentProposals, counseling, respondToAppointmentProposal, createRequest, addToast } = useApp();
   const [selected, setSelected] = useState(null);
   const [mode, setMode] = useState('details');
+  const [detailTab, setDetailTab] = useState('overview');
+  const [sessionAiSummary, setSessionAiSummary] = useState(null);
+  const [generatingSessionAi, setGeneratingSessionAi] = useState(false);
   const [reason, setReason] = useState('I need a different date or time');
   const [note, setNote] = useState('');
   const upcoming = appointments.filter((item) => appointmentTiming(item) === 'upcoming');
   const past = appointments.filter((item) => appointmentTiming(item) === 'past');
+  const pendingOffers = (appointmentProposals || []).filter((item) => item.status === 'Awaiting patient response');
   const sessionNotes = selected ? getSessionNotes(selected) : null;
 
   const closeDrawer = () => {
     setSelected(null);
     setMode('details');
+    setDetailTab('overview');
+    setSessionAiSummary(null);
+    setGeneratingSessionAi(false);
     setReason('I need a different date or time');
     setNote('');
   };
@@ -946,6 +914,9 @@ export function Appointments() {
   const openAppointment = (appointment, nextMode) => {
     setSelected(appointment);
     setMode(nextMode);
+    setDetailTab('overview');
+    setSessionAiSummary(null);
+    setGeneratingSessionAi(false);
     setReason('I need a different date or time');
     setNote('');
   };
@@ -958,35 +929,49 @@ export function Appointments() {
       appointmentId: selected.id,
       page: 'appointments',
     });
-    addToast('Your appointment request was sent to the scheduling team.');
+    addToast('Your visit request was sent to the scheduling team.');
     closeDrawer();
   };
 
-  const drawerTitle = mode === 'change' ? 'Request an appointment change' : selected?.title;
-  const drawerSubtitle = selected ? `${selected.date} at ${selected.time} · ${selected.provider}` : '';
+  const runSessionAiSummary = () => {
+    if (!selected || generatingSessionAi || sessionAiSummary) return;
+    setGeneratingSessionAi(true);
+    window.setTimeout(() => {
+      setSessionAiSummary(generateCounselingSessionSummary(selected));
+      setGeneratingSessionAi(false);
+      addToast('AI session summary generated.', 'info');
+    }, 450);
+  };
+
+  const drawerTitle = mode === 'change' ? 'Request a visit change' : selected?.title;
+  const selectedIsCounseling = isCounselingAppointment(selected);
+  const selectedIsMedication = isMedicationAppointment(selected);
+  const selectedTiming = selected ? appointmentTiming(selected) : null;
+  const counselingTabs = selectedTiming === 'upcoming'
+    ? ['overview', 'prepare', 'goals', 'message']
+    : ['overview', 'goals'];
+  const drawerSubtitle = selected ? `${selected.date} at ${selected.time} · ${displayProviderName(selected.provider)}` : '';
 
   return (
     <div className={`bhg-page bhg-appointments-page animate-fade-in ${selected ? 'drawer-open' : ''}`}>
       <PageHeader
         eyebrow="My care"
-        title="Appointments"
-        description="Upcoming clinic-managed visits and your previous counseling and provider appointments."
+        title="Visits"
+        description="Counseling, group, and provider visits."
       />
 
-      {appointmentProposals?.length > 0 && (
+      {pendingOffers.length > 0 && (
         <section className="bhg-appointment-section">
-          <SectionTitle title="Appointment offers" description="Review times proposed by your clinician. Accepted offers are added to your schedule." />
+          <SectionTitle title="Proposed visit" description="Reply only if this time works for you." />
           <div className="bhg-stack">
-            {appointmentProposals.map((proposal) => (
+            {pendingOffers.map((proposal) => (
               <Card className="bhg-card-compact" key={proposal.id}>
-                <SectionTitle title={proposal.title} description={`${proposal.date} at ${proposal.time} · ${proposal.provider}`} />
+                <SectionTitle title={proposal.title} description={`${proposal.date} at ${proposal.time} · ${displayProviderName(proposal.provider)}`} />
                 <div className="bhg-meta-line"><span><MapPin size={15} /> {proposal.location}</span><PillBadge tone={proposal.status === 'Accepted' ? 'success' : proposal.status === 'Change requested' ? 'warning' : 'primary'}>{proposal.status}</PillBadge></div>
-                {proposal.status === 'Awaiting patient response' && (
-                  <div className="bhg-lab-actions">
-                    <button type="button" className="bhg-button" onClick={() => { respondToAppointmentProposal(proposal.id, 'Accepted'); addToast('Appointment accepted and added to your schedule.'); }}>Accept time</button>
-                    <button type="button" className="bhg-button bhg-button-secondary" onClick={() => { respondToAppointmentProposal(proposal.id, 'Change requested'); addToast('Your request for another time was sent.'); }}>Request another time</button>
-                  </div>
-                )}
+                <div className="bhg-lab-actions">
+                  <button type="button" className="bhg-button" onClick={() => { respondToAppointmentProposal(proposal.id, 'Accepted'); addToast('Visit time accepted.'); }}>Accept time</button>
+                  <button type="button" className="bhg-button bhg-button-secondary" onClick={() => { respondToAppointmentProposal(proposal.id, 'Change requested'); addToast('Your request for another time was sent.'); }}>Request another time</button>
+                </div>
               </Card>
             ))}
           </div>
@@ -994,7 +979,7 @@ export function Appointments() {
       )}
 
       <section className="bhg-appointment-section">
-        <SectionTitle title="Upcoming schedule" description="These visits are arranged by BHG staff — not self-booked in the portal." />
+        <SectionTitle title="Upcoming" />
         <div className="bhg-stack">
           {upcoming.length ? upcoming.map((appointment) => (
             <AppointmentCard
@@ -1004,13 +989,13 @@ export function Appointments() {
               onChange={(item) => openAppointment(item, 'change')}
             />
           )) : (
-            <Card className="bhg-card-compact"><p className="bhg-body-copy">No upcoming appointments are scheduled right now.</p></Card>
+            <Card className="bhg-card-compact"><p className="bhg-body-copy">No upcoming visits are scheduled right now.</p></Card>
           )}
         </div>
       </section>
 
       <section className="bhg-appointment-section">
-        <SectionTitle title="Previous appointments" description="Completed visits with patient-facing summaries where available." />
+        <SectionTitle title="Previous" />
         <div className="bhg-stack">
           {past.map((appointment) => (
             <AppointmentCard
@@ -1038,7 +1023,7 @@ export function Appointments() {
             ) : (
               <>
                 <button type="button" className="bhg-button bhg-button-secondary" onClick={closeDrawer}>Close</button>
-                {appointmentTiming(selected) === 'upcoming' && (
+                {selectedTiming === 'upcoming' && !selectedIsMedication && (
                   <button type="button" className="bhg-button" onClick={() => setMode('change')}>Request a change</button>
                 )}
               </>
@@ -1053,43 +1038,117 @@ export function Appointments() {
 
           {mode === 'details' && (
             <>
-              <div className="bhg-workflow-summary">
-                <DetailRow label="Status" value={selected.status} />
-                <DetailRow label="Provider" value={selected.provider} />
-                <DetailRow label="Location" value={selected.location} />
-                <DetailRow label="Visit type" value={selected.modality} />
-                <DetailRow label="Duration" value={selected.duration} />
-                {appointmentTiming(selected) === 'upcoming' ? (
-                  <div className="bhg-safe-callout"><CalendarDays size={18} /><span>{selected.preparation}</span></div>
-                ) : selected.visitSummary ? (
-                  <div className="bhg-safe-callout"><CheckCircle2 size={18} /><span>{selected.visitSummary}</span></div>
-                ) : sessionNotes ? (
-                  <div className="bhg-safe-callout"><MessageCircle size={18} /><span>{sessionNotes.patientSummary}</span></div>
-                ) : null}
-                {appointmentTiming(selected) === 'upcoming' && /telehealth|zoom/i.test(selected.modality) && (
-                  <button type="button" className="bhg-button bhg-button-secondary" onClick={() => addToast('Telehealth device check completed.', 'success')}>
-                    <Video size={16} /> Test device
-                  </button>
-                )}
-              </div>
+              {selectedIsCounseling && (
+                <div className="bhg-appointment-tabs" role="tablist" aria-label="Counseling appointment details">
+                  {counselingTabs.map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      role="tab"
+                      aria-selected={detailTab === tab}
+                      className={detailTab === tab ? 'active' : ''}
+                      onClick={() => setDetailTab(tab)}
+                    >
+                      {tab === 'prepare' ? 'Preparation' : tab === 'message' ? 'Message' : tab[0].toUpperCase() + tab.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-              {sessionNotes && (
+              {(!selectedIsCounseling || detailTab === 'overview') && (
+                <>
+                  <div className="bhg-workflow-summary">
+                    <DetailRow label="Status" value={selected.status} />
+                    <DetailRow label="Provider" value={displayProviderName(selected.provider)} />
+                    <DetailRow label="Location" value={selected.location} />
+                    <DetailRow label="Visit type" value={selected.modality} />
+                    <DetailRow label="Duration" value={selected.duration} />
+                    {selectedTiming === 'upcoming' ? (
+                      <div className="bhg-safe-callout"><CalendarDays size={18} /><span>{selected.preparation}</span></div>
+                    ) : selected.visitSummary ? (
+                      <div className="bhg-safe-callout"><CheckCircle2 size={18} /><span>{selected.visitSummary}</span></div>
+                    ) : sessionNotes ? (
+                      <div className="bhg-safe-callout"><MessageCircle size={18} /><span>{sessionNotes.patientSummary}</span></div>
+                    ) : null}
+                    {selectedTiming === 'upcoming' && /telehealth|zoom/i.test(selected.modality) && (
+                      <button type="button" className="bhg-button bhg-button-secondary" onClick={() => addToast('Telehealth device check completed.', 'success')}>
+                        <Video size={16} /> Test device
+                      </button>
+                    )}
+                  </div>
+
+                  {sessionNotes && (
+                    <div className="bhg-session-notes bhg-session-notes-panel">
+                      <h3>Counseling session summary</h3>
+                      <div className="bhg-request-detail">
+                        <strong>Session focus</strong>
+                        <p>{sessionNotes.focus}</p>
+                      </div>
+                      <div>
+                        <strong className="bhg-notes-label">What you discussed</strong>
+                        <ul>
+                          {sessionNotes.discussed.map((item) => <li key={item}>{item}</li>)}
+                        </ul>
+                      </div>
+                      <div className="bhg-request-detail">
+                        <strong>Next steps from your care team</strong>
+                        <p>{sessionNotes.nextSteps}</p>
+                      </div>
+                      <button type="button" className="bhg-button bhg-button-secondary" disabled={generatingSessionAi || Boolean(sessionAiSummary)} onClick={runSessionAiSummary}>
+                        <Sparkles size={15} /> {generatingSessionAi ? 'Summarizing...' : sessionAiSummary ? 'Summary ready' : 'Explain with AI'}
+                      </button>
+                      {sessionAiSummary && (
+                        <div className="bhg-lab-ai-summary">
+                          <strong><Sparkles size={15} /> AI summary · {sessionAiSummary.confidence}% confidence</strong>
+                          <p>{sessionAiSummary.text}</p>
+                          <small>{sessionAiSummary.disclaimer}</small>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {selectedIsCounseling && detailTab === 'prepare' && (
                 <div className="bhg-session-notes bhg-session-notes-panel">
-                  <h3>Counseling session notes</h3>
-                  <div className="bhg-request-detail">
-                    <strong>Session focus</strong>
-                    <p>{sessionNotes.focus}</p>
+                  <h3>Before this visit</h3>
+                  <div className="bhg-safe-callout"><CalendarDays size={18} /><span>{selected.preparation}</span></div>
+                  <div className="bhg-topic-list">
+                    {counseling.upcomingTopics.map((topic) => <div key={topic}><CheckCircle2 size={17} /><span>{topic}</span></div>)}
                   </div>
-                  <div>
-                    <strong className="bhg-notes-label">What you discussed</strong>
-                    <ul>
-                      {sessionNotes.discussed.map((item) => <li key={item}>{item}</li>)}
-                    </ul>
-                  </div>
-                  <div className="bhg-request-detail">
-                    <strong>Next steps from your care team</strong>
-                    <p>{sessionNotes.nextSteps}</p>
-                  </div>
+                </div>
+              )}
+
+              {selectedIsCounseling && detailTab === 'goals' && (
+                <div className="bhg-session-notes bhg-session-notes-panel">
+                  <h3>Counseling plan</h3>
+                  <p className="bhg-body-copy">{counseling.plan}</p>
+                  <DetailRow label="Counselor" value={counseling.counselor.name} />
+                  <DetailRow label="Last session" value={counseling.lastSession.date} />
+                  <DetailRow label="Recent focus" value={counseling.lastSession.focus} />
+                </div>
+              )}
+
+              {selectedIsCounseling && selectedTiming === 'upcoming' && detailTab === 'message' && (
+                <div className="bhg-session-notes bhg-session-notes-panel">
+                  <h3>Message your counselor</h3>
+                  <p className="bhg-body-copy">Send a simple question before this counseling visit. Urgent symptoms or emergencies should be handled by phone or emergency services.</p>
+                  <button
+                    type="button"
+                    className="bhg-button"
+                    onClick={() => {
+                      createRequest({
+                        type: 'Counseling question',
+                        title: selected.title,
+                        detail: `Question about ${selected.date} counseling visit.`,
+                        appointmentId: selected.id,
+                        page: 'appointments',
+                      });
+                      addToast('Your counseling question was sent to the care team.');
+                    }}
+                  >
+                    Send question
+                  </button>
                 </div>
               )}
 
@@ -1102,7 +1161,7 @@ export function Appointments() {
                 <select value={reason} onChange={(event) => setReason(event.target.value)}>
                   <option>I need a different date or time</option>
                   <option>I need a different visit format</option>
-                  <option>I cannot attend this appointment</option>
+                  <option>I cannot attend this visit</option>
                   <option>I need transportation support</option>
                 </select>
               </Field>
@@ -1117,48 +1176,9 @@ export function Appointments() {
   );
 }
 
-export function Counseling() {
-  const { counseling, navigate } = useApp();
-  return (
-    <div className="bhg-page animate-fade-in">
-      <PageHeader eyebrow="My care" title="Counseling" description="Stay connected with your counselor and recovery goals." />
-      <div className="bhg-two-column">
-        <Card className="bhg-feature-card">
-          <PillBadge tone="primary">Next session</PillBadge>
-          <h2 className="bhg-spaced-heading">{counseling.nextSession.title}</h2>
-          <div className="bhg-meta-stack">
-            <span><CalendarDays size={16} /> {counseling.nextSession.date} at {counseling.nextSession.time}</span>
-            <span><UserRound size={16} /> {counseling.counselor.name}</span>
-            <span><MapPin size={16} /> {counseling.nextSession.location}</span>
-          </div>
-          <ActionButton onClick={() => navigate('appointments')}>View appointment</ActionButton>
-        </Card>
-        <Card>
-          <SectionTitle title="Counseling plan" />
-          <p className="bhg-body-copy">{counseling.plan}</p>
-          <DetailRow label="Last session" value={counseling.lastSession.date} />
-          <DetailRow label="Session focus" value={counseling.lastSession.focus} />
-        </Card>
-      </div>
-      <Card>
-        <SectionTitle title="For your next conversation" description="Your counselor may review these topics with you." />
-        <div className="bhg-topic-list">
-          {counseling.upcomingTopics.map((topic) => <div key={topic}><CheckCircle2 size={17} /><span>{topic}</span></div>)}
-        </div>
-      </Card>
-    </div>
-  );
-}
-
 function labStatusTone(status) {
   if (status === 'Reviewed') return 'success';
   if (status === 'Ready to review') return 'warning';
-  return 'neutral';
-}
-
-function workflowStepTone(status) {
-  if (status === 'done') return 'success';
-  if (status === 'current') return 'primary';
   return 'neutral';
 }
 
@@ -1166,6 +1186,7 @@ export function Labs() {
   const { labStatus, navigate, addToast } = useApp();
   const [aiSummary, setAiSummary] = useState(null);
   const [generatingAi, setGeneratingAi] = useState(false);
+  const [selectedScreen, setSelectedScreen] = useState(null);
 
   const runAiSummary = () => {
     if (generatingAi || aiSummary) return;
@@ -1175,6 +1196,12 @@ export function Labs() {
       setGeneratingAi(false);
       addToast('AI monitoring summary generated.', 'info');
     }, 1100);
+  };
+
+  const getScreenReviewPlan = (item) => {
+    if (item.reviewPlan) return item.reviewPlan;
+    if (item.reviewedBy) return `Reviewed and discussed with ${item.reviewedBy} on ${item.reviewedDate}. Care plan confirmed.`;
+    return `Scheduled for private 1-on-1 review with ${labStatus.latest.reviewWith} at your upcoming counseling visit on ${labStatus.latest.reviewWhen.split(' · ')[0]}.`;
   };
 
   return (
@@ -1193,7 +1220,7 @@ export function Labs() {
         <div><strong>{labStatus.stats.nextWindow}</strong><span>Next screening window</span></div>
       </div>
 
-      <div className="bhg-two-column bhg-two-column-wide">
+      <div className="bhg-two-column">
         <Card className="bhg-feature-card bhg-lab-hero">
           <div className="bhg-feature-heading">
             <span className="bhg-large-icon"><TestTube2 size={25} /></span>
@@ -1214,6 +1241,9 @@ export function Labs() {
             <button type="button" className="bhg-button bhg-button-secondary" onClick={() => navigate('appointments')}>
               <CalendarDays size={15} /> View counseling visit
             </button>
+            <button type="button" className="bhg-button bhg-button-secondary" onClick={() => navigate('messages')}>
+              <MessageCircle size={15} /> Message care team
+            </button>
             <button type="button" className="bhg-button" disabled={generatingAi || Boolean(aiSummary)} onClick={runAiSummary}>
               <Sparkles size={15} /> {generatingAi ? 'Summarizing…' : aiSummary ? 'Summary ready' : 'Explain with AI'}
             </button>
@@ -1227,70 +1257,136 @@ export function Labs() {
           )}
         </Card>
 
-        <Card className="bhg-lab-workflow-card">
-          <SectionTitle title="Where your screen is now" description="Status only — detailed results stay private until review." />
-          <div className="bhg-lab-workflow">
-            {labStatus.workflow.map((item, index) => (
-              <div key={item.step} className={`bhg-lab-workflow-step ${item.status}`}>
-                <div className="bhg-lab-workflow-marker">
-                  {item.status === 'done' ? <CheckCircle2 size={16} /> : <span>{index + 1}</span>}
-                </div>
-                <div>
-                  <div className="bhg-lab-workflow-head">
-                    <strong>{item.step}</strong>
-                    <PillBadge tone={workflowStepTone(item.status)}>
-                      {item.status === 'done' ? 'Complete' : item.status === 'current' ? 'Current' : 'Upcoming'}
-                    </PillBadge>
-                  </div>
-                  <p>{item.detail}</p>
-                </div>
-              </div>
-            ))}
+        <Card className="bhg-lab-privacy-card">
+          <SectionTitle title="Private review protocol" description="How routine screening fits into your BHG recovery plan." />
+          <div className="bhg-safe-callout">
+            <LockKeyhole size={18} />
+            <span>Protected under 42 CFR Part 2 federal confidentiality standards. Detailed analyte values remain private to your care team.</span>
           </div>
-        </Card>
-      </div>
-
-      <div className="bhg-two-column">
-        <Card>
-          <SectionTitle title="What to expect" description="How routine UDS fits into OTP treatment." />
           <div className="bhg-topic-list bhg-lab-expect-list">
-            {labStatus.whatToExpect.map((item) => (
-              <div key={item}><CheckCircle2 size={17} /><span>{item}</span></div>
-            ))}
+            <div>
+              <CheckCircle2 size={17} />
+              <span><strong>1-on-1 Counselor Review:</strong> Results are discussed directly with Alicia Monroe during your scheduled session.</span>
+            </div>
+            <div>
+              <CheckCircle2 size={17} />
+              <span><strong>Supportive Care Tool:</strong> Routine UDS verifies medication safety and helps adjust your personalized treatment plan.</span>
+            </div>
+            <div>
+              <CheckCircle2 size={17} />
+              <span><strong>No Action Required:</strong> No advance preparation is needed before your routine clinic review.</span>
+            </div>
           </div>
-          <button type="button" className="bhg-link-row" onClick={() => navigate('messages')}>
-            Message your counselor with a question <ArrowRight size={16} />
+          <button type="button" className="bhg-link-row" onClick={() => navigate('appointments')}>
+            Prepare for your next counseling visit <ArrowRight size={16} />
           </button>
-        </Card>
-
-        <Card>
-          <SectionTitle title="Your privacy" description="Why results are not displayed here." />
-          <div className="bhg-safe-callout"><LockKeyhole size={18} /><span>{labStatus.privacy}</span></div>
-          <ul className="bhg-lab-privacy-list">
-            {labStatus.privacyPoints.map((item) => <li key={item}>{item}</li>)}
-          </ul>
         </Card>
       </div>
 
       <Card className="bhg-lab-history-card">
-        <SectionTitle title="Screening history" description="Collection dates and review status — not detailed lab values." />
+        <SectionTitle title="Recent screenings" description="Click any screening row to view review details, status, and care actions." />
         <div className="bhg-lab-history">
           {labStatus.history.map((item) => (
-            <div key={item.id} className="bhg-lab-history-row">
+            <button
+              key={item.id}
+              type="button"
+              className="bhg-lab-history-row bhg-clickable-row"
+              onClick={() => setSelectedScreen(item)}
+              aria-label={`View details for screening ${item.id} collected on ${item.date}`}
+            >
               <div className="bhg-date-tile compact">
                 <span>{item.dateShort.split(' ')[0]}</span>
                 <strong>{item.dateShort.split(' ')[1]}</strong>
               </div>
               <div>
-                <strong>{item.type}</strong>
-                <span>{item.collection} · {item.date}</span>
-                <small>{item.reviewedBy ? `Reviewed with ${item.reviewedBy} on ${item.reviewedDate}` : 'Awaiting private review with counselor'}</small>
+                <div className="bhg-lab-history-title-row">
+                  <strong>{item.type}</strong>
+                  <span className="bhg-lab-id-chip">{item.id}</span>
+                </div>
+                <span>{item.collectionSite || item.collection} · {item.date}</span>
+                <small>{item.reviewedBy ? `Reviewed with ${item.reviewedBy} on ${item.reviewedDate}` : `Awaiting private review with ${labStatus.latest.reviewWith}`}</small>
               </div>
               <PillBadge tone={labStatusTone(item.status)}>{item.status}</PillBadge>
-            </div>
+              <ChevronRight size={16} className="bhg-row-chevron" />
+            </button>
           ))}
         </div>
       </Card>
+
+      {selectedScreen && (
+        <WorkflowDrawer
+          title={`Screening details · ${selectedScreen.id}`}
+          subtitle={`${selectedScreen.type} collected on ${selectedScreen.date}`}
+          onClose={() => setSelectedScreen(null)}
+          footer={
+            <div className="bhg-drawer-actions">
+              <button
+                type="button"
+                className="bhg-button bhg-button-secondary"
+                onClick={() => {
+                  setSelectedScreen(null);
+                  navigate('messages');
+                }}
+              >
+                <MessageCircle size={15} /> Message care team
+              </button>
+              <button
+                type="button"
+                className="bhg-button"
+                onClick={() => {
+                  setSelectedScreen(null);
+                  navigate('appointments');
+                }}
+              >
+                <CalendarDays size={15} /> View counseling visit
+              </button>
+            </div>
+          }
+        >
+          <div className="bhg-screening-detail-body">
+            <div className="bhg-screening-detail-header">
+              <PillBadge tone={labStatusTone(selectedScreen.status)}>{selectedScreen.status}</PillBadge>
+              <h3>{selectedScreen.panelName || (selectedScreen.type === 'Random UDS' ? 'Random OTP Compliance Screening' : '8-Panel Standard OTP Treatment Screen')}</h3>
+              <p>Specimen ID: <strong>{selectedScreen.id}</strong></p>
+            </div>
+
+            <div className="bhg-detail-grid bhg-detail-grid-treatment">
+              <div><span>Collection date</span><strong>{selectedScreen.date}</strong></div>
+              <div><span>Screening type</span><strong>{selectedScreen.type}</strong></div>
+              <div><span>Collection site</span><strong>{selectedScreen.collectionSite || 'BHG Knoxville · Specimen Window'}</strong></div>
+              <div><span>Reviewer</span><strong>{selectedScreen.reviewedBy || labStatus.latest.reviewWith}</strong></div>
+            </div>
+
+            <div className="bhg-screening-section">
+              <h4>Review status & clinical plan</h4>
+              <div className="bhg-screening-plan-box">
+                <CheckCircle2 size={18} className="bhg-plan-icon" />
+                <div>
+                  <strong>{selectedScreen.reviewedBy ? 'Reviewed & On File' : 'Pending 1-on-1 Counselor Review'}</strong>
+                  <p>{getScreenReviewPlan(selectedScreen)}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bhg-screening-section">
+              <h4>Privacy & Confidentiality Notice</h4>
+              <div className="bhg-safe-callout">
+                <LockKeyhole size={18} />
+                <span>{selectedScreen.privacyNote || 'Protected under 42 CFR Part 2 federal regulations. Detailed laboratory analyte breakdown remains confidential between you and your clinical care team.'}</span>
+              </div>
+            </div>
+
+            <div className="bhg-screening-section">
+              <h4>What this means for your care</h4>
+              <ul className="bhg-lab-privacy-list">
+                <li>Routine drug screening is a supportive tool in Medication-Assisted Treatment (MAT).</li>
+                <li>Results are evaluated in full context with your counselor to track your recovery milestones.</li>
+                <li>No disciplinary or automatic changes occur without private 1-on-1 counseling review.</li>
+              </ul>
+            </div>
+          </div>
+        </WorkflowDrawer>
+      )}
     </div>
   );
 }
@@ -1463,7 +1559,7 @@ const messageQuickReplies = [
 ];
 
 const messageRecipients = [
-  { label: 'Alicia Monroe · Primary Counselor', name: 'Alicia Monroe', role: 'Primary Counselor' },
+  { label: 'Alicia Monroe - Primary Counselor', name: 'Alicia Monroe', role: 'Primary Counselor' },
   { label: 'Danielle Brooks · Patient Financial Counselor', name: 'Danielle Brooks', role: 'Patient Financial Counselor' },
   { label: 'BHG Knoxville · Treatment Center', name: 'BHG Knoxville', role: 'Treatment Center' },
 ];
@@ -2143,7 +2239,7 @@ export function Progress() {
             </div>
           ))}
         </div>
-        <button type="button" className="bhg-link-row" onClick={() => navigate('counseling')}>
+        <button type="button" className="bhg-link-row" onClick={() => navigate('appointments')}>
           Prepare for your next counseling visit <ArrowRight size={16} />
         </button>
       </Card>
