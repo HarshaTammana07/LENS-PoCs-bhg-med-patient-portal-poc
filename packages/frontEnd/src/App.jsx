@@ -27,7 +27,9 @@ import {
   AdminCounseling,
   AdminDashboard,
   AdminLabs,
+  AdminPatientProfile,
   AdminPatients,
+  AdminSessionNote,
 } from './pages/BhgAdminPages';
 
 const ROUTER_BASENAME = (import.meta.env.BASE_URL || '/').replace(/\/$/, '') || '/';
@@ -54,8 +56,10 @@ const patientPages = {
 const adminPages = {
   'admin-dashboard': <AdminDashboard />,
   'admin-patients': <AdminPatients />,
+  'admin-patient-profile': <AdminPatientProfile />,
   'admin-check-ins': <AdminCheckIns />,
   'admin-appointments': <AdminAppointments />,
+  'admin-session-note': <AdminSessionNote />,
   'admin-counseling': <AdminCounseling />,
   'admin-labs': <AdminLabs />,
   'admin-care-coordination': <AdminCareCoordination />,

@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import * as portalData from '../data/bhgPatientData';
-import { createInitialDemoState, DEMO_STATE_KEY, loadDemoState } from '../data/bhgDemoState';
+import { createInitialDemoState, DEMO_STATE_KEY, loadDemoState, mergeDemoWorkItems } from '../data/bhgDemoState';
 
 const AppContext = createContext(null);
 const SESSION_KEY = 'bhg-portal-session-v4';
@@ -12,6 +12,8 @@ const clinicianTreatmentCenters = [
   { id: 'knoxville-citico', name: 'BHG Knoxville Citico Treatment Center', shortName: 'Knoxville Citico' },
   { id: 'jackson-tn', name: 'BHG Jackson TN Treatment Center', shortName: 'Jackson TN' },
 ];
+const seededWorkItems = createInitialDemoState().workItems;
+const seededAppointmentOutcomes = createInitialDemoState().appointmentOutcomes;
 
 function loadSession() {
   try {
@@ -32,9 +34,11 @@ export function AppProvider({ children }) {
 
   const currentPage = location.pathname.split('/').filter(Boolean)[0] || 'dashboard';
   const isLoggedIn = Boolean(user);
+  const effectiveWorkItems = mergeDemoWorkItems(seededWorkItems, demoState.workItems);
+  const effectiveAppointmentOutcomes = mergeDemoWorkItems(seededAppointmentOutcomes, demoState.appointmentOutcomes);
   const unreadCount = demoState.notifications.filter((item) => item.unread).length;
   const unreadMessages = demoState.messages.filter((item) => item.unread).length;
-  const openWorkItems = demoState.workItems.filter((item) => item.status !== 'Resolved').length;
+  const openWorkItems = effectiveWorkItems.filter((item) => item.status !== 'Resolved').length;
   const requiredActions = portalData.requiredActions.filter((item) =>
     item.id !== 'action-consent' || demoState.documents.some((document) => document.id === 'DOC-4' && document.status === 'Review due')
   );
@@ -247,7 +251,8 @@ export function AppProvider({ children }) {
 
   const resolveWorkItem = useCallback((id, response) => {
     setDemoState((state) => {
-      const request = state.workItems.find((item) => item.id === id);
+      const workItems = mergeDemoWorkItems(seededWorkItems, state.workItems);
+      const request = workItems.find((item) => item.id === id);
       if (!request) return state;
       const now = 'Just now';
       const linkedMessage = request.messageId
@@ -275,7 +280,7 @@ export function AppProvider({ children }) {
 
       return {
         ...state,
-        workItems: state.workItems.map((item) => item.id === id ? { ...item, status: 'Resolved', response } : item),
+        workItems: workItems.map((item) => item.id === id ? { ...item, status: 'Resolved', response } : item),
         appointments: request.appointmentId
           ? state.appointments.map((item) => item.id === request.appointmentId ? { ...item, requestStatus: 'Clinic responded' } : item)
           : state.appointments,
@@ -387,6 +392,8 @@ export function AppProvider({ children }) {
     () => ({
       ...portalData,
       ...demoState,
+      workItems: effectiveWorkItems,
+      appointmentOutcomes: effectiveAppointmentOutcomes,
       requiredActions,
       user,
       userRole: user?.role || null,
@@ -426,6 +433,8 @@ export function AppProvider({ children }) {
       sidebarOpen,
       toasts,
       demoState,
+      effectiveWorkItems,
+      effectiveAppointmentOutcomes,
       unreadCount,
       unreadMessages,
       openWorkItems,

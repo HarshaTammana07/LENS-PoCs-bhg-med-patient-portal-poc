@@ -48,7 +48,7 @@ const accountNav = [
 const adminNav = [
   { id: 'admin-dashboard', label: 'Clinician Dashboard', icon: LayoutDashboard, badge: 'work' },
   { id: 'admin-patients', label: 'My Caseload', icon: UsersRound },
-  { id: 'admin-appointments', label: 'Appointments & Outcomes', icon: CalendarDays },
+  { id: 'admin-appointments', label: 'Sessions', icon: CalendarDays },
   { id: 'admin-counseling', label: 'Counseling & Goals', icon: ClipboardCheck },
   { id: 'admin-care-coordination', label: 'Care Coordination', icon: HeartHandshake },
   { id: 'admin-check-ins', label: 'Medication Visit Status', icon: UserRoundCheck },
@@ -77,13 +77,16 @@ export default function Sidebar() {
   const renderItems = (items) =>
     items.map(({ id, label, icon: Icon, badge }) => {
       const count = badge === 'messages' ? unreadMessages : badge === 'notifications' ? unreadCount : badge === 'work' ? selectedOpenWorkItems : 0;
+      const isActive = currentPage === id
+        || (id === 'admin-patients' && currentPage === 'admin-patient-profile')
+        || (id === 'admin-appointments' && currentPage === 'admin-session-note');
       return (
         <button
           type="button"
           key={id}
-          className={`sidebar-item ${currentPage === id ? 'active' : ''}`}
+          className={`sidebar-item ${isActive ? 'active' : ''}`}
           onClick={() => navigate(id)}
-          aria-current={currentPage === id ? 'page' : undefined}
+          aria-current={isActive ? 'page' : undefined}
         >
           <Icon className="sidebar-item-icon" />
           <span>{label}</span>

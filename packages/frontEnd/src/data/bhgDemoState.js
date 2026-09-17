@@ -35,6 +35,14 @@ function mergeAppointments(storedAppointments = []) {
   });
 }
 
+export function mergeDemoWorkItems(seedItems = [], storedItems = []) {
+  const seedIds = new Set(seedItems.map((item) => item.id));
+  const storedById = new Map(storedItems.map((item) => [item.id, item]));
+  const dynamicItems = storedItems.filter((item) => !seedIds.has(item.id));
+  const seededItems = seedItems.map((item) => ({ ...item, ...storedById.get(item.id) }));
+  return [...dynamicItems, ...seededItems];
+}
+
 export function createInitialDemoState() {
   return {
     patient: { ...patient },
@@ -146,6 +154,8 @@ export function createInitialDemoState() {
       { id: 'OUT-1001', patient: 'Jordan Williams', centerId: 'knoxville-bernard', service: 'Individual counseling', date: 'Sep 3', outcome: 'Completed', followUp: 'Patient-facing summary published' },
       { id: 'OUT-1002', patient: 'Jamie Carter', centerId: 'knoxville-citico', service: 'Individual counseling', date: 'Sep 12', outcome: 'Patient did not attend', followUp: 'Outreach due today' },
       { id: 'OUT-1003', patient: 'Taylor Brooks', centerId: 'knoxville-citico', service: 'Recovery skills group', date: 'Sep 10', outcome: 'Completed', followUp: 'No additional action' },
+      { id: 'OUT-1004', patient: 'Cameron Ellis', centerId: 'knoxville-bernard', service: 'Individual counseling', date: 'Sep 11', outcome: 'Patient did not attend', followUp: 'Zoom rescheduling outreach due' },
+      { id: 'OUT-1005', patient: 'Kendall Wright', centerId: 'jackson-tn', service: 'Recovery plan follow-up', date: 'Sep 13', outcome: 'Patient did not attend', followUp: 'Transportation barrier follow-up due' },
     ],
     activity: [
       { id: 'ACT-1', title: 'Coverage verified', detail: 'TennCare Demo Plan confirmed active.', time: 'Sep 10' },
@@ -164,8 +174,9 @@ export function loadDemoState() {
       ...stored,
       patient: { ...initial.patient, ...stored.patient },
       appointments: mergeAppointments(stored.appointments),
+      workItems: mergeDemoWorkItems(initial.workItems, stored.workItems),
       appointmentProposals: stored.appointmentProposals || initial.appointmentProposals,
-      appointmentOutcomes: stored.appointmentOutcomes || initial.appointmentOutcomes,
+      appointmentOutcomes: mergeDemoWorkItems(initial.appointmentOutcomes, stored.appointmentOutcomes),
     };
   } catch {
     return createInitialDemoState();
