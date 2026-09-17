@@ -12,7 +12,6 @@ import {
   Labs,
   Medication,
   Messages,
-  Notifications,
   Payments,
   Profile,
   Progress,
@@ -50,7 +49,6 @@ const patientPages = {
   records: <TreatmentRecords />,
   center: <Center />,
   profile: <Profile />,
-  notifications: <Notifications />,
 };
 
 const adminPages = {

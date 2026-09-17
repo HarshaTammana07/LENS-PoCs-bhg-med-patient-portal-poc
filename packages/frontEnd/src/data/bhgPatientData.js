@@ -604,9 +604,10 @@ export const coverage = {
 export const documents = [
   { id: 'DOC-1', name: 'Patient Rights and Responsibilities', category: 'Program', date: 'March 14, 2026', status: 'Signed' },
   { id: 'DOC-2', name: 'Consent for Treatment', category: 'Consent', date: 'March 14, 2026', status: 'Signed' },
-  { id: 'DOC-3', name: '42 CFR Part 2 Privacy Notice', category: 'Privacy', date: 'March 14, 2026', status: 'Acknowledged' },
+  { id: 'DOC-3', name: '42 CFR Part 2 Privacy Notice & Protections', category: 'Privacy', date: 'March 14, 2026', status: 'Acknowledged' },
   { id: 'DOC-4', name: 'Communication Preferences', category: 'Consent', date: 'March 14, 2026', status: 'Review due' },
   { id: 'DOC-5', name: 'Take-Home Medication Agreement', category: 'Medication', date: 'August 7, 2026', status: 'Signed' },
+  { id: 'DOC-6', name: 'Official Treatment Enrollment Verification Letter', category: 'Verification', date: 'September 16, 2026', status: 'Certified', isLetter: true },
 ];
 
 export const progress = {
@@ -662,15 +663,72 @@ export const progress = {
   milestones: [
     { date: 'September 3, 2026', title: 'Treatment plan updated', detail: 'Goals reviewed with Alicia Monroe.' },
     { date: 'August 7, 2026', title: 'Take-home plan reviewed', detail: 'Tuesday and Wednesday take-home days approved under the current care plan.' },
-    { date: 'June 14, 2026', title: '90 days in treatment', detail: 'Recovery progress reviewed with the care team.' },
-    { date: 'March 14, 2026', title: 'Treatment started', detail: 'Enrollment completed at BHG Knoxville.' },
+    { date: 'June 14, 2026', title: '90 days in treatment', detail: 'Stabilization milestone reached. Recovery progress reviewed with care team.' },
+    { date: 'March 14, 2026', title: 'Treatment started', detail: 'Enrollment completed and induction phase started at BHG Knoxville.' },
   ],
 };
 
 export const notifications = [
-  { id: 'N-1', title: 'Medication visit due today', detail: 'Arrive before the window closes at 11:30 AM.', time: 'Today', unread: true, page: 'medication' },
-  { id: 'N-2', title: 'Counseling appointment confirmed', detail: 'Thursday, September 17 at 10:30 AM.', time: 'Yesterday', unread: true, page: 'appointments' },
-  { id: 'N-3', title: 'Coverage verified', detail: 'Your TennCare Demo Plan coverage is active.', time: 'Sep 10', unread: false, page: 'payments' },
+  {
+    id: 'N-1',
+    category: 'Appointments',
+    title: 'Counseling Session Confirmed: Sep 17, 2026',
+    detail: 'Individual counseling visit with Alicia Monroe, LPC in Room 204 at 10:30 AM is confirmed. Arrive 10 minutes early.',
+    time: 'Yesterday, 4:15 PM',
+    unread: true,
+    page: 'appointments',
+    iconType: 'calendar',
+  },
+  {
+    id: 'N-2',
+    category: 'Reports',
+    title: 'Routine UDS Screening Results Ready',
+    detail: 'Your UDS-9102 screening report from Quest Diagnostics is on file. Methadone compliance confirmed and non-prescribed substances negative.',
+    time: 'Sep 10, 9:00 AM',
+    unread: true,
+    page: 'records',
+    iconType: 'lab',
+  },
+  {
+    id: 'N-3',
+    category: 'Messages',
+    title: 'New Message from Primary Counselor',
+    detail: 'Alicia Monroe has sent you a follow-up message regarding your coping skills routine and next phase take-home review.',
+    time: 'Sep 12, 8:00 AM',
+    unread: false,
+    page: 'messages',
+    iconType: 'message',
+  },
+  {
+    id: 'N-4',
+    category: 'Billing',
+    title: 'TennCare Coverage Pre-Authorization Approved',
+    detail: 'TennCare Demo Plan has approved MAT benefits re-verification through December 31, 2026. Patient copay: $0.00.',
+    time: 'Sep 8, 2:00 PM',
+    unread: false,
+    page: 'payments',
+    iconType: 'billing',
+  },
+  {
+    id: 'N-5',
+    category: 'System',
+    title: 'Consent Forms & 42 CFR Part 2 Ready to Review',
+    detail: 'Your annual confidentiality and federal treatment disclosure forms are on file and available to view in Forms & Documents.',
+    time: 'Sep 5, 10:00 AM',
+    unread: false,
+    page: 'documents',
+    iconType: 'document',
+  },
+  {
+    id: 'N-6',
+    category: 'Appointments',
+    title: 'Observed Medication Window Due Today',
+    detail: 'Today is an observed clinic dosing day at BHG Knoxville. Please arrive before the morning medication window closes at 11:30 AM.',
+    time: 'Today, 6:30 AM',
+    unread: false,
+    page: 'medication',
+    iconType: 'pill',
+  },
 ];
 
 export const recoveryResources = [

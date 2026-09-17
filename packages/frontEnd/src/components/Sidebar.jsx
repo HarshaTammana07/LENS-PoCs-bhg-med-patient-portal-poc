@@ -23,25 +23,23 @@ import { BhgLogo } from './brand/BhgLogo';
 
 const careNav = [
   { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
+  { id: 'progress', label: 'Recovery Progress', icon: Target },
   { id: 'treatment', label: 'My Treatment', icon: HeartHandshake },
   { id: 'medication', label: 'Medication Schedule', icon: Pill },
   { id: 'appointments', label: 'Visits', icon: CalendarDays },
   { id: 'labs', label: 'Lab & UDS', icon: TestTube2 },
   { id: 'records', label: 'My Records', icon: FileText },
-  { id: 'progress', label: 'Recovery Progress', icon: Target },
 ];
 
 const supportNav = [
-  { id: 'care-team', label: 'My Care Team', icon: UsersRound },
+  { id: 'center', label: 'Treatment Center', icon: Building2 },
   { id: 'messages', label: 'Secure Messages', icon: MessageCircle, badge: 'messages' },
   { id: 'help', label: 'Help & FAQ', icon: HelpCircle },
-  { id: 'center', label: 'Treatment Center', icon: Building2 },
 ];
 
 const accountNav = [
-  { id: 'payments', label: 'Coverage & Payments', icon: CreditCard },
   { id: 'documents', label: 'Forms & Documents', icon: FileText },
-  { id: 'notifications', label: 'Notifications', icon: Bell, badge: 'notifications' },
+  { id: 'payments', label: 'Coverage & Payments', icon: CreditCard },
   { id: 'profile', label: 'Profile & Privacy', icon: UserRound },
 ];
 
