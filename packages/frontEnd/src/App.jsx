@@ -27,6 +27,7 @@ import {
   AdminCounseling,
   AdminDashboard,
   AdminLabs,
+  AdminMessages,
   AdminPatientProfile,
   AdminPatients,
   AdminSessionNote,
@@ -56,6 +57,7 @@ const patientPages = {
 const adminPages = {
   'admin-dashboard': <AdminDashboard />,
   'admin-patients': <AdminPatients />,
+  'admin-messages': <AdminMessages />,
   'admin-patient-profile': <AdminPatientProfile />,
   'admin-check-ins': <AdminCheckIns />,
   'admin-appointments': <AdminAppointments />,

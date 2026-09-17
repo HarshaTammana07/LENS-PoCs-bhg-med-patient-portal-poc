@@ -21,6 +21,7 @@ const pageTitles = {
   profile: ['Profile & Privacy', 'Personal information and preferences'],
   'admin-dashboard': ['Clinician Dashboard', 'Caseload, schedule, and follow-up'],
   'admin-patients': ['My Caseload', 'Assigned patients and engagement'],
+  'admin-messages': ['Secure Messages', 'Private patient communication and follow-up'],
   'admin-patient-profile': ['Patient Profile', 'Overview, care plan, sessions, and laboratory review'],
   'admin-check-ins': ['Medication Visit Status', 'Read-only medical-team coordination'],
   'admin-appointments': ['Sessions', 'Documentation, attendance, and completed notes'],

@@ -38,6 +38,7 @@ export function AppProvider({ children }) {
   const effectiveAppointmentOutcomes = mergeDemoWorkItems(seededAppointmentOutcomes, demoState.appointmentOutcomes);
   const unreadCount = demoState.notifications.filter((item) => item.unread).length;
   const unreadMessages = demoState.messages.filter((item) => item.unread).length;
+  const unreadClinicianMessages = (demoState.clinicianMessages || []).reduce((total, item) => total + (item.unreadCount || 0), 0);
   const openWorkItems = effectiveWorkItems.filter((item) => item.status !== 'Resolved').length;
   const requiredActions = portalData.requiredActions.filter((item) =>
     item.id !== 'action-consent' || demoState.documents.some((document) => document.id === 'DOC-4' && document.status === 'Review due')
@@ -170,6 +171,40 @@ export function AppProvider({ children }) {
         }
         : item),
     }));
+  }, []);
+
+  const markClinicianMessageRead = useCallback((id) => {
+    setDemoState((state) => ({
+      ...state,
+      clinicianMessages: (state.clinicianMessages || []).map((item) => (
+        item.id === id ? { ...item, unreadCount: 0 } : item
+      )),
+    }));
+  }, []);
+
+  const sendClinicianMessage = useCallback(({ patient: recipient, patientId, centerId, program, subject, body, threadId }) => {
+    const now = 'Just now';
+    setDemoState((state) => {
+      const existing = (state.clinicianMessages || []).find((item) => item.id === threadId);
+      const reply = { id: `clinician-reply-${Date.now()}`, sender: 'Morgan Reed', time: now, text: body };
+      const clinicianMessages = existing
+        ? state.clinicianMessages.map((item) => item.id === threadId
+          ? { ...item, preview: body, time: now, unreadCount: 0, thread: [...item.thread, reply] }
+          : item)
+        : [{
+          id: `CM-${Date.now()}`,
+          patient: recipient,
+          patientId,
+          centerId,
+          program,
+          subject,
+          preview: body,
+          time: now,
+          unreadCount: 0,
+          thread: [reply],
+        }, ...(state.clinicianMessages || [])];
+      return { ...state, clinicianMessages };
+    });
   }, []);
 
   const createRequest = useCallback(({ type, title, detail, appointmentId, page = 'messages' }) => {
@@ -404,6 +439,7 @@ export function AppProvider({ children }) {
       toasts,
       unreadCount,
       unreadMessages,
+      unreadClinicianMessages,
       openWorkItems,
       clinicianTreatmentCenters,
       selectedTreatmentCenterId,
@@ -417,6 +453,8 @@ export function AppProvider({ children }) {
       markMessageRead,
       sendMessage,
       addThreadReply,
+      markClinicianMessageRead,
+      sendClinicianMessage,
       createRequest,
       updatePatient,
       acknowledgeDocument,
@@ -437,6 +475,7 @@ export function AppProvider({ children }) {
       effectiveAppointmentOutcomes,
       unreadCount,
       unreadMessages,
+      unreadClinicianMessages,
       openWorkItems,
       selectedTreatmentCenterId,
       selectedTreatmentCenter,
@@ -449,6 +488,8 @@ export function AppProvider({ children }) {
       markMessageRead,
       sendMessage,
       addThreadReply,
+      markClinicianMessageRead,
+      sendClinicianMessage,
       createRequest,
       updatePatient,
       acknowledgeDocument,

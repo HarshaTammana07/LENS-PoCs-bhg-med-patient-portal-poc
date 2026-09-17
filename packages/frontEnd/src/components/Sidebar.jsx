@@ -46,8 +46,9 @@ const accountNav = [
 ];
 
 const adminNav = [
-  { id: 'admin-dashboard', label: 'Clinician Dashboard', icon: LayoutDashboard, badge: 'work' },
+  { id: 'admin-dashboard', label: 'Clinician Dashboard', icon: LayoutDashboard },
   { id: 'admin-patients', label: 'My Caseload', icon: UsersRound },
+  { id: 'admin-messages', label: 'Secure Messages', icon: MessageCircle, badge: 'clinicianMessages' },
   { id: 'admin-appointments', label: 'Sessions', icon: CalendarDays },
   { id: 'admin-counseling', label: 'Counseling & Goals', icon: ClipboardCheck },
   { id: 'admin-care-coordination', label: 'Care Coordination', icon: HeartHandshake },
@@ -65,18 +66,24 @@ export default function Sidebar() {
     patient,
     unreadCount,
     unreadMessages,
-    workItems,
+    clinicianMessages,
     selectedTreatmentCenterId,
     userRole,
   } = useApp();
   const isAdmin = userRole === 'admin';
-  const selectedOpenWorkItems = workItems.filter((item) => item.status !== 'Resolved' && (
+  const selectedUnreadClinicianMessages = (clinicianMessages || []).filter((item) => (
     selectedTreatmentCenterId === 'all' || (item.centerId || 'knoxville-bernard') === selectedTreatmentCenterId
-  )).length;
+  )).reduce((total, item) => total + (item.unreadCount || 0), 0);
 
   const renderItems = (items) =>
     items.map(({ id, label, icon: Icon, badge }) => {
-      const count = badge === 'messages' ? unreadMessages : badge === 'notifications' ? unreadCount : badge === 'work' ? selectedOpenWorkItems : 0;
+      const count = badge === 'messages'
+        ? unreadMessages
+        : badge === 'notifications'
+          ? unreadCount
+          : badge === 'clinicianMessages'
+            ? selectedUnreadClinicianMessages
+            : 0;
       const isActive = currentPage === id
         || (id === 'admin-patients' && currentPage === 'admin-patient-profile')
         || (id === 'admin-appointments' && currentPage === 'admin-session-note');

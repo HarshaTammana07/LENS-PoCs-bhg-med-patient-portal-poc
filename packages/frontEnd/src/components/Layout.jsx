@@ -39,7 +39,7 @@ export default function Layout({ children }) {
       <Sidebar />
       <div className="main-content">
         <Topbar />
-        <main className="page-content">{children}</main>
+        <main className={`page-content ${userRole === 'admin' ? 'clinician-content' : 'patient-content'}`}>{children}</main>
       </div>
       {userRole === 'patient' && <ChatbotWidget />}
       <ToastContainer />
