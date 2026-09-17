@@ -148,6 +148,20 @@ export const appointments = [
     preparation: 'Bring questions about your current treatment plan.',
   },
   {
+    id: 'APT-1120',
+    date: 'October 15, 2026',
+    dateShort: 'OCT 15',
+    time: '10:30 AM',
+    title: 'Individual Counseling',
+    provider: 'Alicia Monroe',
+    location: 'BHG Knoxville · Room 4',
+    modality: 'In person',
+    timing: 'upcoming',
+    status: 'Upcoming',
+    duration: '50 minutes',
+    preparation: 'Routine bi-weekly counseling and recovery goal review.',
+  },
+  {
     id: 'APT-1031',
     date: 'September 3, 2026',
     dateShort: 'SEP 03',
@@ -684,6 +698,10 @@ export const supportFaqs = [
         a: 'Call BHG Knoxville before changing your routine. Missed visits may affect your care plan and should be discussed with the clinic as soon as possible.',
       },
       {
+        q: 'Can I dose at another clinic if I am traveling or moving?',
+        a: 'Yes. BHG operates 115+ clinics nationwide. You can request temporary courtesy guest dosing for travel or a permanent center transfer directly under Treatment Center. Our care coordinators will transmit your active Phase 2 dosing schedule and medical records directly to the receiving clinic so you never miss a dose.',
+      },
+      {
         q: 'Can I change my medication dose in the portal?',
         a: 'No. Medication changes are made only by your prescriber after a clinical review. Use secure messages or call the center for non-urgent questions.',
       },
@@ -766,6 +784,10 @@ export const supportFaqs = [
       {
         q: 'How do I update my contact preferences?',
         a: 'Open Profile & Privacy or complete communication consent under Forms & Documents. Changes may be reviewed by the clinic in this demonstration.',
+      },
+      {
+        q: 'How do I transfer my treatment records to another clinic?',
+        a: 'Under federal 42 CFR Part 2 and HIPAA regulations, your substance use treatment records require your explicit authorization to transfer. You can authorize a record transfer or arrange courtesy guest dosing directly from the Treatment Center page by selecting Request Transfer or Guest Dosing.',
       },
     ],
   },
