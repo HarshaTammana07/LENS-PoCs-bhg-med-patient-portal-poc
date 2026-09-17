@@ -4,6 +4,7 @@ import {
   Activity,
   AlertCircle,
   ArrowRight,
+  Bell,
   Calendar,
   CalendarDays,
   Check,
@@ -19,6 +20,7 @@ import {
   Download,
   FileCheck2,
   FileText,
+  Filter,
   FlaskConical,
   HeartHandshake,
   HelpCircle,
@@ -130,7 +132,7 @@ function AppointmentCard({ appointment, onDetails, onChange, onJoinVideo, onAddT
             style={{ padding: '7px 14px', fontSize: '12px', background: '#0284C7', color: 'white', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
             onClick={() => onJoinVideo(appointment)}
           >
-            <Video size={14} /> Join video visit
+            <Video size={14} /> Join Zoom session visit
           </button>
         )}
         <div style={{ display: 'flex', gap: '6px' }}>
@@ -253,20 +255,127 @@ function AttendanceDonut({ rate }) {
 }
 
 function WeeklyStrip({ schedule }) {
-  const dayMap = { Mon: 'M', Tue: 'T', Wed: 'W', Thu: 'T', Fri: 'F', Sat: 'S', Sun: 'S' };
   return (
-    <div className="bhg-weekly-strip" aria-label="This week's medication schedule">
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+        gap: 8,
+        marginTop: 4,
+      }}
+      aria-label="This week's medication schedule"
+    >
       {schedule.map((item) => {
-        const abbrev = dayMap[item.day.slice(0, 3)] || item.day[0];
-        const tone = item.active ? 'today'
-          : item.status === 'Take-home' ? 'takehome'
-            : item.status === 'Closed' ? 'closed'
-              : 'upcoming';
+        const isToday = item.active;
+        const isTakeHome = item.status === 'Take-home';
+
+        const dayName = item.day.slice(0, 3); // Mon, Tue, Wed, Sat
+        const badgeLabel = isToday
+          ? 'Today'
+          : isTakeHome
+            ? 'Take-Home'
+            : 'Clinic Visit';
+
+        const locationTitle = isTakeHome ? 'Take-Home Bottle' : 'In-Person Dosing';
+        const instructionText = isToday
+          ? item.time // "Before 11:30 AM"
+          : isTakeHome
+            ? 'Take at home'
+            : item.time; // "6:00-9:00 AM"
+
         return (
-          <div key={item.date} className={`bhg-weekly-day bhg-weekly-day-${tone}`} title={`${item.day}: ${item.type}`}>
-            <span className="bhg-weekly-abbrev">{abbrev}</span>
-            <span className="bhg-weekly-dot" aria-hidden="true" />
-            <span className="bhg-weekly-status">{item.active ? 'Today' : item.status === 'Take-home' ? 'TH' : item.status === 'Closed' ? '—' : '✓'}</span>
+          <div
+            key={item.date}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '8px 10px',
+              borderRadius: 10,
+              border: isToday
+                ? '1.5px solid #005571'
+                : isTakeHome
+                  ? '1px solid #BBF7D0'
+                  : '1px solid #E2E8F0',
+              background: isToday
+                ? '#00334A'
+                : isTakeHome
+                  ? '#F0FDF4'
+                  : '#F8FAFC',
+              color: isToday ? '#FFFFFF' : '#0F172A',
+              boxShadow: isToday ? '0 3px 8px rgba(0, 51, 74, 0.12)' : '0 1px 2px rgba(0,0,0,0.02)',
+              position: 'relative',
+              textAlign: 'left',
+              minHeight: 74,
+              justifyContent: 'space-between',
+            }}
+          >
+            {/* Top row: Day + Type Badge */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  color: isToday ? '#87D5F2' : '#334155',
+                }}
+              >
+                {dayName}
+              </span>
+              <span
+                style={{
+                  fontSize: 9.5,
+                  fontWeight: 700,
+                  padding: '2px 6px',
+                  borderRadius: 6,
+                  background: isToday
+                    ? 'rgba(255, 255, 255, 0.2)'
+                    : isTakeHome
+                      ? '#DCFCE7'
+                      : '#E0F2FE',
+                  color: isToday
+                    ? '#FFFFFF'
+                    : isTakeHome
+                      ? '#15803D'
+                      : '#0369A1',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {isTakeHome ? <Pill size={10} /> : isToday ? <Clock size={10} /> : <MapPin size={10} />}
+                {badgeLabel}
+              </span>
+            </div>
+
+            {/* Middle: Clear Action (In-Person Dosing vs Take-Home Bottle) */}
+            <div
+              style={{
+                fontSize: 11.5,
+                fontWeight: 750,
+                color: isToday ? '#FFFFFF' : '#0F172A',
+                lineHeight: 1.25,
+                marginTop: 4,
+              }}
+            >
+              {locationTitle}
+            </div>
+
+            {/* Bottom: Timing or instruction */}
+            <div
+              style={{
+                fontSize: 10,
+                fontWeight: 500,
+                color: isToday ? 'rgba(255, 255, 255, 0.85)' : '#64748B',
+                marginTop: 2,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {instructionText}
+            </div>
           </div>
         );
       })}
@@ -867,44 +976,92 @@ export function Treatment() {
         <Card>
           <SectionTitle
             title="Your Care Team"
-            description="Providers guiding your medication and counseling."
+            description="Providers guiding your medication, counseling, and recovery support."
           />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', margin: '14px 0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#e0f2fe', color: '#0369a1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '14px', flexShrink: 0 }}>
-                {counselor.initials || 'AM'}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <strong style={{ display: 'block', fontSize: '14px', color: '#1e293b' }}>{counselor.name}</strong>
-                <span style={{ fontSize: '12px', color: '#64748b', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{counselor.role} · {counselor.detail}</span>
-              </div>
-              <button
-                type="button"
-                className="bhg-button bhg-button-secondary"
-                style={{ padding: '6px 12px', fontSize: '12px', flexShrink: 0 }}
-                onClick={() => navigate('messages')}
-              >
-                Message
-              </button>
-            </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', margin: '14px 0' }}>
+            {careTeam.map((member) => {
+              const avatarStyles = {
+                'Alicia Monroe': { bg: '#E0F2FE', color: '#0369A1' },
+                'Dr. Marcus Hill': { bg: '#F0FDF4', color: '#15803D' },
+                'Danielle Brooks': { bg: '#FEF3C7', color: '#B45309' },
+              }[member.name] || { bg: '#F1F5F9', color: '#475569' };
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#f0fdf4', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '14px', flexShrink: 0 }}>
-                {doctor.initials || 'MH'}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <strong style={{ display: 'block', fontSize: '14px', color: '#1e293b' }}>{doctor.name}</strong>
-                <span style={{ fontSize: '12px', color: '#64748b', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doctor.role} · Prescribing Physician</span>
-              </div>
-              <button
-                type="button"
-                className="bhg-button bhg-button-secondary"
-                style={{ padding: '6px 12px', fontSize: '12px', flexShrink: 0 }}
-                onClick={() => navigate('care-team')}
-              >
-                Profile
-              </button>
-            </div>
+              return (
+                <div
+                  key={member.id || member.name}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '10px 12px',
+                    background: '#F8FAFC',
+                    borderRadius: '10px',
+                    border: '1px solid #E2E8F0',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: '50%',
+                      background: avatarStyles.bg,
+                      color: avatarStyles.color,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 700,
+                      fontSize: '13.5px',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {member.initials}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <strong style={{ display: 'block', fontSize: '13.5px', color: '#0F172A', lineHeight: 1.3 }}>
+                      {member.name}
+                    </strong>
+                    <span
+                      style={{
+                        fontSize: '11.5px',
+                        color: '#64748B',
+                        display: 'block',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        marginTop: '1px',
+                      }}
+                    >
+                      {member.role} · {member.detail}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="bhg-button bhg-button-secondary"
+                    style={{
+                      width: 36,
+                      height: 36,
+                      padding: 0,
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: '#E0F2FE',
+                      color: '#0284C7',
+                      border: '1px solid #BAE6FD',
+                      flexShrink: 0,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                    title={`Send secure message to ${member.name}`}
+                    aria-label={`Send secure message to ${member.name}`}
+                    onClick={() => navigate('messages')}
+                  >
+                    <MessageCircle size={16} />
+                  </button>
+                </div>
+              );
+            })}
           </div>
 
           <div style={{ padding: '10px 12px', background: '#f1f5f9', borderRadius: '8px', fontSize: '12px', color: '#475569', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
@@ -912,8 +1069,8 @@ export function Treatment() {
             <span><strong>{center.shortName}:</strong> Medication window {center.medicationWindow}</span>
           </div>
 
-          <button type="button" className="bhg-link-row" style={{ marginTop: '12px' }} onClick={() => navigate('care-team')}>
-            View entire care team & hours <ArrowRight size={16} />
+          <button type="button" className="bhg-link-row" style={{ marginTop: '12px' }} onClick={() => navigate('messages')}>
+            Open secure messages with care team <ArrowRight size={16} />
           </button>
         </Card>
       </div>
@@ -1364,21 +1521,6 @@ export function Appointments() {
         </div>
       </div>
 
-      {/* Transportation Support Banner */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0', marginBottom: '20px', fontSize: '12.5px', color: '#475569' }}>
-        <Navigation size={18} style={{ color: '#005A70', flexShrink: 0 }} />
-        <span style={{ flex: 1 }}>
-          <strong>Need a ride?</strong> TennCare Non-Emergency Medical Transportation (NEMT) is covered for your BHG visits at no cost. Call <strong>(855) 680-7798</strong> at least 48 hours in advance.
-        </span>
-        <button
-          type="button"
-          className="bhg-button bhg-button-secondary"
-          style={{ fontSize: '11.5px', padding: '4px 10px', whiteSpace: 'nowrap' }}
-          onClick={() => addToast('TennCare NEMT line: (855) 680-7798. Have your Member ID ready.', 'info')}
-        >
-          Ride info
-        </button>
-      </div>
 
       {pendingOffers.length > 0 && (timeTab === 'upcoming' || timeTab === 'all') && (
         <section className="bhg-appointment-section" style={{ marginBottom: '22px' }}>
@@ -1441,7 +1583,7 @@ export function Appointments() {
       {/* Telehealth Virtual Waiting Room Modal */}
       {activeTelehealth && (
         <WorkflowModal
-          title="Secure Telehealth Session"
+          title="Secure Zoom Session Visit"
           subtitle={`${activeTelehealth.title} · ${displayProviderName(activeTelehealth.provider)}`}
           onClose={() => setActiveTelehealth(null)}
           footer={
@@ -1454,11 +1596,11 @@ export function Appointments() {
                 className="bhg-button"
                 style={{ background: '#0284C7' }}
                 onClick={() => {
-                  addToast(`Connected to session with ${displayProviderName(activeTelehealth.provider)}. Microphone & camera active.`, 'success');
+                  addToast(`Connected to Zoom session visit with ${displayProviderName(activeTelehealth.provider)}. Microphone & camera active.`, 'success');
                   setActiveTelehealth(null);
                 }}
               >
-                <Video size={15} style={{ marginRight: '6px' }} /> Enter session
+                <Video size={15} style={{ marginRight: '6px' }} /> Join Zoom session visit
               </button>
             </>
           }
@@ -1467,7 +1609,7 @@ export function Appointments() {
             <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: '#E0F2FE', color: '#0369A1', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}>
               <Video size={30} />
             </div>
-            <h3 style={{ margin: '0 0 4px 0', fontSize: '17px' }}>Virtual Waiting Room</h3>
+            <h3 style={{ margin: '0 0 4px 0', fontSize: '17px' }}>Zoom Virtual Waiting Room</h3>
             <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
               {activeTelehealth.date} at {activeTelehealth.time} ({activeTelehealth.duration})
             </p>
@@ -1559,7 +1701,7 @@ export function Appointments() {
                           style={{ background: '#0284C7', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                           onClick={() => setActiveTelehealth(selected)}
                         >
-                          <Video size={16} /> Enter Video Visit
+                          <Video size={16} /> Join Zoom session visit
                         </button>
                         <button type="button" className="bhg-button bhg-button-secondary" onClick={() => addToast('Telehealth device check completed.', 'success')}>
                           Test device
@@ -3407,7 +3549,7 @@ export function Payments() {
 }
 
 export function Documents() {
-  const { documents, patient, acknowledgeDocument, addToast } = useApp();
+  const { documents, patient, emergencyContact, navigate, acknowledgeDocument, addToast } = useApp();
   const [selected, setSelected] = useState(null);
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
@@ -3418,12 +3560,20 @@ export function Documents() {
     setSelected(null);
   };
 
-  const filters = ['All', 'Treatment Consents', 'Program Policies', 'Privacy Notices', 'Medication Agreements'];
+  const filters = [
+    'All',
+    'Treatment Consents',
+    'Verification Letters',
+    'Privacy (42 CFR Part 2)',
+    'Program Policies',
+    'Medication Agreements',
+  ];
 
   const categoryMap = {
     'Treatment Consents': 'Consent',
+    'Verification Letters': 'Verification',
+    'Privacy (42 CFR Part 2)': 'Privacy',
     'Program Policies': 'Program',
-    'Privacy Notices': 'Privacy',
     'Medication Agreements': 'Medication',
   };
 
@@ -3431,12 +3581,16 @@ export function Documents() {
     switch (category) {
       case 'Consent':
         return { icon: ClipboardCheck, bg: '#F0FDF4', color: '#16A34A' };
+      case 'Verification':
+        return { icon: FileCheck2, bg: '#FEF3C7', color: '#D97706' };
       case 'Privacy':
         return { icon: LockKeyhole, bg: '#E0F2FE', color: '#0284C7' };
       case 'Medication':
         return { icon: Pill, bg: '#EDE9FE', color: '#7C3AED' };
+      case 'Program':
+        return { icon: ShieldCheck, bg: '#F8FAFC', color: '#005A70' };
       default:
-        return { icon: FileText, bg: '#FEF3C7', color: '#D97706' };
+        return { icon: FileText, bg: '#F1F5F9', color: '#475569' };
     }
   };
 
@@ -3533,6 +3687,31 @@ export function Documents() {
               </div>
             </div>
 
+            {/* If Verification Letter: Render Official Letterhead Preview */}
+            {(selected.isLetter || selected.category === 'Verification') && (
+              <div style={{ background: 'white', padding: '20px', border: '1px solid #CBD5E1', borderRadius: '8px', fontFamily: 'Georgia, serif', color: '#1E293B', marginBottom: 16 }}>
+                <div style={{ borderBottom: '2px solid #005A70', paddingBottom: '10px', marginBottom: '14px', display: 'flex', justifyContent: 'space-between' }}>
+                  <div>
+                    <strong style={{ fontSize: '15px', color: '#005A70', display: 'block' }}>BHG KNOXVILLE TREATMENT CENTER</strong>
+                    <span style={{ fontSize: '11px', color: '#64748B', fontFamily: 'sans-serif' }}>Behavioral Health Group · Outpatient Opioid Treatment Program (OTP)</span>
+                  </div>
+                </div>
+                <div style={{ fontSize: '12px', color: '#64748B', fontFamily: 'sans-serif', marginBottom: '12px' }}>
+                  Date: September 16, 2026 · Patient: <strong>{patient.name}</strong> (DOB: June 18, 1988)
+                </div>
+                <p style={{ fontSize: '12.5px', lineHeight: '1.6', margin: '0 0 10px 0' }}>
+                  This letter certifies that <strong>{patient.name}</strong> is an active patient in good standing at BHG Knoxville Treatment Center, receiving outpatient Medication-Assisted Treatment (MMT). The patient has maintained continuous attendance for <strong>{patient.daysInTreatment} days</strong>.
+                </p>
+                <p style={{ fontSize: '12.5px', lineHeight: '1.6', margin: '0 0 10px 0' }}>
+                  The patient maintains full compliance with observed clinic dosing, regular toxicology monitoring, and clinical counseling requirements.
+                </p>
+                <div style={{ paddingTop: '12px', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', fontFamily: 'sans-serif', fontSize: '11.5px' }}>
+                  <div><strong>Dr. Marcus Hill, MD</strong><br /><span style={{ color: '#64748B' }}>Medical Director</span></div>
+                  <div style={{ color: '#94A3B8', textAlign: 'right' }}>Document ID: VER-2026-9184</div>
+                </div>
+              </div>
+            )}
+
             {/* Document Details Table */}
             <div style={{ background: '#F8FAFC', borderRadius: 10, padding: '16px', border: '1px solid #E2E8F0', marginBottom: 16 }}>
               <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', color: '#005A70', letterSpacing: '0.04em', marginBottom: 12 }}>
@@ -3570,9 +3749,10 @@ export function Documents() {
               <p style={{ margin: '0 0 10px 0', fontSize: 13, color: '#334155', lineHeight: 1.6 }}>
                 {selected.id === 'DOC-1' && 'Outlines patient rights to respectful, individualized care, grievance procedures, and responsibilities regarding clinic attendance, conduct, and treatment guidelines.'}
                 {selected.id === 'DOC-2' && 'Formal informed consent for outpatient Medication-Assisted Treatment (MMT) with Methadone, covering treatment goals, potential side effects, dosing protocols, and medical oversight.'}
-                {selected.id === 'DOC-3' && 'Federal 42 CFR Part 2 and HIPAA privacy disclosure notice explaining the strict legal confidentiality protecting your substance use disorder treatment records.'}
+                {selected.id === 'DOC-3' && 'Federal 42 CFR Part 2 and HIPAA privacy disclosure notice explaining the strict legal confidentiality protecting your substance use disorder treatment records. Disclosure to outside entities strictly requires your signed revocable authorization.'}
                 {selected.id === 'DOC-4' && 'Authorizes preferred methods of clinic contact (phone, SMS, secure portal) for appointment reminders, lab alerts, and center schedule changes.'}
                 {selected.id === 'DOC-5' && 'Phase 2 Take-Home Agreement governing the secure locked-box storage, handling, bottle return rules, and compliance requirements for unsupervised doses.'}
+                {(selected.id === 'DOC-6' || selected.category === 'Verification') && 'Official certified clinic verification on BHG letterhead confirming active enrollment in good standing, daily medication compliance, and treatment duration.'}
               </p>
               {selected.id === 'DOC-4' && selected.status === 'Review due' && (
                 <div className="bhg-safe-callout" style={{ marginTop: 12 }}>
@@ -3600,7 +3780,7 @@ export function Documents() {
             Forms & Documents
           </h1>
           <p className="page-header-subtitle" style={{ margin: '4px 0 0 0', fontSize: 13.5, color: '#64748B' }}>
-            Your signed treatment forms, program agreements, and privacy notices on file.
+            Your signed treatment forms, enrollment verification letters, and 42 CFR privacy notices on file.
           </p>
         </div>
       </div>
@@ -3612,7 +3792,7 @@ export function Documents() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search forms, consents, agreements, privacy notices..."
+            placeholder="Search forms, consents, verification letters, privacy notices..."
             style={{ width: '100%', border: 'none', outline: 'none', background: 'transparent', fontSize: '13.5px' }}
           />
           {query && (
@@ -3730,10 +3910,84 @@ export function Documents() {
         )}
       </div>
 
+      {/* 42 CFR Part 2 Educational Card if Privacy filter is selected */}
+      {activeFilter === 'Privacy (42 CFR Part 2)' && (
+        <div className="animate-fade-in" style={{ marginTop: '20px' }}>
+          <Card style={{ marginBottom: '20px' }}>
+            <SectionTitle
+              title="42 CFR Part 2: Federal Privacy Protections"
+              description="Your substance use disorder treatment records carry the highest legal confidentiality in the United States."
+            />
+            <div className="bhg-safe-callout" style={{ margin: '16px 0' }}>
+              <LockKeyhole size={20} />
+              <span style={{ fontSize: '13px', lineHeight: '1.5' }}>
+                Under federal law (42 CFR Part 2) and HIPAA, BHG cannot confirm or deny to an employer, family member, court, or law enforcement that you are a patient, unless you provide specific written consent.
+              </span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginTop: '16px' }}>
+              <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+                <strong style={{ fontSize: '14px', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <ShieldCheck size={18} style={{ color: '#16A34A' }} /> Employment Protection
+                </strong>
+                <p style={{ margin: '6px 0 0 0', fontSize: '12.5px', color: '#64748B', lineHeight: '1.5' }}>
+                  Your employer cannot view your records, counseling notes, or toxicology results. Background checks cannot access your BHG enrollment.
+                </p>
+              </div>
+
+              <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+                <strong style={{ fontSize: '14px', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <FileCheck2 size={18} style={{ color: '#005A70' }} /> You Control All Releases
+                </strong>
+                <p style={{ margin: '6px 0 0 0', fontSize: '12.5px', color: '#64748B', lineHeight: '1.5' }}>
+                  Records can only be shared with outside doctors, courts, or family members if you sign a specific Release of Information (ROI) form.
+                </p>
+              </div>
+
+              <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+                <strong style={{ fontSize: '14px', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <LockKeyhole size={18} style={{ color: '#0284C7' }} /> Revoke Consent Anytime
+                </strong>
+                <p style={{ margin: '6px 0 0 0', fontSize: '12.5px', color: '#64748B', lineHeight: '1.5' }}>
+                  You have the right to revoke or cancel any signed release form at any time simply by notifying the clinic front desk.
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          {emergencyContact && (
+            <Card>
+              <SectionTitle
+                title="Authorized Emergency Contact on File"
+                description="Permitted to be contacted for urgent medical emergencies only."
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', padding: '16px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0', marginTop: '12px' }}>
+                <div>
+                  <strong style={{ fontSize: '14.5px', color: '#0F172A' }}>{emergencyContact.name}</strong>
+                  <div style={{ fontSize: '13px', color: '#64748B', marginTop: '3px' }}>
+                    {emergencyContact.relation} · {emergencyContact.phone}
+                  </div>
+                </div>
+                {navigate && (
+                  <button
+                    type="button"
+                    className="bhg-button bhg-button-secondary"
+                    style={{ fontSize: '12.5px' }}
+                    onClick={() => navigate('profile')}
+                  >
+                    <UserRound size={14} style={{ marginRight: '6px' }} /> Update in Profile
+                  </button>
+                )}
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+
       {/* Footer Privacy Note */}
       <div className="bhg-privacy-note" style={{ marginTop: '24px' }}>
         <LockKeyhole size={17} />
-        <span>Signed agreements and consents are confidential. Protected under federal 42 CFR Part 2 regulations.</span>
+        <span>Signed agreements, verification letters, and consents are confidential. Protected under federal 42 CFR Part 2 regulations.</span>
       </div>
     </div>
   );
@@ -3763,6 +4017,50 @@ function GoalRing({ progress: pct, size = 72, stroke = 7, color = 'var(--accent)
 
 export function Progress() {
   const { progress, treatment, navigate } = useApp();
+  const [milestoneOrder, setMilestoneOrder] = useState('journey'); // 'journey' (Start -> Latest) or 'newest' (Latest -> Start)
+
+  const milestoneMeta = {
+    'Treatment started': {
+      icon: Sparkles,
+      color: '#D97706',
+      bg: '#FEF3C7',
+      badge: 'Induction',
+      stepNum: 1,
+      badgeColor: '#92400E',
+      badgeBg: '#FEF3C7',
+    },
+    '90 days in treatment': {
+      icon: Target,
+      color: '#7C3AED',
+      bg: '#EDE9FE',
+      badge: 'Stabilization',
+      stepNum: 2,
+      badgeColor: '#6D28D9',
+      badgeBg: '#EDE9FE',
+    },
+    'Take-home plan reviewed': {
+      icon: Pill,
+      color: '#0284C7',
+      bg: '#E0F2FE',
+      badge: 'Phase 2',
+      stepNum: 3,
+      badgeColor: '#0369A1',
+      badgeBg: '#E0F2FE',
+    },
+    'Treatment plan updated': {
+      icon: CheckCircle2,
+      color: '#16A34A',
+      bg: '#DCFCE7',
+      badge: 'Latest Milestone',
+      stepNum: 4,
+      badgeColor: '#15803D',
+      badgeBg: '#DCFCE7',
+    },
+  };
+
+  const milestonesToRender = milestoneOrder === 'journey'
+    ? [...progress.milestones].reverse()
+    : progress.milestones;
 
   return (
     <div className="bhg-page bhg-progress-page animate-fade-in">
@@ -3911,52 +4209,197 @@ export function Progress() {
         </Card>
       </div>
 
-      {/* ── Card 3: Recovery Milestones ── */}
+      {/* ── Card 3: Recovery Milestones (Horizontal Layout) ── */}
       <Card>
         <SectionTitle
           title="Recovery milestones"
           description="Key moments and achievements in your treatment journey."
+          action={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <PillBadge tone="success">4 of 4 Achieved</PillBadge>
+              <div style={{ display: 'inline-flex', background: '#F1F5F9', padding: '2px', borderRadius: 8, border: '1px solid #E2E8F0' }}>
+                <button
+                  type="button"
+                  onClick={() => setMilestoneOrder('journey')}
+                  style={{
+                    border: 'none',
+                    padding: '3px 8px',
+                    borderRadius: 6,
+                    fontSize: 11,
+                    fontWeight: milestoneOrder === 'journey' ? 700 : 500,
+                    background: milestoneOrder === 'journey' ? '#FFFFFF' : 'transparent',
+                    color: milestoneOrder === 'journey' ? '#0F172A' : '#64748B',
+                    boxShadow: milestoneOrder === 'journey' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  Journey (Start → Latest)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMilestoneOrder('newest')}
+                  style={{
+                    border: 'none',
+                    padding: '3px 8px',
+                    borderRadius: 6,
+                    fontSize: 11,
+                    fontWeight: milestoneOrder === 'newest' ? 700 : 500,
+                    background: milestoneOrder === 'newest' ? '#FFFFFF' : 'transparent',
+                    color: milestoneOrder === 'newest' ? '#0F172A' : '#64748B',
+                    boxShadow: milestoneOrder === 'newest' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  Newest first
+                </button>
+              </div>
+            </div>
+          }
         />
-        <div className="bhg-milestone-timeline" aria-label="Recovery milestones">
-          {progress.milestones.map((item, i) => {
-            const icons = [CheckCircle2, Pill, Target, Sparkles];
-            const colors = ['#16A34A', '#0284C7', '#7C3AED', '#D97706'];
-            const bgs = ['#DCFCE7', '#E0F2FE', '#EDE9FE', '#FEF3C7'];
-            const IconComp = icons[i % icons.length];
-            return (
-              <div key={item.date} className={`bhg-milestone-item ${i === 0 ? 'bhg-milestone-latest' : ''}`}>
-                <div className="bhg-milestone-icon-col">
-                  <span
-                    className="bhg-milestone-icon"
+
+        <div style={{ overflowX: 'auto', paddingBottom: 4, marginTop: 4 }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, minmax(200px, 1fr))',
+              gap: 12,
+              position: 'relative',
+              alignItems: 'stretch',
+            }}
+          >
+            {milestonesToRender.map((item, idx) => {
+              const itemMeta = milestoneMeta[item.title] || {
+                icon: CheckCircle2,
+                color: '#16A34A',
+                bg: '#DCFCE7',
+                badge: 'Milestone',
+                stepNum: idx + 1,
+                badgeColor: '#15803D',
+                badgeBg: '#DCFCE7',
+              };
+              const isLatest = item.title === 'Treatment plan updated';
+              const isLast = idx === milestonesToRender.length - 1;
+
+              return (
+                <div
+                  key={item.date}
+                  style={{
+                    position: 'relative',
+                    background: isLatest ? 'linear-gradient(180deg, #F0FDF4 0%, #FFFFFF 100%)' : 'var(--bg-alt, #F8FAFC)',
+                    border: isLatest ? '1.5px solid #86EFAC' : '1px solid var(--border, #E2E8F0)',
+                    borderRadius: 12,
+                    padding: '12px 14px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    boxShadow: isLatest ? '0 4px 14px rgba(22, 163, 74, 0.08)' : '0 1px 3px rgba(0,0,0,0.03)',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  {/* Top Row: Icon + Badge */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <span
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: '50%',
+                        background: itemMeta.bg,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <itemMeta.icon size={16} color={itemMeta.color} />
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: 999,
+                        background: itemMeta.badgeBg,
+                        color: itemMeta.badgeColor,
+                        letterSpacing: '0.02em',
+                      }}
+                    >
+                      {itemMeta.badge}
+                    </span>
+                  </div>
+
+                  {/* Date */}
+                  <div style={{ fontSize: 10, fontWeight: 750, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>
+                    {item.date}
+                  </div>
+
+                  {/* Title */}
+                  <div style={{ fontSize: 13, fontWeight: 750, color: '#0F172A', lineHeight: 1.3, marginBottom: 4 }}>
+                    {item.title}
+                  </div>
+
+                  {/* Detail */}
+                  <div style={{ fontSize: 11, color: '#475569', lineHeight: 1.4, flex: 1 }}>
+                    {item.detail}
+                  </div>
+
+                  {/* Footer status */}
+                  <div
                     style={{
-                      background: bgs[i % bgs.length],
-                      width: 32,
-                      height: 32,
-                      borderRadius: '50%',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
+                      justifyContent: 'space-between',
+                      marginTop: 8,
+                      paddingTop: 6,
+                      borderTop: '1px dashed var(--border, #E2E8F0)',
+                      fontSize: 10.5,
+                      fontWeight: 600,
+                      color: '#16A34A',
                     }}
                   >
-                    <IconComp size={15} color={colors[i % colors.length]} />
-                  </span>
-                  {i < progress.milestones.length - 1 && <span className="bhg-milestone-connector" aria-hidden="true" />}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <CheckCircle2 size={12} /> Completed
+                    </span>
+                    <span style={{ color: '#64748B', fontSize: 10 }}>Step {itemMeta.stepNum} of 4</span>
+                  </div>
+
+                  {/* Connector arrow between cards */}
+                  {milestoneOrder === 'journey' && !isLast && (
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: '50%',
+                        right: -8,
+                        transform: 'translateY(-50%)',
+                        width: 18,
+                        height: 18,
+                        borderRadius: '50%',
+                        background: '#FFFFFF',
+                        border: '1px solid #CBD5E1',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 2,
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                        color: '#64748B',
+                        pointerEvents: 'none',
+                      }}
+                      aria-hidden="true"
+                    >
+                      <ArrowRight size={10} />
+                    </span>
+                  )}
                 </div>
-                <div className="bhg-milestone-body">
-                  <small>{item.date}</small>
-                  <strong>{item.title}</strong>
-                  <p>{item.detail}</p>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </Card>
 
       {/* ── Privacy Note ── */}
-      <div className="bhg-privacy-note" style={{ marginTop: 20 }}>
-        <LockKeyhole size={16} />
-        <span>
+      <div className="bhg-privacy-note" style={{ marginTop: 14 }}>
+        <LockKeyhole size={15} />
+        <span style={{ fontSize: 11.5 }}>
           Recovery progress and treatment records are confidential. Protected under federal 42 CFR Part 2 and HIPAA regulations.
         </span>
       </div>
@@ -4453,20 +4896,293 @@ export function Profile() {
   );
 }
 
+function getNotificationIconConfig(notification) {
+  const iconType = notification.iconType || '';
+  const category = notification.category || '';
+
+  if (iconType === 'calendar' || (category === 'Appointments' && iconType !== 'pill')) {
+    return {
+      icon: <Calendar size={20} color="#10b981" />,
+      bg: '#ecfdf5',
+      border: '#a7f3d0',
+    };
+  }
+  if (iconType === 'lab' || category === 'Reports') {
+    return {
+      icon: <FlaskConical size={20} color="#0d9488" />,
+      bg: '#f0fdfa',
+      border: '#99f6e4',
+    };
+  }
+  if (iconType === 'message' || category === 'Messages') {
+    return {
+      icon: <MessageCircle size={20} color="#0284c7" />,
+      bg: '#f0f9ff',
+      border: '#bae6fd',
+    };
+  }
+  if (iconType === 'billing' || category === 'Billing') {
+    return {
+      icon: <CreditCard size={20} color="#10b981" />,
+      bg: '#ecfdf5',
+      border: '#a7f3d0',
+    };
+  }
+  if (iconType === 'document' || category === 'System') {
+    return {
+      icon: <FileText size={20} color="#6366f1" />,
+      bg: '#eef2ff',
+      border: '#c7d2fe',
+    };
+  }
+  return {
+    icon: <Bell size={20} color="#d97706" />,
+    bg: '#fffbeb',
+    border: '#fde68a',
+  };
+}
+
 export function Notifications() {
-  const { notifications, markNotificationRead, navigate } = useApp();
+  const { notifications, markNotificationRead, markAllNotificationsRead, navigate, addToast } = useApp();
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [unreadOnly, setUnreadOnly] = useState(false);
+
+  const categories = ['All', 'Reports', 'Appointments', 'Billing', 'Messages', 'System'];
+
+  const filteredNotifications = useMemo(() => {
+    return (notifications || []).filter((n) => {
+      if (unreadOnly && !n.unread) return false;
+      if (selectedCategory !== 'All' && n.category !== selectedCategory) return false;
+      return true;
+    });
+  }, [notifications, unreadOnly, selectedCategory]);
+
+  const unreadCount = useMemo(() => (notifications || []).filter((n) => n.unread).length, [notifications]);
+  const totalCount = (notifications || []).length;
+
   return (
-    <div className="bhg-page animate-fade-in">
-      <PageHeader eyebrow="Account" title="Notifications" description="Important updates about your treatment and appointments." />
-      <Card className="bhg-message-list">
-        {notifications.map((notification) => (
-          <button key={notification.id} className={`bhg-message-row ${notification.unread ? 'unread' : ''}`} onClick={() => { markNotificationRead(notification.id); navigate(notification.page); }}>
-            <span className="bhg-notification-icon"><Sparkles size={18} /></span>
-            <div className="bhg-message-body"><div><strong>{notification.title}</strong><span>{notification.time}</span></div><p>{notification.detail}</p></div>
-            {notification.unread && <span className="bhg-unread-dot" aria-label="Unread notification" />}
+    <div className="bhg-page animate-fade-in" style={{ maxWidth: '1100px', margin: '0 auto', paddingBottom: '40px' }}>
+      {/* Top Header matching reference screenshot */}
+      <div style={{ marginBottom: '20px' }}>
+        <div style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', lineHeight: 1.2 }}>Alerts & Messages</div>
+        <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.07em', color: '#0284c7', textTransform: 'uppercase', marginTop: '2px' }}>
+          SYSTEM & CLINICAL NOTIFICATIONS
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+        <div>
+          <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#0f172a', margin: '0 0 4px 0', letterSpacing: '-0.02em' }}>
+            Notifications
+          </h1>
+          <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>
+            {unreadCount} unread · {totalCount} total
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={() => setUnreadOnly((prev) => !prev)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: unreadOnly ? '1px solid #0284c7' : '1px solid #cbd5e1',
+              background: unreadOnly ? '#f0f9ff' : '#ffffff',
+              color: unreadOnly ? '#0284c7' : '#334155',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+            }}
+          >
+            <Filter size={15} color={unreadOnly ? '#0284c7' : '#475569'} />
+            Unread Only
           </button>
-        ))}
-      </Card>
+          <button
+            type="button"
+            onClick={() => {
+              if (markAllNotificationsRead) {
+                markAllNotificationsRead();
+              } else {
+                notifications.filter((n) => n.unread).forEach((n) => markNotificationRead(n.id));
+              }
+              if (addToast) addToast('All notifications marked as read.', 'success');
+            }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: '1px solid #cbd5e1',
+              background: '#ffffff',
+              color: '#334155',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#ffffff'; }}
+          >
+            <Check size={15} color="#475569" />
+            Mark All Read
+          </button>
+        </div>
+      </div>
+
+      {/* Category Pills */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        {categories.map((cat) => {
+          const isSelected = selectedCategory === cat;
+          return (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setSelectedCategory(cat)}
+              style={{
+                borderRadius: '9999px',
+                padding: '6px 18px',
+                fontSize: '13px',
+                fontWeight: isSelected ? 600 : 500,
+                border: isSelected ? '1px solid #0284c7' : '1px solid #cbd5e1',
+                background: isSelected ? '#0284c7' : '#ffffff',
+                color: isSelected ? '#ffffff' : '#475569',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                boxShadow: isSelected ? '0 1px 2px rgba(2, 132, 199, 0.2)' : 'none',
+              }}
+              onMouseEnter={(e) => {
+                if (!isSelected) e.currentTarget.style.background = '#f1f5f9';
+              }}
+              onMouseLeave={(e) => {
+                if (!isSelected) e.currentTarget.style.background = '#ffffff';
+              }}
+            >
+              {cat}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Notification Cards Container */}
+      <div
+        style={{
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '16px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          overflow: 'hidden',
+        }}
+      >
+        {filteredNotifications.length === 0 ? (
+          <div style={{ padding: '56px 24px', textAlign: 'center', color: '#64748b' }}>
+            <Bell size={38} style={{ margin: '0 auto 12px', opacity: 0.35 }} />
+            <div style={{ fontWeight: 600, fontSize: '15px', color: '#1e293b' }}>No notifications found</div>
+            <div style={{ fontSize: '13px', marginTop: '4px' }}>
+              {unreadOnly ? 'You have no unread notifications.' : 'There are no notifications matching the selected filter.'}
+            </div>
+          </div>
+        ) : (
+          filteredNotifications.map((notification, index) => {
+            const iconConfig = getNotificationIconConfig(notification);
+            const isUnread = !!notification.unread;
+            const isLast = index === filteredNotifications.length - 1;
+
+            return (
+              <div
+                key={notification.id}
+                onClick={() => {
+                  markNotificationRead(notification.id);
+                  if (notification.page) navigate(notification.page);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '16px',
+                  padding: '18px 24px',
+                  borderBottom: isLast ? 'none' : '1px solid #f1f5f9',
+                  background: isUnread ? '#f0f7ff' : '#ffffff',
+                  borderLeft: isUnread ? '4px solid #0284c7' : '4px solid transparent',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = isUnread ? '#e2effd' : '#f8fafc';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = isUnread ? '#f0f7ff' : '#ffffff';
+                }}
+              >
+                <div
+                  style={{
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '10px',
+                    background: iconConfig.bg,
+                    border: `1px solid ${iconConfig.border}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    marginTop: '2px',
+                  }}
+                >
+                  {iconConfig.icon}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                    <span style={{ fontSize: '15px', fontWeight: 600, color: '#0f172a' }}>
+                      {notification.title}
+                    </span>
+                    {isUnread && (
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          padding: '2px 8px',
+                          borderRadius: '9999px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          background: '#e0f2fe',
+                          color: '#0284c7',
+                          letterSpacing: '0.01em',
+                        }}
+                      >
+                        New
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#475569', lineHeight: 1.45 }}>
+                    {notification.detail}
+                  </p>
+                  <div style={{ marginTop: '6px', fontSize: '12px', color: '#94a3b8', fontWeight: 500 }}>
+                    {notification.time}
+                  </div>
+                </div>
+                {isUnread && (
+                  <div
+                    style={{
+                      width: '7px',
+                      height: '7px',
+                      borderRadius: '50%',
+                      background: '#0284c7',
+                      alignSelf: 'center',
+                      marginLeft: 'auto',
+                      flexShrink: 0,
+                    }}
+                    aria-label="Unread indicator"
+                  />
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }
@@ -4476,29 +5192,93 @@ export function Notifications() {
    BHG Health Record Hub with Medication Orders, Dose History, Labs & Consents
    ══════════════════════════════════════════════════════════════════════════ */
 
+function getLabAiSummary(record) {
+  if (record.id === 'UDS-9102') {
+    return {
+      confidence: 98,
+      headline: 'All Clear · Dosing Verified · Fully Compliant',
+      points: [
+        { label: 'Prescribed Medication', text: 'Positive (As Expected) — Methadone metabolite confirmed present, proving you are taking your daily dose as directed.' },
+        { label: 'Illicit / Non-Prescribed Drugs', text: 'All Negative (Clean) — Zero fentanyl, heroin/morphine, oxycodone, buprenorphine, benzodiazepines, cocaine, or methamphetamine detected.' },
+        { label: 'Sample Validity', text: 'Normal — Temperature (96.4°F) and creatinine levels confirmed an authentic, unaltered sample.' },
+      ],
+      bottomLine: 'Your recovery is fully on track! This test meets all compliance criteria and supports maintaining your Phase 2 take-home dosing schedule.',
+      disclaimer: 'Generated by BHG Clinical AI Assistant for your personal recovery tracking.',
+    };
+  }
+  if (record.id === 'UDS-8841') {
+    return {
+      confidence: 97,
+      headline: 'Phase 2 Take-Home Eligibility Verified',
+      points: [
+        { label: 'Prescribed Medication', text: 'Positive (As Expected) — Daily maintenance dose confirmed in system.' },
+        { label: 'Illicit / Non-Prescribed Drugs', text: 'All Negative (Clean) — No non-prescribed opioids, sedatives, or street substances found.' },
+      ],
+      bottomLine: 'This clean screening was the key clinical milestone that qualified you for your current 2 weekly take-home bottles.',
+      disclaimer: 'Generated by BHG Clinical AI Assistant for your personal recovery tracking.',
+    };
+  }
+  if (record.id === 'LAB-7102') {
+    return {
+      confidence: 99,
+      headline: 'Healthy Liver & Baseline Physical Health Cleared',
+      points: [
+        { label: 'Liver Function (ALT & AST)', text: 'Normal (ALT: 28, AST: 24) — Your liver enzymes are healthy, confirming your body can safely process MAT medication.' },
+        { label: 'Hepatitis C Screening', text: 'Non-Reactive (Negative) — No evidence of Hepatitis C infection.' },
+        { label: 'Tuberculosis (TB Gold)', text: 'Negative — No active or latent tuberculosis detected.' },
+        { label: 'Comprehensive Metabolic Panel', text: 'Normal limits across kidney filtration, electrolyte balance, and blood sugars.' },
+      ],
+      bottomLine: 'Your admission blood chemistry was completely clear, giving your physician medical clearance to initiate your outpatient treatment program.',
+      disclaimer: 'Generated by BHG Clinical AI Assistant for your personal recovery tracking.',
+    };
+  }
+  return {
+    confidence: 95,
+    headline: 'Laboratory Results Summary',
+    points: record.details?.slice(0, 4).map((d) => ({ label: d.label, text: d.value })) || [],
+    bottomLine: record.detailSummary || 'Your laboratory screening has been reviewed and archived in good standing by your care team.',
+    disclaimer: 'Generated by BHG Clinical AI Assistant for your personal recovery tracking.',
+  };
+}
+
 export function TreatmentRecords() {
   const {
     patient,
     treatment,
-    documents,
     careTeam,
-    emergencyContact,
     center,
     navigate,
     addToast,
     createRequest,
-    acknowledgeDocument,
   } = useApp();
 
   const [activeFilter, setActiveFilter] = useState('All');
   const [query, setQuery] = useState('');
   const [selectedRecord, setSelectedRecord] = useState(null);
+  const [aiSummary, setAiSummary] = useState(null);
+  const [generatingAi, setGeneratingAi] = useState(false);
   const [showRecordsRequestModal, setShowRecordsRequestModal] = useState(false);
   const [recordsRecipient, setRecordsRecipient] = useState('Self (Personal records)');
   const [recordsNotes, setRecordsNotes] = useState('');
 
   const counselor = careTeam?.find((m) => m.role.toLowerCase().includes('counselor')) || careTeam?.[0];
   const doctor = careTeam?.find((m) => m.role.toLowerCase().includes('provider')) || careTeam?.[1];
+
+  const handleSelectRecord = (record) => {
+    setSelectedRecord(record);
+    setAiSummary(null);
+    setGeneratingAi(false);
+  };
+
+  const handleGenerateAiSummary = () => {
+    if (!selectedRecord) return;
+    setGeneratingAi(true);
+    window.setTimeout(() => {
+      setAiSummary(getLabAiSummary(selectedRecord));
+      setGeneratingAi(false);
+      addToast('AI summary generated.', 'success');
+    }, 450);
+  };
 
   const handleRequestOfficialRecords = () => {
     createRequest({
@@ -4518,9 +5298,6 @@ export function TreatmentRecords() {
     'Dose History',
     'Lab Results',
     'Clinical Notes',
-    'Consent Forms',
-    'Verification Letters',
-    'Privacy (42 CFR Part 2)',
   ];
 
   // Unified BHG Clinical Records Dataset
@@ -4740,64 +5517,8 @@ export function TreatmentRecords() {
     ];
     list.push(...clinicalNotes);
 
-    // 5. Signed Consents & Program Agreements
-    documents.forEach((doc) => {
-      list.push({
-        id: doc.id,
-        category: 'consent',
-        hubTab: 'consent',
-        filterType: 'Consent Forms',
-        icon: ClipboardCheck,
-        iconBg: '#F0FDF4',
-        iconColor: '#16A34A',
-        title: doc.name,
-        type: `Signed Agreement · ${doc.category}`,
-        date: doc.date,
-        provider: 'BHG Knoxville Treatment Center',
-        status: doc.status,
-        statusTone: doc.status === 'Signed' || doc.status === 'Acknowledged' ? 'success' : 'warning',
-        detailSummary: `Official legal and clinical document electronically signed by ${patient.name} at BHG Knoxville.`,
-        details: [
-          { label: 'Document Number', value: doc.id },
-          { label: 'Agreement Title', value: doc.name },
-          { label: 'Category', value: doc.category },
-          { label: 'Date Acknowledged', value: doc.date },
-          { label: 'Status', value: doc.status },
-          { label: 'Audit Trail', value: 'Verified electronic signature archived under 42 CFR Part 2' },
-        ],
-      });
-    });
-
-    // 6. Verification Letter
-    list.push({
-      id: 'VER-9184',
-      category: 'letter',
-      filterType: 'Verification Letters',
-      icon: FileCheck2,
-      iconBg: '#FEF3C7',
-      iconColor: '#D97706',
-      title: 'Official Treatment Enrollment Verification Letter',
-      type: 'Verification Letter · Formal Letterhead',
-      date: 'September 16, 2026',
-      provider: 'Dr. Marcus Hill, MD (BHG Knoxville)',
-      status: 'Certified',
-      statusTone: 'success',
-      isLetter: true,
-      detailSummary: 'Certified clinic letterhead document confirming active enrollment, daily dosing adherence, and compliance in good standing.',
-      details: [
-        { label: 'Document ID', value: 'VER-2026-9184' },
-        { label: 'Patient Name', value: `${patient.name} (DOB: June 18, 1988)` },
-        { label: 'Patient ID', value: 'BHG-20481' },
-        { label: 'Continuous Enrollment', value: `${patient.daysInTreatment} days (Since March 14, 2026)` },
-        { label: 'Prescribing Physician', value: 'Dr. Marcus Hill, MD (Medical Director)' },
-        { label: 'Assigned Counselor', value: 'Alicia Monroe, LPC' },
-        { label: 'Compliance Status', value: 'Full compliance with observed dosing and counseling requirements' },
-        { label: 'Confidentiality Protection', value: 'Protected under Federal 42 CFR Part 2 and HIPAA regulations' },
-      ],
-    });
-
     return list;
-  }, [documents, patient]);
+  }, []);
 
   // Filtering Logic
   const filtered = useMemo(() => {
@@ -4831,17 +5552,35 @@ export function TreatmentRecords() {
         <WorkflowDrawer
           title={selectedRecord.title}
           subtitle={`${selectedRecord.type} · ${selectedRecord.date}`}
-          onClose={() => setSelectedRecord(null)}
+          onClose={() => {
+            setSelectedRecord(null);
+            setAiSummary(null);
+          }}
           size="lg"
           footer={
             <>
               <button
                 type="button"
                 className="bhg-button bhg-button-secondary"
-                onClick={() => setSelectedRecord(null)}
+                onClick={() => {
+                  setSelectedRecord(null);
+                  setAiSummary(null);
+                }}
               >
                 Close
               </button>
+              {selectedRecord.category === 'lab' && !aiSummary && (
+                <button
+                  type="button"
+                  className="bhg-button bhg-button-secondary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#0369A1', borderColor: '#7DD3FC', background: '#F0F9FF' }}
+                  onClick={handleGenerateAiSummary}
+                  disabled={generatingAi}
+                >
+                  <Sparkles size={14} style={{ color: '#0284C7' }} />
+                  {generatingAi ? 'Analyzing...' : 'Explain with AI'}
+                </button>
+              )}
               <button
                 type="button"
                 className="bhg-button bhg-button-secondary"
@@ -4884,54 +5623,105 @@ export function TreatmentRecords() {
               </div>
             </div>
 
-            {/* If Verification Letter: Render Official Letterhead Preview */}
-            {selectedRecord.isLetter ? (
-              <div style={{ background: 'white', padding: '20px', border: '1px solid #CBD5E1', borderRadius: '8px', fontFamily: 'Georgia, serif', color: '#1E293B', marginBottom: 16 }}>
-                <div style={{ borderBottom: '2px solid #005A70', paddingBottom: '10px', marginBottom: '14px', display: 'flex', justifyContent: 'space-between' }}>
-                  <div>
-                    <strong style={{ fontSize: '15px', color: '#005A70', display: 'block' }}>BHG KNOXVILLE TREATMENT CENTER</strong>
-                    <span style={{ fontSize: '11px', color: '#64748B', fontFamily: 'sans-serif' }}>Behavioral Health Group · Outpatient Opioid Treatment Program (OTP)</span>
-                  </div>
-                </div>
-                <div style={{ fontSize: '12px', color: '#64748B', fontFamily: 'sans-serif', marginBottom: '12px' }}>
-                  Date: September 16, 2026 · Patient: <strong>{patient.name}</strong> (DOB: June 18, 1988)
-                </div>
-                <p style={{ fontSize: '12.5px', lineHeight: '1.6', margin: '0 0 10px 0' }}>
-                  This letter certifies that <strong>{patient.name}</strong> is an active patient in good standing at BHG Knoxville Treatment Center, receiving outpatient Medication-Assisted Treatment (MMT). The patient has maintained continuous attendance for <strong>{patient.daysInTreatment} days</strong>.
-                </p>
-                <p style={{ fontSize: '12.5px', lineHeight: '1.6', margin: '0 0 10px 0' }}>
-                  The patient maintains full compliance with observed clinic dosing, regular toxicology monitoring, and clinical counseling requirements.
-                </p>
-                <div style={{ paddingTop: '12px', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', fontFamily: 'sans-serif', fontSize: '11.5px' }}>
-                  <div><strong>Dr. Marcus Hill, MD</strong><br /><span style={{ color: '#64748B' }}>Medical Director</span></div>
-                  <div style={{ color: '#94A3B8', textAlign: 'right' }}>Document ID: VER-2026-9184</div>
-                </div>
-              </div>
-            ) : (
-              /* Clinical Details Rows */
-              <div style={{ background: '#F8FAFC', borderRadius: 10, padding: '16px', border: '1px solid #E2E8F0', marginBottom: 16 }}>
-                <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', color: '#005A70', letterSpacing: '0.04em', marginBottom: 12 }}>
-                  Clinical Record Specifications
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {selectedRecord.details?.map((item, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        paddingBottom: 8,
-                        borderBottom: idx < selectedRecord.details.length - 1 ? '1px dashed #E2E8F0' : 'none',
-                        fontSize: 13,
-                      }}
-                    >
-                      <span style={{ color: '#64748B', flexShrink: 0, marginRight: 12 }}>{item.label}:</span>
-                      <span style={{ fontWeight: 500, color: '#0F172A', textAlign: 'right' }}>{item.value}</span>
+            {/* AI Plain-Language Explainer (For Lab & Toxicology Results) */}
+            {selectedRecord.category === 'lab' && (
+              <div style={{ marginBottom: 16 }}>
+                {!aiSummary ? (
+                  <button
+                    type="button"
+                    className="bhg-button"
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      padding: '12px 16px',
+                      background: 'linear-gradient(135deg, #F0FDF4 0%, #E0F2FE 100%)',
+                      border: '1.5px solid #7DD3FC',
+                      color: '#0369A1',
+                      fontWeight: 700,
+                      fontSize: 13.5,
+                      borderRadius: 10,
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 6px rgba(3, 105, 161, 0.08)',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onClick={handleGenerateAiSummary}
+                    disabled={generatingAi}
+                  >
+                    <Sparkles size={16} style={{ color: '#0284C7' }} />
+                    {generatingAi ? 'Analyzing lab values with clinical AI...' : 'Explain with AI'}
+                  </button>
+                ) : (
+                  <div
+                    className="animate-fade-in"
+                    style={{
+                      background: '#F0FDF4',
+                      border: '1.5px solid #86EFAC',
+                      borderRadius: 12,
+                      padding: '16px',
+                      boxShadow: '0 3px 10px rgba(22, 163, 74, 0.1)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: 13.5, color: '#166534' }}>
+                        <Sparkles size={16} style={{ color: '#16A34A' }} />
+                        AI Summary
+                      </div>
+                      <span style={{ fontSize: 11, background: '#DCFCE7', color: '#15803D', padding: '3px 9px', borderRadius: 99, fontWeight: 700 }}>
+                        {aiSummary.confidence}% confidence
+                      </span>
                     </div>
-                  ))}
-                </div>
+
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', marginBottom: 12, lineHeight: 1.4 }}>
+                      {aiSummary.headline}
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+                      {aiSummary.points.map((pt, idx) => (
+                        <div key={idx} style={{ background: 'white', padding: '10px 12px', borderRadius: 8, border: '1px solid #DCFCE7', fontSize: 12.5, lineHeight: 1.5 }}>
+                          <strong style={{ color: '#166534', display: 'block', marginBottom: 2 }}>{pt.label}:</strong>
+                          <span style={{ color: '#334155' }}>{pt.text}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ background: '#DCFCE7', padding: '10px 12px', borderRadius: 8, fontSize: 12.5, color: '#14532D', lineHeight: 1.5, fontWeight: 600, marginBottom: 8 }}>
+                      <strong>Recovery Takeaway:</strong> {aiSummary.bottomLine}
+                    </div>
+
+                    <div style={{ fontSize: 11, color: '#64748B', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span>{aiSummary.disclaimer}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
+
+            {/* Clinical Details Rows */}
+            <div style={{ background: '#F8FAFC', borderRadius: 10, padding: '16px', border: '1px solid #E2E8F0', marginBottom: 16 }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', color: '#005A70', letterSpacing: '0.04em', marginBottom: 12 }}>
+                Clinical Record Specifications
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {selectedRecord.details?.map((item, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      paddingBottom: 8,
+                      borderBottom: idx < selectedRecord.details.length - 1 ? '1px dashed #E2E8F0' : 'none',
+                      fontSize: 13,
+                    }}
+                  >
+                    <span style={{ color: '#64748B', flexShrink: 0, marginRight: 12 }}>{item.label}:</span>
+                    <span style={{ fontWeight: 500, color: '#0F172A', textAlign: 'right' }}>{item.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
 
             {/* Confidentiality Notice */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: '#64748B', padding: '10px 12px', background: '#F1F5F9', borderRadius: 8 }}>
@@ -4961,7 +5751,7 @@ export function TreatmentRecords() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search medication orders, dose history, labs, clinical notes, consents..."
+            placeholder="Search medication orders, dose history, labs, clinical notes..."
             style={{ width: '100%', border: 'none', outline: 'none', background: 'transparent', fontSize: '13.5px' }}
           />
           {query && (
@@ -5016,145 +5806,80 @@ export function TreatmentRecords() {
         ))}
       </div>
 
-      {/* ══════ VIEW 1: RECORDS LIST ══════ */}
-      {activeFilter !== 'Privacy (42 CFR Part 2)' && (
-        <div className="card" style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
-            {filtered.length === 0 ? (
-              <div className="empty-state" style={{ padding: '48px 24px', textAlign: 'center' }}>
-                <div className="empty-state-icon" style={{ margin: '0 auto 12px auto', width: 48, height: 48, borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <FileText size={24} color="#64748B" />
-                </div>
-                <div className="empty-state-title" style={{ fontSize: 16, fontWeight: 600, color: '#0F172A', marginBottom: 4 }}>No records found</div>
-                <div className="empty-state-desc" style={{ fontSize: 13, color: '#64748B' }}>Try changing your search term or filter selection</div>
-              </div>
-            ) : (
-              filtered.map((record) => (
-                <div
-                  key={record.id}
-                  className="record-item"
-                  onClick={() => setSelectedRecord(record)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 16,
-                    padding: '16px 20px',
-                    borderBottom: '1px solid #F1F5F9',
-                    cursor: 'pointer',
-                    transition: 'background 0.15s ease',
-                  }}
-                >
-                  {/* Category Icon */}
-                  <div
-                    className="record-item-icon"
-                    style={{
-                      width: 42,
-                      height: 42,
-                      borderRadius: 10,
-                      background: record.iconBg,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <record.icon size={20} color={record.iconColor} />
-                  </div>
-
-                  {/* Title & Metadata */}
-                  <div className="record-item-info" style={{ flex: 1, minWidth: 0 }}>
-                    <div className="record-item-title" style={{ fontSize: 14.5, fontWeight: 600, color: '#0F172A', lineHeight: 1.3 }}>
-                      {record.title}
-                    </div>
-                    <div className="record-item-meta" style={{ fontSize: 12.5, color: '#64748B', marginTop: 3, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <span>{record.type}</span>
-                      <span>·</span>
-                      <span>{record.date}</span>
-                      <span>·</span>
-                      <span>{record.provider}</span>
-                    </div>
-                  </div>
-
-                  {/* Status Badge + Arrow */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-                    <PillBadge tone={record.statusTone}>{record.status}</PillBadge>
-                    <ChevronRight size={16} color="#94A3B8" />
-                  </div>
-                </div>
-              ))
-            )}
+      {/* ══════ RECORDS LIST ══════ */}
+      <div className="card" style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+        {filtered.length === 0 ? (
+          <div className="empty-state" style={{ padding: '48px 24px', textAlign: 'center' }}>
+            <div className="empty-state-icon" style={{ margin: '0 auto 12px auto', width: 48, height: 48, borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FileText size={24} color="#64748B" />
+            </div>
+            <div className="empty-state-title" style={{ fontSize: 16, fontWeight: 600, color: '#0F172A', marginBottom: 4 }}>No records found</div>
+            <div className="empty-state-desc" style={{ fontSize: 13, color: '#64748B' }}>Try changing your search term or filter selection</div>
           </div>
-      )}
-
-      {/* ══════ VIEW 2: PRIVACY & 42 CFR PART 2 ══════ */}
-      {activeFilter === 'Privacy (42 CFR Part 2)' && (
-        <div className="animate-fade-in">
-          <Card style={{ marginBottom: '20px' }}>
-            <SectionTitle
-              title="42 CFR Part 2: Federal Privacy Protections"
-              description="Your substance use disorder treatment records carry the highest legal confidentiality in the United States."
-            />
-            <div className="bhg-safe-callout" style={{ margin: '16px 0' }}>
-              <LockKeyhole size={20} />
-              <span style={{ fontSize: '13px', lineHeight: '1.5' }}>
-                Under federal law (42 CFR Part 2) and HIPAA, BHG cannot confirm or deny to an employer, family member, court, or law enforcement that you are a patient, unless you provide specific written consent.
-              </span>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginTop: '16px' }}>
-              <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-                <strong style={{ fontSize: '14px', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <ShieldCheck size={18} style={{ color: '#16A34A' }} /> Employment Protection
-                </strong>
-                <p style={{ margin: '6px 0 0 0', fontSize: '12.5px', color: '#64748B', lineHeight: '1.5' }}>
-                  Your employer cannot view your records, counseling notes, or toxicology results. Background checks cannot access your BHG enrollment.
-                </p>
+        ) : (
+          filtered.map((record) => (
+            <div
+              key={record.id}
+              className="record-item"
+              onClick={() => handleSelectRecord(record)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 16,
+                padding: '16px 20px',
+                borderBottom: '1px solid #F1F5F9',
+                cursor: 'pointer',
+                transition: 'background 0.15s ease',
+              }}
+            >
+              {/* Category Icon */}
+              <div
+                className="record-item-icon"
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 10,
+                  background: record.iconBg,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <record.icon size={20} color={record.iconColor} />
               </div>
 
-              <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-                <strong style={{ fontSize: '14px', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <FileCheck2 size={18} style={{ color: '#005A70' }} /> You Control All Releases
-                </strong>
-                <p style={{ margin: '6px 0 0 0', fontSize: '12.5px', color: '#64748B', lineHeight: '1.5' }}>
-                  Records can only be shared with outside doctors, courts, or family members if you sign a specific Release of Information (ROI) form.
-                </p>
-              </div>
-
-              <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-                <strong style={{ fontSize: '14px', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <LockKeyhole size={18} style={{ color: '#0284C7' }} /> Revoke Consent Anytime
-                </strong>
-                <p style={{ margin: '6px 0 0 0', fontSize: '12.5px', color: '#64748B', lineHeight: '1.5' }}>
-                  You have the right to revoke or cancel any signed release form at any time simply by notifying the clinic front desk.
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          {/* Emergency Contact */}
-          <Card>
-            <SectionTitle
-              title="Authorized Emergency Contact on File"
-              description="Permitted to be contacted for urgent medical emergencies only."
-            />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', padding: '16px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0', marginTop: '12px' }}>
-              <div>
-                <strong style={{ fontSize: '14.5px', color: '#0F172A' }}>{emergencyContact.name}</strong>
-                <div style={{ fontSize: '13px', color: '#64748B', marginTop: '3px' }}>
-                  {emergencyContact.relation} · {emergencyContact.phone}
+              {/* Title & Metadata */}
+              <div className="record-item-info" style={{ flex: 1, minWidth: 0 }}>
+                <div className="record-item-title" style={{ fontSize: 14.5, fontWeight: 600, color: '#0F172A', lineHeight: 1.3 }}>
+                  {record.title}
+                </div>
+                <div className="record-item-meta" style={{ fontSize: 12.5, color: '#64748B', marginTop: 3, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <span>{record.type}</span>
+                  <span>·</span>
+                  <span>{record.date}</span>
+                  <span>·</span>
+                  <span>{record.provider}</span>
+                  {record.category === 'lab' && (
+                    <>
+                      <span>·</span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#0369A1', fontWeight: 600, fontSize: 11.5, background: '#E0F2FE', padding: '1px 8px', borderRadius: 99 }}>
+                        <Sparkles size={11} /> AI summary available
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
-              <button
-                type="button"
-                className="bhg-button bhg-button-secondary"
-                style={{ fontSize: '12.5px' }}
-                onClick={() => navigate('profile')}
-              >
-                <UserRound size={14} style={{ marginRight: '6px' }} /> Update in Profile
-              </button>
+
+              {/* Status Badge + Arrow */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                <PillBadge tone={record.statusTone}>{record.status}</PillBadge>
+                <ChevronRight size={16} color="#94A3B8" />
+              </div>
             </div>
-          </Card>
-        </div>
-      )}
+          ))
+        )}
+      </div>
 
       {/* ══════ MODAL: REQUEST CERTIFIED RECORDS ══════ */}
       {showRecordsRequestModal && (

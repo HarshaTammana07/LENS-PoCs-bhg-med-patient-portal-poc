@@ -35,6 +35,29 @@ function mergeAppointments(storedAppointments = []) {
   });
 }
 
+function mergeDocuments(storedDocuments = []) {
+  const storedById = new Map(storedDocuments.map((item) => [item.id, item]));
+  return documents.map((seedItem) => {
+    const saved = storedById.get(seedItem.id);
+    return {
+      ...seedItem,
+      status: saved?.status ?? seedItem.status,
+      date: saved?.date ?? seedItem.date,
+    };
+  });
+}
+
+function mergeNotifications(storedNotifications = []) {
+  const storedById = new Map(storedNotifications.map((item) => [item.id, item]));
+  return notifications.map((seedItem) => {
+    const saved = storedById.get(seedItem.id);
+    return {
+      ...seedItem,
+      unread: saved !== undefined ? saved.unread : seedItem.unread,
+    };
+  });
+}
+
 export function mergeDemoWorkItems(seedItems = [], storedItems = []) {
   const seedIds = new Set(seedItems.map((item) => item.id));
   const storedById = new Map(storedItems.map((item) => [item.id, item]));
@@ -250,6 +273,8 @@ export function loadDemoState() {
       ...stored,
       patient: { ...initial.patient, ...stored.patient },
       appointments: mergeAppointments(stored.appointments),
+      documents: mergeDocuments(stored.documents),
+      notifications: mergeNotifications(stored.notifications),
       workItems: mergeDemoWorkItems(initial.workItems, stored.workItems),
       appointmentProposals: stored.appointmentProposals || initial.appointmentProposals,
       appointmentOutcomes: mergeDemoWorkItems(initial.appointmentOutcomes, stored.appointmentOutcomes),

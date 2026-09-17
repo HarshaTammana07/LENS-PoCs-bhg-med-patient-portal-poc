@@ -115,6 +115,13 @@ export function AppProvider({ children }) {
     }));
   }, []);
 
+  const markAllNotificationsRead = useCallback(() => {
+    setDemoState((state) => ({
+      ...state,
+      notifications: state.notifications.map((item) => ({ ...item, unread: false })),
+    }));
+  }, []);
+
   const markMessageRead = useCallback((id) => {
     setDemoState((state) => ({
       ...state,
@@ -450,6 +457,7 @@ export function AppProvider({ children }) {
       logout,
       addToast,
       markNotificationRead,
+      markAllNotificationsRead,
       markMessageRead,
       sendMessage,
       addThreadReply,
@@ -485,6 +493,7 @@ export function AppProvider({ children }) {
       logout,
       addToast,
       markNotificationRead,
+      markAllNotificationsRead,
       markMessageRead,
       sendMessage,
       addThreadReply,
