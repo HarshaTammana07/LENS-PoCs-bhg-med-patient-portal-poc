@@ -9,7 +9,7 @@ const pageTitles = {
   appointments: ['My Care', 'Visits'],
   counseling: ['My Care', 'Visits'],
   labs: ['Lab & UDS', 'Private treatment monitoring'],
-  records: ['Treatment Records', 'Medication, counseling, UDS, assessments, and consents'],
+  records: ['My Records', 'Medication history, labs, and clinical documents'],
   progress: ['Recovery Progress', 'Goals and milestones'],
   'care-team': ['My Care Team', 'People supporting your recovery'],
   help: ['Help & FAQ', 'Common questions about treatment and the portal'],

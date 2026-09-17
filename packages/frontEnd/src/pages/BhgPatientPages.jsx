@@ -1,20 +1,25 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Activity,
   AlertCircle,
   ArrowRight,
+  Calendar,
   CalendarDays,
   Check,
+  CheckCircle,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
   ChevronUp,
+  ClipboardCheck,
+  Clock,
   Clock3,
   CreditCard,
   Download,
   FileCheck2,
   FileText,
+  FlaskConical,
   HeartHandshake,
   HelpCircle,
   LockKeyhole,
@@ -24,19 +29,31 @@ import {
   Phone,
   Pill,
   Plus,
+  Printer,
   Search,
   Send,
+  Share2,
   ShieldCheck,
   Sparkles,
   Target,
   TestTube2,
+  UserCheck,
   UserRound,
   UsersRound,
   Video,
+  Upload,
+  X,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { generateCounselingSessionSummary, generateUdsMonitoringSummary } from '../lib/aiDemo';
-import { getCenterMapsUrl, sharedCounselingSessionNotes, supportFaqs } from '../data/bhgPatientData';
+import {
+  getCenterMapsUrl,
+  sharedCounselingSessionNotes,
+  supportFaqs,
+  orderHistory,
+  medicationHistory,
+  counselingSessions,
+} from '../data/bhgPatientData';
 import { DemoBanner, Field, RequestStatus, WorkflowDrawer, WorkflowModal } from '../components/PrototypeUI';
 
 function appointmentStatusTone(status) {
@@ -71,8 +88,10 @@ function getSessionNotes(appointment) {
   return null;
 }
 
-function AppointmentCard({ appointment, onDetails, onChange }) {
+function AppointmentCard({ appointment, onDetails, onChange, onJoinVideo, onAddToCalendar }) {
   const canRequestChange = appointmentTiming(appointment) === 'upcoming' && !isMedicationAppointment(appointment);
+  const isTelehealth = /telehealth|zoom/i.test(appointment?.modality || '') || /zoom/i.test(appointment?.location || '');
+  const isUpcoming = appointmentTiming(appointment) === 'upcoming';
 
   return (
     <Card className="bhg-appointment">
@@ -81,7 +100,19 @@ function AppointmentCard({ appointment, onDetails, onChange }) {
         <strong>{appointment.dateShort.split(' ')[1]}</strong>
       </div>
       <div className="bhg-appointment-main">
-        <div><PillBadge tone={appointmentStatusTone(appointment.status)}>{appointment.status}</PillBadge></div>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <PillBadge tone={appointmentStatusTone(appointment.status)}>{appointment.status}</PillBadge>
+          {isUpcoming && isTelehealth && (
+            <span style={{ fontSize: '11px', background: '#E0F2FE', color: '#0369A1', padding: '2px 8px', borderRadius: '4px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <Video size={12} /> Telehealth
+            </span>
+          )}
+          {isUpcoming && !isTelehealth && (
+            <span style={{ fontSize: '11px', background: '#F1F5F9', color: '#475569', padding: '2px 8px', borderRadius: '4px', fontWeight: 500 }}>
+              In Person · Check in at desk
+            </span>
+          )}
+        </div>
         <h2>{appointment.title}</h2>
         <p>{displayProviderName(appointment.provider)}</p>
         <div className="bhg-meta-line">
@@ -90,9 +121,32 @@ function AppointmentCard({ appointment, onDetails, onChange }) {
         </div>
         <small>{appointmentTiming(appointment) === 'past' ? (appointment.visitSummary || getSessionNotes(appointment)?.focus || 'Visit completed.') : appointment.preparation}</small>
       </div>
-      <div className="bhg-appointment-actions">
+      <div className="bhg-appointment-actions" style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
         {appointment.requestStatus && <PillBadge tone="warning">{appointment.requestStatus}</PillBadge>}
-        <ActionButton secondary onClick={() => onDetails(appointment)}>View details</ActionButton>
+        {isUpcoming && isTelehealth && (
+          <button
+            type="button"
+            className="bhg-button"
+            style={{ padding: '7px 14px', fontSize: '12px', background: '#0284C7', color: 'white', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            onClick={() => onJoinVideo(appointment)}
+          >
+            <Video size={14} /> Join video visit
+          </button>
+        )}
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <ActionButton secondary onClick={() => onDetails(appointment)}>View details</ActionButton>
+          {isUpcoming && onAddToCalendar && (
+            <button
+              type="button"
+              className="bhg-button bhg-button-secondary"
+              style={{ padding: '6px 9px', fontSize: '12px' }}
+              title="Add to calendar"
+              onClick={() => onAddToCalendar(appointment)}
+            >
+              <CalendarDays size={14} />
+            </button>
+          )}
+        </div>
         {canRequestChange && (
           <button type="button" className="bhg-text-button" onClick={() => onChange(appointment)}>Request a change</button>
         )}
@@ -206,8 +260,8 @@ function WeeklyStrip({ schedule }) {
         const abbrev = dayMap[item.day.slice(0, 3)] || item.day[0];
         const tone = item.active ? 'today'
           : item.status === 'Take-home' ? 'takehome'
-          : item.status === 'Closed' ? 'closed'
-          : 'upcoming';
+            : item.status === 'Closed' ? 'closed'
+              : 'upcoming';
         return (
           <div key={item.date} className={`bhg-weekly-day bhg-weekly-day-${tone}`} title={`${item.day}: ${item.type}`}>
             <span className="bhg-weekly-abbrev">{abbrev}</span>
@@ -221,31 +275,28 @@ function WeeklyStrip({ schedule }) {
 }
 
 function RecoverySnapshot({ progress, treatment, weeklySchedule, onOpen }) {
-  const topGoals = progress.currentGoals.slice(0, 2);
   const latestMilestone = progress.milestones[0];
-  const overallProgress = Math.round(
-    progress.currentGoals.reduce((sum, goal) => sum + goal.progress, 0) / progress.currentGoals.length
-  );
 
   return (
     <button type="button" className="bhg-recovery-snapshot bhg-card bhg-card-compact" onClick={onOpen}>
       <SectionTitle
-        title="Recovery at a glance"
-        description={`${treatment.phase} phase · reviewed with your care team`}
-        action={<span className="bhg-recovery-link">Full progress <ArrowRight size={14} /></span>}
+        title="Recovery journey"
+        description="Every day in treatment is a step forward."
+        action={<span className="bhg-recovery-link">View journey <ArrowRight size={14} /></span>}
       />
 
-      {/* Visual row: donut + stats */}
-      <div className="bhg-snapshot-visual-row">
-        <AttendanceDonut rate={progress.attendanceRate} />
-        <div className="bhg-snapshot-stats">
-          <div><strong>{progress.enrolledDays}</strong><span>Days in treatment</span></div>
-          <div><strong>{overallProgress}%</strong><span>Goal progress</span></div>
-          <div><strong>{progress.completedGoals}</strong><span>Goals completed</span></div>
+      {/* Warm, simple encouragement banner */}
+      <div className="bhg-encouragement-banner">
+        <div className="bhg-encouragement-badge">
+          <Sparkles size={20} />
+        </div>
+        <div>
+          <div className="bhg-encouragement-days">{progress.enrolledDays} days in recovery</div>
+          <div className="bhg-encouragement-sub">{treatment.phase} achieved · 2 weekly take-home days</div>
         </div>
       </div>
 
-      {/* Animated weekly schedule strip */}
+      {/* Weekly schedule strip */}
       {weeklySchedule && (
         <div className="bhg-snapshot-strip-wrap">
           <span className="bhg-snapshot-strip-label">This week</span>
@@ -253,21 +304,18 @@ function RecoverySnapshot({ progress, treatment, weeklySchedule, onOpen }) {
         </div>
       )}
 
-      <div className="bhg-recovery-goals">
-        {topGoals.map((goal) => (
-          <div key={goal.title} className="bhg-recovery-goal">
-            <div className="bhg-recovery-goal-head">
-              <strong>{goal.title}</strong>
-              <span>{goal.progress}%</span>
-            </div>
-            <div className="bhg-progress-track"><span style={{ width: `${goal.progress}%` }} /></div>
-          </div>
-        ))}
+      {/* Human care focus with counselor */}
+      <div className="bhg-encouragement-focus">
+        <HeartHandshake size={16} />
+        <span>
+          <strong>Active care focus:</strong> Maintaining take-home routine, counseling engagement, and coping strategies with {progress.counselor}.
+        </span>
       </div>
+
       {latestMilestone && (
         <div className="bhg-recovery-milestone">
           <Target size={15} />
-          <span><strong>{latestMilestone.title}</strong> · {latestMilestone.date}</span>
+          <span><strong>Latest milestone:</strong> {latestMilestone.title} · {latestMilestone.date}</span>
         </div>
       )}
     </button>
@@ -281,7 +329,7 @@ function RecoverySnapshot({ progress, treatment, weeklySchedule, onOpen }) {
 
 function HoldStatusCard({ visitHoldStatus, center, navigate }) {
   const isClear = visitHoldStatus.status === 'clear';
-  const isHold  = visitHoldStatus.status === 'hold';
+  const isHold = visitHoldStatus.status === 'hold';
 
   return (
     <div className={`bhg-hold-card bhg-hold-${visitHoldStatus.status}`} role="region" aria-label="Today's visit status">
@@ -348,11 +396,11 @@ function HoldStatusCard({ visitHoldStatus, center, navigate }) {
         </span>
         {isHold
           ? <a href={`tel:${center.phone.replace(/\D/g, '')}`} className="bhg-hold-cta bhg-hold-cta-urgent">
-              <Phone size={13} /> Call the center now
-            </a>
+            <Phone size={13} /> Call the center now
+          </a>
           : <button type="button" className="bhg-hold-cta" onClick={() => navigate('medication')}>
-              View schedule <ArrowRight size={13} />
-            </button>}
+            View schedule <ArrowRight size={13} />
+          </button>}
       </div>
     </div>
   );
@@ -506,21 +554,16 @@ export function Dashboard() {
     progress,
     weeklySchedule,
     visitHoldStatus,
+    labStatus,
     navigate,
   } = useApp();
   const [showHelp, setShowHelp] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
-  const [showAllSteps, setShowAllSteps] = useState(false);
-  const dashboardSteps = requiredActions.slice(0, 6);
-  const nextStepsPreview = 4;
-  const visibleSteps = showAllSteps ? dashboardSteps : dashboardSteps.slice(0, nextStepsPreview);
-  const hiddenStepCount = Math.max(dashboardSteps.length - nextStepsPreview, 0);
   const nextAppointment = appointments[0];
+  const upcomingVisits = appointments.filter((appointment) => appointmentTiming(appointment) === 'upcoming');
+  const followingVisits = upcomingVisits.slice(1, 4);
   const unreadMessages = messages.filter((message) => message.unread).length;
   const latestRequest = workItems[0];
-  const overallGoalProgress = Math.round(
-    progress.currentGoals.reduce((sum, goal) => sum + goal.progress, 0) / progress.currentGoals.length
-  );
   const holdSummary = visitHoldStatus.status === 'clear' ? 'No holds active' : visitHoldStatus.label;
   const shortDay = (item) => item.date.split(',')[0];
   const clinicDays = weeklySchedule
@@ -606,15 +649,15 @@ export function Dashboard() {
           <button className="bhg-metric" onClick={() => navigate('treatment')}>
             <span className="bhg-metric-icon"><HeartHandshake size={17} /></span>
             <span className="bhg-metric-label">My treatment</span>
-            <strong>{treatment.phase}</strong>
-            <span>{treatment.medication} · {treatment.status}</span>
+            <strong>{treatment.programShort}</strong>
+            <span>{treatment.phase} · {treatment.medication}</span>
             <ChevronRight size={16} className="bhg-metric-arrow" />
           </button>
-          <button className="bhg-metric" onClick={() => navigate('progress')}>
-            <span className="bhg-metric-icon"><Target size={17} /></span>
-            <span className="bhg-metric-label">Recovery progress</span>
-            <strong>{overallGoalProgress}%</strong>
-            <span>{progress.completedGoals} goals completed</span>
+          <button className="bhg-metric" onClick={() => navigate('labs')}>
+            <span className="bhg-metric-icon"><TestTube2 size={17} /></span>
+            <span className="bhg-metric-label">Lab & UDS</span>
+            <strong>{labStatus.latest.status}</strong>
+            <span>{labStatus.latest.type} · Private review</span>
             <ChevronRight size={16} className="bhg-metric-arrow" />
           </button>
           <button className="bhg-metric" onClick={() => navigate('messages')}>
@@ -635,38 +678,48 @@ export function Dashboard() {
 
         <div className="bhg-dashboard-bottom">
           <RecoverySnapshot progress={progress} treatment={treatment} weeklySchedule={weeklySchedule} onOpen={() => navigate('progress')} />
-          <Card className="bhg-card-compact bhg-dashboard-steps">
+          <Card className="bhg-card-compact bhg-dashboard-schedule">
             <SectionTitle
-              title="Your next steps"
-              description="Items to discuss or complete with your care team."
-            />
-            <div className="bhg-action-list">
-              {visibleSteps.map((item) => (
-                <button key={item.id} className="bhg-action-row" onClick={() => navigate(item.page)}>
-                  <span className="bhg-action-check"><Check size={15} /></span>
-                  <span>
-                    <strong>{item.title}</strong>
-                    <small>{item.detail}</small>
-                  </span>
-                  <span className="bhg-action-due">By {item.due}</span>
-                  <ChevronRight size={15} />
+              title="Upcoming schedule"
+              description="What’s coming up on your calendar."
+              action={
+                <button type="button" className="bhg-card-link-btn" onClick={() => navigate('appointments')}>
+                  View all <ArrowRight size={14} />
                 </button>
-              ))}
+              }
+            />
+            <div className="bhg-treatment-visits">
+              {followingVisits.length > 0 ? (
+                followingVisits.map((appointment) => (
+                  <button
+                    key={appointment.id}
+                    type="button"
+                    className="bhg-treatment-visit-row"
+                    onClick={() => navigate('appointments')}
+                    aria-label={`View appointment ${appointment.title} on ${appointment.date}`}
+                  >
+                    <div className="bhg-date-tile compact">
+                      <span>{appointment.dateShort.split(' ')[0]}</span>
+                      <strong>{appointment.dateShort.split(' ')[1]}</strong>
+                    </div>
+                    <div>
+                      <strong>{appointment.title}</strong>
+                      <span>{appointment.time} · {displayProviderName(appointment.provider)}</span>
+                      <small>{appointment.location} · {appointment.modality}</small>
+                    </div>
+                    <PillBadge tone={appointmentStatusTone(appointment.status)}>{appointment.status}</PillBadge>
+                    <ChevronRight size={16} />
+                  </button>
+                ))
+              ) : (
+                <p className="bhg-body-copy" style={{ padding: '12px 6px', color: 'var(--text-muted)' }}>
+                  No further visits scheduled after {nextAppointment?.dateShort}.
+                </p>
+              )}
             </div>
-            {hiddenStepCount > 0 && (
-              <button
-                type="button"
-                className="bhg-steps-toggle"
-                onClick={() => setShowAllSteps((open) => !open)}
-                aria-expanded={showAllSteps}
-              >
-                {showAllSteps ? (
-                  <>Show fewer steps <ChevronUp size={15} /></>
-                ) : (
-                  <>Show {hiddenStepCount} more step{hiddenStepCount === 1 ? '' : 's'} <ChevronDown size={15} /></>
-                )}
-              </button>
-            )}
+            <button type="button" className="bhg-link-row" onClick={() => navigate('appointments')}>
+              Manage appointments & schedule changes <ArrowRight size={15} />
+            </button>
           </Card>
         </div>
       </div>
@@ -712,95 +765,198 @@ export function Dashboard() {
 }
 
 export function Treatment() {
-  const { treatment, patient, careTeam, counseling, appointments, center, navigate } = useApp();
-  const nextVisits = appointments.filter((appointment) => appointmentTiming(appointment) === 'upcoming').slice(0, 3);
+  const { treatment, patient, careTeam, counseling, progress, center, navigate } = useApp();
+
+  const counselor = careTeam.find((m) => m.role.toLowerCase().includes('counselor')) || careTeam[0];
+  const doctor = careTeam.find((m) => m.role.toLowerCase().includes('provider')) || careTeam[1];
 
   return (
     <div className="bhg-page bhg-treatment-page animate-fade-in">
       <PageHeader
-        eyebrow="My care"
-        title="My treatment"
-        description="Your current care plan, schedule, and care team."
-        action={<PillBadge tone="success">{treatment.status} treatment</PillBadge>}
+        eyebrow="My Care Plan"
+        title="My Treatment"
+        description="Your personalized care plan, recovery milestones, and care team."
+        action={<PillBadge tone="success">{treatment.status} · {treatment.phase}</PillBadge>}
       />
 
-      <div className="bhg-two-column">
-        <Card className="bhg-feature-card">
-          <div className="bhg-feature-heading">
-            <span className="bhg-large-icon"><HeartHandshake size={25} /></span>
-            <div>
-              <PillBadge tone="success">{treatment.programShort}</PillBadge>
-              <h2>{treatment.phase} care plan</h2>
-              <p>Enrolled {patient.enrolledSince} · {patient.daysInTreatment} days in treatment</p>
+      {/* Hero Care Plan Card */}
+      <Card className="bhg-feature-card">
+        <div className="bhg-feature-heading">
+          <span className="bhg-large-icon"><HeartHandshake size={25} /></span>
+          <div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
+              <PillBadge tone="primary">{treatment.programShort}</PillBadge>
+              <PillBadge tone="neutral">Phase 2: {treatment.phase}</PillBadge>
+            </div>
+            <h2>{treatment.program}</h2>
+            <p style={{ marginTop: '2px', color: 'var(--bhg-text-muted, #64748b)' }}>
+              Enrolled {patient.enrolledSince} · <strong>{patient.daysInTreatment} days</strong> in recovery
+            </p>
+          </div>
+        </div>
+
+        {/* Clinical Overview Grid */}
+        <div className="bhg-detail-grid bhg-detail-grid-treatment" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+          <div>
+            <span>Prescription Order</span>
+            <strong>{treatment.medication} {treatment.currentOrder}</strong>
+            <small style={{ color: 'var(--bhg-text-muted, #64748b)' }}>Prescribed by {treatment.prescriber}</small>
+          </div>
+          <div>
+            <span>Take-Home Privileges</span>
+            <strong>{treatment.takeHomeStatus}</strong>
+            <small style={{ color: 'var(--bhg-text-muted, #64748b)' }}>Tuesday & Wednesday bottles</small>
+          </div>
+          <div>
+            <span>Next Clinical Review</span>
+            <strong>{treatment.nextReview}</strong>
+            <small style={{ color: 'var(--bhg-text-muted, #64748b)' }}>With {treatment.prescriber}</small>
+          </div>
+          <div>
+            <span>Coverage & Payer</span>
+            <strong>{treatment.payer}</strong>
+            <small style={{ color: 'var(--bhg-text-muted, #64748b)' }}>{treatment.authorization}</small>
+          </div>
+        </div>
+
+        <div className="bhg-safe-callout bhg-treatment-inline-safety" style={{ marginTop: '16px' }}>
+          <AlertCircle size={18} />
+          <span>{treatment.phaseSummary}</span>
+        </div>
+      </Card>
+
+      {/* Two Column: Recovery Goals & Care Team */}
+      <div className="bhg-two-column" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+        {/* Active Treatment & Recovery Goals */}
+        <Card>
+          <SectionTitle
+            title="Active Recovery Goals"
+            description={`Goals set in collaboration with ${counselor.name}.`}
+          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', margin: '14px 0' }}>
+            {(progress?.currentGoals || []).map((goal, idx) => (
+              <div
+                key={idx}
+                style={{
+                  padding: '12px 14px',
+                  background: 'var(--bhg-bg-subtle, #f8fafc)',
+                  borderRadius: '10px',
+                  border: '1px solid var(--bhg-border-subtle, #e2e8f0)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <strong style={{ fontSize: '13.5px', color: 'var(--bhg-text, #1e293b)' }}>{goal.title}</strong>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--bhg-primary, #005A70)' }}>{goal.progress}%</span>
+                </div>
+                <div style={{ width: '100%', height: '6px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden', margin: '6px 0' }}>
+                  <div style={{ width: `${goal.progress}%`, height: '100%', background: 'var(--bhg-primary, #005A70)', borderRadius: '4px' }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', color: 'var(--bhg-text-muted, #64748b)' }}>
+                  <span>{goal.note}</span>
+                  <span>{goal.focus}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button type="button" className="bhg-link-row" onClick={() => navigate('progress')}>
+            View full recovery progress & milestones <ArrowRight size={16} />
+          </button>
+        </Card>
+
+        {/* Clinical Care Team & Support */}
+        <Card>
+          <SectionTitle
+            title="Your Care Team"
+            description="Providers guiding your medication and counseling."
+          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', margin: '14px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#e0f2fe', color: '#0369a1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '14px', flexShrink: 0 }}>
+                {counselor.initials || 'AM'}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <strong style={{ display: 'block', fontSize: '14px', color: '#1e293b' }}>{counselor.name}</strong>
+                <span style={{ fontSize: '12px', color: '#64748b', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{counselor.role} · {counselor.detail}</span>
+              </div>
+              <button
+                type="button"
+                className="bhg-button bhg-button-secondary"
+                style={{ padding: '6px 12px', fontSize: '12px', flexShrink: 0 }}
+                onClick={() => navigate('messages')}
+              >
+                Message
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#f0fdf4', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '14px', flexShrink: 0 }}>
+                {doctor.initials || 'MH'}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <strong style={{ display: 'block', fontSize: '14px', color: '#1e293b' }}>{doctor.name}</strong>
+                <span style={{ fontSize: '12px', color: '#64748b', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doctor.role} · Prescribing Physician</span>
+              </div>
+              <button
+                type="button"
+                className="bhg-button bhg-button-secondary"
+                style={{ padding: '6px 12px', fontSize: '12px', flexShrink: 0 }}
+                onClick={() => navigate('care-team')}
+              >
+                Profile
+              </button>
             </div>
           </div>
-          <div className="bhg-detail-grid bhg-detail-grid-treatment">
-            <div><span>Program</span><strong>{treatment.programShort}</strong></div>
-            <div><span>Medication</span><strong>{treatment.medication} {treatment.currentOrder}</strong></div>
-            <div><span>Clinic visits</span><strong>Monday and Saturday</strong></div>
-            <div><span>Take-home</span><strong>Tuesday and Wednesday</strong></div>
-          </div>
-          <div className="bhg-safe-callout bhg-treatment-inline-safety">
-            <AlertCircle size={18} />
-            <span>{treatment.safetyNote}</span>
-          </div>
-        </Card>
 
-        <Card>
-          <SectionTitle title="Care team" description="The people connected to this plan." />
-          <DetailRow label="Primary counselor" value={careTeam[0].name} />
-          <DetailRow label="Medical provider" value={treatment.prescriber} />
-          <DetailRow label="Clinic" value={`${center.shortName} · ${center.medicationWindow}`} />
-          <button type="button" className="bhg-link-row" onClick={() => navigate('care-team')}>
-            View care team <ArrowRight size={16} />
+          <div style={{ padding: '10px 12px', background: '#f1f5f9', borderRadius: '8px', fontSize: '12px', color: '#475569', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+            <MapPin size={15} style={{ color: '#005A70', flexShrink: 0 }} />
+            <span><strong>{center.shortName}:</strong> Medication window {center.medicationWindow}</span>
+          </div>
+
+          <button type="button" className="bhg-link-row" style={{ marginTop: '12px' }} onClick={() => navigate('care-team')}>
+            View entire care team & hours <ArrowRight size={16} />
           </button>
         </Card>
       </div>
 
-      <div className="bhg-two-column">
-        <Card>
-          <SectionTitle title="Medication schedule" description="This week's clinic and take-home routine." />
-          <DetailRow label="Clinic visits" value="Monday and Saturday observed medication visits" />
-          <DetailRow label="Take-home" value="Tuesday and Wednesday" />
-          <DetailRow label="Medication window" value={center.medicationWindow} />
-          <button type="button" className="bhg-link-row" onClick={() => navigate('medication')}>
-            View weekly medication schedule <ArrowRight size={16} />
-          </button>
-        </Card>
-
-        <Card>
-          <SectionTitle title="Counseling" description="Your next scheduled support." />
-          <DetailRow label="Counseling plan" value={counseling.plan} />
-          <DetailRow label="Next counseling visit" value={`${appointments[0].date} at ${appointments[0].time}`} />
-          <DetailRow label="Next group session" value={`${appointments[1].date} · ${appointments[1].modality}`} />
-          <button type="button" className="bhg-link-row" onClick={() => navigate('appointments')}>
-            Open counseling details <ArrowRight size={16} />
-          </button>
-        </Card>
-      </div>
-
+      {/* Safety, Privacy & Support */}
       <Card>
-        <SectionTitle title="Upcoming visits" description="The next items on your BHG calendar." />
-        <div className="bhg-treatment-visits">
-          {nextVisits.map((appointment) => (
-            <button key={appointment.id} type="button" className="bhg-treatment-visit-row" onClick={() => navigate('appointments')}>
-              <div className="bhg-date-tile compact">
-                <span>{appointment.dateShort.split(' ')[0]}</span>
-                <strong>{appointment.dateShort.split(' ')[1]}</strong>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
+          <div>
+            <SectionTitle
+              title="Safe Storage & Take-Home Security"
+              description="Federal and clinical guidelines for your safety."
+            />
+            <div style={{ fontSize: '13px', color: '#475569', lineHeight: '1.6', marginTop: '8px' }}>
+              <p style={{ margin: '0 0 8px 0' }}>
+                All take-home doses must be kept in a locked lockbox and stored securely away from children and pets.
+              </p>
+              <p style={{ margin: 0, color: '#005A70', fontWeight: 500 }}>
+                Need a lockbox or experiencing side effects? Contact your counselor or center right away.
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <SectionTitle
+              title="24/7 Recovery Support & Crisis"
+              description="Immediate, confidential help whenever you need it."
+            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}>
+                <Phone size={16} style={{ color: '#005A70' }} />
+                <span><strong>Clinic Front Desk:</strong> {center.phone}</span>
               </div>
-              <div>
-                <strong>{appointment.title}</strong>
-                <span>{appointment.time} · {appointment.provider}</span>
-                <small>{appointment.location}</small>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}>
+                <Phone size={16} style={{ color: '#dc2626' }} />
+                <span><strong>Suicide & Crisis Lifeline:</strong> Call or text <strong>988</strong> (Free & 24/7)</span>
               </div>
-              <PillBadge tone={appointmentStatusTone(appointment.status)}>{appointment.status}</PillBadge>
-              <ChevronRight size={16} />
-            </button>
-          ))}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+                <LockKeyhole size={14} />
+                <span>Substance treatment protected under federal 42 CFR Part 2 and HIPAA.</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <button type="button" className="bhg-link-row" onClick={() => navigate('appointments')}>
-          View all visits <ArrowRight size={16} />
-        </button>
       </Card>
     </div>
   );
@@ -810,8 +966,6 @@ export function Medication() {
   const { treatment, weeklySchedule, center, navigate, createRequest, addToast } = useApp();
   const [showReviewRequest, setShowReviewRequest] = useState(false);
   const [reviewReason, setReviewReason] = useState('I have a question about how I am feeling');
-  const clinicDays = weeklySchedule.filter((item) => item.status !== 'Take-home').map((item) => item.day).join(', ');
-  const takeHomeDays = weeklySchedule.filter((item) => item.status === 'Take-home').map((item) => item.day).join(', ');
 
   const requestReview = () => {
     createRequest({
@@ -823,48 +977,182 @@ export function Medication() {
     addToast('Your request was sent for clinical review. Do not change your medication routine unless instructed.');
     setShowReviewRequest(false);
   };
+
   return (
     <div className="bhg-page animate-fade-in">
       <PageHeader
-        eyebrow="My care"
-        title="Medication schedule"
-        description="Your current clinic and take-home schedule for this week."
+        eyebrow="My Care"
+        title="Medication Schedule"
+        description="Your current medication order, dispensing hours, and weekly schedule."
         action={<PillBadge tone="success">{treatment.visitStatus}</PillBadge>}
       />
-      <div className="bhg-two-column">
-        <Card className="bhg-feature-card">
-          <SectionTitle title="This week's routine" description="Clinic days and take-home days at a glance." />
-          <div className="bhg-medication-name">
-            <span className="bhg-large-icon"><Pill size={25} /></span>
-            <div><h2>{treatment.medication}</h2><p>{treatment.currentOrder} · {center.medicationWindow}</p></div>
-          </div>
-          <DetailRow label="Clinic visits" value={clinicDays} />
-          <DetailRow label="Take-home" value={takeHomeDays || 'None this week'} />
-          <DetailRow label="Location" value={center.shortName} />
-        </Card>
-        <Card>
-          <SectionTitle title="Questions or concerns" description="Send a note if something about your medication feels different." />
-          <div className="bhg-safe-callout"><ShieldCheck size={18} /><span>{treatment.safetyNote}</span></div>
-          <button type="button" className="bhg-button bhg-button-secondary bhg-card-action" onClick={() => setShowReviewRequest(true)}>Request a medication review</button>
-        </Card>
-      </div>
-      <Card>
-        <SectionTitle title="Weekly schedule" description={`${center.shortName} · ${center.medicationWindow}`} />
-        <div className="bhg-schedule-list">
-          {weeklySchedule.map((item) => (
-            <div key={item.date} className={`bhg-schedule-row ${item.active ? 'active' : ''}`}>
-              <div className="bhg-schedule-date"><strong>{item.day}</strong><span>{item.date}</span></div>
-              <div className="bhg-schedule-type"><strong>{item.type}</strong><span>{item.time}</span></div>
-              <PillBadge tone={item.active ? 'primary' : item.status === 'Take-home' ? 'success' : 'neutral'}>{item.status}</PillBadge>
+
+      {/* Hero Overview Card: Clean, non-repetitive */}
+      <Card className="bhg-feature-card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+          <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+            <span className="bhg-large-icon"><Pill size={26} /></span>
+            <div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '4px' }}>
+                <h2 style={{ margin: 0, fontSize: '20px' }}>{treatment.medication}</h2>
+                <PillBadge tone="primary">{treatment.currentOrder}</PillBadge>
+              </div>
+              <p style={{ margin: 0, fontSize: '13px', color: 'var(--bhg-text-muted, #64748b)' }}>
+                Prescribed by {treatment.prescriber} · Order verified {treatment.orderUpdated}
+              </p>
             </div>
-          ))}
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <button
+              type="button"
+              className="bhg-button bhg-button-secondary"
+              onClick={() => setShowReviewRequest(true)}
+            >
+              Request dose review
+            </button>
+          </div>
+        </div>
+
+        {/* Dispensing Window Status Bar */}
+        <div
+          style={{
+            marginTop: '18px',
+            padding: '14px 16px',
+            background: '#F0F9FF',
+            borderRadius: '10px',
+            border: '1px solid #BAE6FD',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '12px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Clock3 size={18} style={{ color: '#0284C7' }} />
+            <div>
+              <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0369A1' }}>
+                Today's Dispensing Window: 5:30 AM – 11:30 AM
+              </div>
+              <div style={{ fontSize: '12px', color: '#0C4A6E' }}>
+                {center.shortName} · Arrive before 11:30 AM for observed dosing
+              </div>
+            </div>
+          </div>
+          <PillBadge tone="success">Open today</PillBadge>
         </div>
       </Card>
-      <div className="bhg-info-banner">
-        <AlertCircle size={18} />
-        <span>Schedule questions or a missed visit? Call the center before changing your medication routine.</span>
-        <button onClick={() => navigate('center')}>Contact center</button>
+
+      {/* Weekly Schedule Section */}
+      <Card>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
+          <SectionTitle
+            title="Weekly Dosing Routine"
+            description="Clear overview of clinic-observed visits and approved take-home bottle days."
+          />
+        </div>
+
+        <div className="bhg-schedule-list">
+          {weeklySchedule.map((item) => {
+            const isSaturday = item.day.toLowerCase().includes('saturday');
+            const isTakeHome = item.status === 'Take-home';
+            return (
+              <div key={item.date} className={`bhg-schedule-row ${item.active ? 'active' : ''}`}>
+                <div className="bhg-schedule-date">
+                  <strong>{item.day}</strong>
+                  <span>{item.date}</span>
+                </div>
+                <div className="bhg-schedule-type">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <strong style={{ fontSize: '13px' }}>{item.type}</strong>
+                    {isSaturday && (
+                      <span style={{ fontSize: '11px', background: '#FEF3C7', color: '#92400E', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                        Weekend hours
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: '12px', marginTop: '3px', color: isSaturday ? '#B45309' : 'inherit' }}>
+                    {isTakeHome ? 'Take dose at home as directed · Keep in lockbox' : `Dosing window: ${item.time} at ${center.shortName}`}
+                  </span>
+                </div>
+                <div>
+                  <PillBadge tone={item.active ? 'primary' : isTakeHome ? 'success' : 'neutral'}>
+                    {item.status}
+                  </PillBadge>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* Two Column: Take-Home Protocol & Support */}
+      <div className="bhg-two-column" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+        {/* Safe Storage & Bottle Protocol */}
+        <Card>
+          <SectionTitle
+            title="Take-Home Bottle Protocol"
+            description="Guidelines to keep your medication safe and maintain your privileges."
+          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px', fontSize: '13px', color: '#334155' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+              <LockKeyhole size={16} style={{ color: '#005A70', marginTop: '2px', flexShrink: 0 }} />
+              <div>
+                <strong>Lockbox Required:</strong> All take-home doses must be carried and stored in a secure lockbox at all times.
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+              <CheckCircle2 size={16} style={{ color: '#16A34A', marginTop: '2px', flexShrink: 0 }} />
+              <div>
+                <strong>Bottle Returns:</strong> Bring your empty take-home bottles (with labels intact) to your Saturday clinic visit.
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+              <ShieldCheck size={16} style={{ color: '#0284C7', marginTop: '2px', flexShrink: 0 }} />
+              <div>
+                <strong>Safe Usage:</strong> Never double-dose or share medication. Take strictly as directed by Dr. Hill.
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Missed Visit or Assistance */}
+        <Card>
+          <SectionTitle
+            title="Running Late or Missed Visit?"
+            description="We understand life happens. Reach out right away so we can help."
+          />
+          <div style={{ fontSize: '13px', color: '#475569', lineHeight: '1.6', marginTop: '12px' }}>
+            <p style={{ margin: '0 0 10px 0' }}>
+              If you miss the medication window or have travel conflicts, call the clinic desk immediately so the clinical staff can advise you on safe steps.
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, color: '#005A70', marginBottom: '14px' }}>
+              <Phone size={15} />
+              <span>Clinic Desk: {center.phone}</span>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="bhg-button bhg-button-secondary"
+                style={{ fontSize: '12.5px' }}
+                onClick={() => navigate('center')}
+              >
+                Clinic location & hours
+              </button>
+              <button
+                type="button"
+                className="bhg-button bhg-button-secondary"
+                style={{ fontSize: '12.5px' }}
+                onClick={() => navigate('messages')}
+              >
+                Message care team
+              </button>
+            </div>
+          </div>
+        </Card>
       </div>
+
       {showReviewRequest && (
         <WorkflowModal
           title="Request a medication review"
@@ -892,14 +1180,35 @@ export function Appointments() {
   const [selected, setSelected] = useState(null);
   const [mode, setMode] = useState('details');
   const [detailTab, setDetailTab] = useState('overview');
+  const [timeTab, setTimeTab] = useState('upcoming');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [activeTelehealth, setActiveTelehealth] = useState(null);
   const [sessionAiSummary, setSessionAiSummary] = useState(null);
   const [generatingSessionAi, setGeneratingSessionAi] = useState(false);
   const [reason, setReason] = useState('I need a different date or time');
   const [note, setNote] = useState('');
+
   const upcoming = appointments.filter((item) => appointmentTiming(item) === 'upcoming');
   const past = appointments.filter((item) => appointmentTiming(item) === 'past');
   const pendingOffers = (appointmentProposals || []).filter((item) => item.status === 'Awaiting patient response');
   const sessionNotes = selected ? getSessionNotes(selected) : null;
+
+  const matchesCategory = (item) => {
+    if (categoryFilter === 'all') return true;
+    if (categoryFilter === 'counseling') {
+      return isCounselingAppointment(item) && !/group/i.test(item.title);
+    }
+    if (categoryFilter === 'medical') {
+      return item.provider.includes('Dr.') || /plan review|medication/i.test(item.title);
+    }
+    if (categoryFilter === 'group') {
+      return /group/i.test(item.title) || /telehealth|zoom/i.test(item.modality);
+    }
+    return true;
+  };
+
+  const filteredUpcoming = upcoming.filter(matchesCategory);
+  const filteredPast = past.filter(matchesCategory);
 
   const closeDrawer = () => {
     setSelected(null);
@@ -919,6 +1228,14 @@ export function Appointments() {
     setGeneratingSessionAi(false);
     setReason('I need a different date or time');
     setNote('');
+  };
+
+  const handleJoinVideo = (appointment) => {
+    setActiveTelehealth(appointment);
+  };
+
+  const handleAddToCalendar = (appointment) => {
+    addToast(`Added "${appointment.title}" on ${appointment.date} to your calendar.`, 'success');
   };
 
   const submitChange = () => {
@@ -955,13 +1272,116 @@ export function Appointments() {
   return (
     <div className={`bhg-page bhg-appointments-page animate-fade-in ${selected ? 'drawer-open' : ''}`}>
       <PageHeader
-        eyebrow="My care"
+        eyebrow="My Care"
         title="Visits"
-        description="Counseling, group, and provider visits."
+        description="Individual counseling, doctor visits, and recovery support groups."
       />
 
-      {pendingOffers.length > 0 && (
-        <section className="bhg-appointment-section">
+      {/* Filter & View Controls */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '22px' }}>
+        {/* Time Tabs */}
+        <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #E2E8F0', paddingBottom: '10px' }}>
+          <button
+            type="button"
+            className={`bhg-tab-btn ${timeTab === 'upcoming' ? 'active' : ''}`}
+            style={{
+              padding: '6px 14px',
+              borderRadius: '8px',
+              border: 'none',
+              background: timeTab === 'upcoming' ? 'var(--bhg-primary, #005A70)' : '#F1F5F9',
+              color: timeTab === 'upcoming' ? 'white' : '#475569',
+              fontWeight: 600,
+              fontSize: '13px',
+              cursor: 'pointer',
+            }}
+            onClick={() => setTimeTab('upcoming')}
+          >
+            Upcoming Visits ({upcoming.length})
+          </button>
+          <button
+            type="button"
+            className={`bhg-tab-btn ${timeTab === 'past' ? 'active' : ''}`}
+            style={{
+              padding: '6px 14px',
+              borderRadius: '8px',
+              border: 'none',
+              background: timeTab === 'past' ? 'var(--bhg-primary, #005A70)' : '#F1F5F9',
+              color: timeTab === 'past' ? 'white' : '#475569',
+              fontWeight: 600,
+              fontSize: '13px',
+              cursor: 'pointer',
+            }}
+            onClick={() => setTimeTab('past')}
+          >
+            Past Visit History ({past.length})
+          </button>
+          <button
+            type="button"
+            className={`bhg-tab-btn ${timeTab === 'all' ? 'active' : ''}`}
+            style={{
+              padding: '6px 14px',
+              borderRadius: '8px',
+              border: 'none',
+              background: timeTab === 'all' ? 'var(--bhg-primary, #005A70)' : '#F1F5F9',
+              color: timeTab === 'all' ? 'white' : '#475569',
+              fontWeight: 600,
+              fontSize: '13px',
+              cursor: 'pointer',
+            }}
+            onClick={() => setTimeTab('all')}
+          >
+            All Visits ({appointments.length})
+          </button>
+        </div>
+
+        {/* Category Filter Chips */}
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500, marginRight: '4px' }}>Filter by type:</span>
+          {[
+            { id: 'all', label: 'All Types' },
+            { id: 'counseling', label: 'Counseling' },
+            { id: 'medical', label: 'Medical / Doctor' },
+            { id: 'group', label: 'Group Sessions' },
+          ].map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              style={{
+                padding: '4px 11px',
+                borderRadius: '99px',
+                fontSize: '12px',
+                border: categoryFilter === cat.id ? '1px solid #005A70' : '1px solid #CBD5E1',
+                background: categoryFilter === cat.id ? '#E0F2FE' : 'white',
+                color: categoryFilter === cat.id ? '#0369A1' : '#475569',
+                fontWeight: categoryFilter === cat.id ? 600 : 400,
+                cursor: 'pointer',
+              }}
+              onClick={() => setCategoryFilter(cat.id)}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Transportation Support Banner */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0', marginBottom: '20px', fontSize: '12.5px', color: '#475569' }}>
+        <Navigation size={18} style={{ color: '#005A70', flexShrink: 0 }} />
+        <span style={{ flex: 1 }}>
+          <strong>Need a ride?</strong> TennCare Non-Emergency Medical Transportation (NEMT) is covered for your BHG visits at no cost. Call <strong>(855) 680-7798</strong> at least 48 hours in advance.
+        </span>
+        <button
+          type="button"
+          className="bhg-button bhg-button-secondary"
+          style={{ fontSize: '11.5px', padding: '4px 10px', whiteSpace: 'nowrap' }}
+          onClick={() => addToast('TennCare NEMT line: (855) 680-7798. Have your Member ID ready.', 'info')}
+        >
+          Ride info
+        </button>
+      </div>
+
+      {pendingOffers.length > 0 && (timeTab === 'upcoming' || timeTab === 'all') && (
+        <section className="bhg-appointment-section" style={{ marginBottom: '22px' }}>
           <SectionTitle title="Proposed visit" description="Reply only if this time works for you." />
           <div className="bhg-stack">
             {pendingOffers.map((proposal) => (
@@ -978,36 +1398,97 @@ export function Appointments() {
         </section>
       )}
 
-      <section className="bhg-appointment-section">
-        <SectionTitle title="Upcoming" />
-        <div className="bhg-stack">
-          {upcoming.length ? upcoming.map((appointment) => (
-            <AppointmentCard
-              key={appointment.id}
-              appointment={appointment}
-              onDetails={(item) => openAppointment(item, 'details')}
-              onChange={(item) => openAppointment(item, 'change')}
-            />
-          )) : (
-            <Card className="bhg-card-compact"><p className="bhg-body-copy">No upcoming visits are scheduled right now.</p></Card>
-          )}
-        </div>
-      </section>
+      {(timeTab === 'upcoming' || timeTab === 'all') && (
+        <section className="bhg-appointment-section" style={{ marginBottom: '22px' }}>
+          <SectionTitle title="Upcoming Visits" description="Scheduled appointments with your counselors and providers." />
+          <div className="bhg-stack">
+            {filteredUpcoming.length ? filteredUpcoming.map((appointment) => (
+              <AppointmentCard
+                key={appointment.id}
+                appointment={appointment}
+                onDetails={(item) => openAppointment(item, 'details')}
+                onChange={(item) => openAppointment(item, 'change')}
+                onJoinVideo={handleJoinVideo}
+                onAddToCalendar={handleAddToCalendar}
+              />
+            )) : (
+              <Card className="bhg-card-compact"><p className="bhg-body-copy">No upcoming visits match your selected filter.</p></Card>
+            )}
+          </div>
+        </section>
+      )}
 
-      <section className="bhg-appointment-section">
-        <SectionTitle title="Previous" />
-        <div className="bhg-stack">
-          {past.map((appointment) => (
-            <AppointmentCard
-              key={appointment.id}
-              appointment={appointment}
-              onDetails={(item) => openAppointment(item, 'details')}
-              onChange={(item) => openAppointment(item, 'change')}
-            />
-          ))}
-        </div>
-      </section>
+      {(timeTab === 'past' || timeTab === 'all') && (
+        <section className="bhg-appointment-section">
+          <SectionTitle title="Past Visits & Session Recaps" description="Review clinical recaps, discussed topics, and action steps." />
+          <div className="bhg-stack">
+            {filteredPast.length ? filteredPast.map((appointment) => (
+              <AppointmentCard
+                key={appointment.id}
+                appointment={appointment}
+                onDetails={(item) => openAppointment(item, 'details')}
+                onChange={(item) => openAppointment(item, 'change')}
+                onJoinVideo={handleJoinVideo}
+                onAddToCalendar={handleAddToCalendar}
+              />
+            )) : (
+              <Card className="bhg-card-compact"><p className="bhg-body-copy">No previous visits match your selected filter.</p></Card>
+            )}
+          </div>
+        </section>
+      )}
 
+      {/* Telehealth Virtual Waiting Room Modal */}
+      {activeTelehealth && (
+        <WorkflowModal
+          title="Secure Telehealth Session"
+          subtitle={`${activeTelehealth.title} · ${displayProviderName(activeTelehealth.provider)}`}
+          onClose={() => setActiveTelehealth(null)}
+          footer={
+            <>
+              <button type="button" className="bhg-button bhg-button-secondary" onClick={() => setActiveTelehealth(null)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="bhg-button"
+                style={{ background: '#0284C7' }}
+                onClick={() => {
+                  addToast(`Connected to session with ${displayProviderName(activeTelehealth.provider)}. Microphone & camera active.`, 'success');
+                  setActiveTelehealth(null);
+                }}
+              >
+                <Video size={15} style={{ marginRight: '6px' }} /> Enter session
+              </button>
+            </>
+          }
+        >
+          <div style={{ textAlign: 'center', padding: '16px 8px' }}>
+            <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: '#E0F2FE', color: '#0369A1', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}>
+              <Video size={30} />
+            </div>
+            <h3 style={{ margin: '0 0 4px 0', fontSize: '17px' }}>Virtual Waiting Room</h3>
+            <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
+              {activeTelehealth.date} at {activeTelehealth.time} ({activeTelehealth.duration})
+            </p>
+          </div>
+          <div style={{ background: '#F8FAFC', padding: '14px', borderRadius: '10px', border: '1px solid #E2E8F0', marginTop: '14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', fontSize: '12.5px' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={15} style={{ color: '#16A34A' }} /> Camera & Microphone:</span>
+              <strong style={{ color: '#16A34A' }}>Connected & Tested</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12.5px' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><ShieldCheck size={15} style={{ color: '#005A70' }} /> Privacy & Security:</span>
+              <strong>42 CFR Part 2 & HIPAA Encrypted</strong>
+            </div>
+          </div>
+          <p style={{ fontSize: '11.5px', color: '#64748b', marginTop: '12px', textAlign: 'center' }}>
+            Please ensure you are located in a private, quiet space in Tennessee for the duration of this session.
+          </p>
+        </WorkflowModal>
+      )}
+
+      {/* Visit Details & Recaps Drawer */}
       {selected && (
         <WorkflowDrawer
           title={drawerTitle}
@@ -1071,9 +1552,19 @@ export function Appointments() {
                       <div className="bhg-safe-callout"><MessageCircle size={18} /><span>{sessionNotes.patientSummary}</span></div>
                     ) : null}
                     {selectedTiming === 'upcoming' && /telehealth|zoom/i.test(selected.modality) && (
-                      <button type="button" className="bhg-button bhg-button-secondary" onClick={() => addToast('Telehealth device check completed.', 'success')}>
-                        <Video size={16} /> Test device
-                      </button>
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                        <button
+                          type="button"
+                          className="bhg-button"
+                          style={{ background: '#0284C7', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                          onClick={() => setActiveTelehealth(selected)}
+                        >
+                          <Video size={16} /> Enter Video Visit
+                        </button>
+                        <button type="button" className="bhg-button bhg-button-secondary" onClick={() => addToast('Telehealth device check completed.', 'success')}>
+                          Test device
+                        </button>
+                      </div>
                     )}
                   </div>
 
@@ -1176,6 +1667,7 @@ export function Appointments() {
   );
 }
 
+
 function labStatusTone(status) {
   if (status === 'Reviewed') return 'success';
   if (status === 'Ready to review') return 'warning';
@@ -1183,108 +1675,143 @@ function labStatusTone(status) {
 }
 
 export function Labs() {
-  const { labStatus, navigate, addToast } = useApp();
-  const [aiSummary, setAiSummary] = useState(null);
-  const [generatingAi, setGeneratingAi] = useState(false);
+  const { labStatus, navigate } = useApp();
   const [selectedScreen, setSelectedScreen] = useState(null);
-
-  const runAiSummary = () => {
-    if (generatingAi || aiSummary) return;
-    setGeneratingAi(true);
-    window.setTimeout(() => {
-      setAiSummary(generateUdsMonitoringSummary(labStatus));
-      setGeneratingAi(false);
-      addToast('AI monitoring summary generated.', 'info');
-    }, 1100);
-  };
-
-  const getScreenReviewPlan = (item) => {
-    if (item.reviewPlan) return item.reviewPlan;
-    if (item.reviewedBy) return `Reviewed and discussed with ${item.reviewedBy} on ${item.reviewedDate}. Care plan confirmed.`;
-    return `Scheduled for private 1-on-1 review with ${labStatus.latest.reviewWith} at your upcoming counseling visit on ${labStatus.latest.reviewWhen.split(' · ')[0]}.`;
-  };
 
   return (
     <div className="bhg-page bhg-labs-page animate-fade-in">
       <PageHeader
-        eyebrow="My care"
-        title="Lab & UDS"
-        description="Private, supportive follow-up on routine treatment monitoring."
-        action={<PillBadge tone={labStatusTone(labStatus.latest.status)}>{labStatus.latest.status}</PillBadge>}
+        eyebrow="My Care"
+        title="Lab & UDS Monitoring"
+        description="Private, routine treatment monitoring and counseling reviews."
+        action={<PillBadge tone="success">Status: {labStatus.stats.complianceLabel}</PillBadge>}
       />
 
-      <div className="bhg-treatment-stats bhg-labs-stats">
-        <div><strong>{labStatus.stats.screensThisYear}</strong><span>Screens this year</span></div>
-        <div><strong>{labStatus.stats.complianceLabel}</strong><span>Monitoring status</span></div>
-        <div><strong>{labStatus.stats.lastReviewed}</strong><span>Last reviewed with you</span></div>
-        <div><strong>{labStatus.stats.nextWindow}</strong><span>Next screening window</span></div>
+      {/* Reassuring Compliance Status Banner */}
+      <div
+        style={{
+          padding: '16px 20px',
+          background: '#F0FDF4',
+          border: '1px solid #BBF7D0',
+          borderRadius: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+          marginBottom: '20px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <CheckCircle2 size={24} style={{ color: '#16A34A', flexShrink: 0 }} />
+          <div>
+            <strong style={{ fontSize: '14.5px', color: '#166534', display: 'block' }}>
+              You are fully on track with routine screening
+            </strong>
+            <span style={{ fontSize: '12.5px', color: '#15803D' }}>
+              {labStatus.stats.screensThisYear} routine screens completed this year · Compliant with your MMT care plan
+            </span>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <span style={{ fontSize: '12px', color: '#166534', background: '#DCFCE7', padding: '4px 10px', borderRadius: '99px', fontWeight: 600 }}>
+            Last reviewed: {labStatus.stats.lastReviewed}
+          </span>
+        </div>
       </div>
 
-      <div className="bhg-two-column">
-        <Card className="bhg-feature-card bhg-lab-hero">
-          <div className="bhg-feature-heading">
-            <span className="bhg-large-icon"><TestTube2 size={25} /></span>
+      {/* Latest Screen Card: Simple, reassuring, action-oriented */}
+      <Card className="bhg-feature-card" style={{ marginBottom: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '14px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+            <span className="bhg-large-icon"><TestTube2 size={26} /></span>
             <div>
-              <PillBadge tone={labStatusTone(labStatus.latest.status)}>{labStatus.latest.status}</PillBadge>
-              <h2>{labStatus.latest.type}</h2>
-              <p>Collected {labStatus.latest.collected}</p>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '4px' }}>
+                <h2 style={{ margin: 0, fontSize: '18px' }}>Latest Routine Screen</h2>
+                <PillBadge tone="warning">{labStatus.latest.status}</PillBadge>
+              </div>
+              <p style={{ margin: 0, fontSize: '13px', color: '#64748B' }}>
+                Collected {labStatus.latest.collected} at {labStatus.latest.collectionSite.split(' · ')[0]}
+              </p>
             </div>
           </div>
-          <div className="bhg-detail-grid bhg-detail-grid-treatment">
-            <div><span>Collection site</span><strong>{labStatus.latest.collectionSite}</strong></div>
-            <div><span>Review with</span><strong>{labStatus.latest.reviewWith}</strong></div>
-            <div><span>Planned review</span><strong>{labStatus.latest.reviewWhen}</strong></div>
-            <div><span>Next screening</span><strong>{labStatus.nextExpected}</strong></div>
-          </div>
-          <p className="bhg-treatment-note">{labStatus.latest.detail}</p>
-          <div className="bhg-lab-actions">
-            <button type="button" className="bhg-button bhg-button-secondary" onClick={() => navigate('appointments')}>
-              <CalendarDays size={15} /> View counseling visit
-            </button>
-            <button type="button" className="bhg-button bhg-button-secondary" onClick={() => navigate('messages')}>
-              <MessageCircle size={15} /> Message care team
-            </button>
-            <button type="button" className="bhg-button" disabled={generatingAi || Boolean(aiSummary)} onClick={runAiSummary}>
-              <Sparkles size={15} /> {generatingAi ? 'Summarizing…' : aiSummary ? 'Summary ready' : 'Explain with AI'}
-            </button>
-          </div>
-          {aiSummary && (
-            <div className="bhg-ai-summary bhg-lab-ai-summary">
-              <strong><Sparkles size={15} /> AI summary · {aiSummary.confidence}% confidence</strong>
-              <p>{aiSummary.text}</p>
-              <small>{aiSummary.disclaimer}</small>
-            </div>
-          )}
-        </Card>
+        </div>
 
-        <Card className="bhg-lab-privacy-card">
-          <SectionTitle title="Private review protocol" description="How routine screening fits into your BHG recovery plan." />
-          <div className="bhg-safe-callout">
-            <LockKeyhole size={18} />
-            <span>Protected under 42 CFR Part 2 federal confidentiality standards. Detailed analyte values remain private to your care team.</span>
+        {/* 3-Point Clean Summary */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '16px',
+            padding: '16px',
+            background: 'var(--bhg-bg-subtle, #F8FAFC)',
+            borderRadius: '10px',
+            border: '1px solid var(--bhg-border-subtle, #E2E8F0)',
+            marginBottom: '16px',
+          }}
+        >
+          <div>
+            <span style={{ fontSize: '11px', color: '#64748B', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Review Counselor</span>
+            <strong style={{ fontSize: '13.5px', color: '#1E293B' }}>{labStatus.latest.reviewWith}</strong>
+            <small style={{ display: 'block', color: '#64748B', fontSize: '11.5px', marginTop: '2px' }}>Primary Counselor</small>
           </div>
-          <div className="bhg-topic-list bhg-lab-expect-list">
-            <div>
-              <CheckCircle2 size={17} />
-              <span><strong>1-on-1 Counselor Review:</strong> Results are discussed directly with Alicia Monroe during your scheduled session.</span>
-            </div>
-            <div>
-              <CheckCircle2 size={17} />
-              <span><strong>Supportive Care Tool:</strong> Routine UDS verifies medication safety and helps adjust your personalized treatment plan.</span>
-            </div>
-            <div>
-              <CheckCircle2 size={17} />
-              <span><strong>No Action Required:</strong> No advance preparation is needed before your routine clinic review.</span>
-            </div>
+          <div>
+            <span style={{ fontSize: '11px', color: '#64748B', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Private Discussion Planned</span>
+            <strong style={{ fontSize: '13.5px', color: '#005A70' }}>{labStatus.latest.reviewWhen.split(' · ')[0]}</strong>
+            <small style={{ display: 'block', color: '#64748B', fontSize: '11.5px', marginTop: '2px' }}>At your scheduled counseling session</small>
           </div>
-          <button type="button" className="bhg-link-row" onClick={() => navigate('appointments')}>
-            Prepare for your next counseling visit <ArrowRight size={16} />
+          <div>
+            <span style={{ fontSize: '11px', color: '#64748B', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>What you need to do</span>
+            <strong style={{ fontSize: '13.5px', color: '#16A34A' }}>No action required</strong>
+            <small style={{ display: 'block', color: '#64748B', fontSize: '11.5px', marginTop: '2px' }}>Alicia will review this with you in person</small>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="bhg-button"
+            style={{ fontSize: '12.5px' }}
+            onClick={() => navigate('appointments')}
+          >
+            <CalendarDays size={14} style={{ marginRight: '6px' }} /> View upcoming session
           </button>
-        </Card>
+          <button
+            type="button"
+            className="bhg-button bhg-button-secondary"
+            style={{ fontSize: '12.5px' }}
+            onClick={() => navigate('messages')}
+          >
+            <MessageCircle size={14} style={{ marginRight: '6px' }} /> Message Alicia
+          </button>
+        </div>
+      </Card>
+
+      {/* Reassuring Privacy Box (Replaces the essay/lecture) */}
+      <div
+        style={{
+          padding: '14px 18px',
+          background: '#F8FAFC',
+          borderRadius: '10px',
+          border: '1px solid #E2E8F0',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          marginBottom: '20px',
+        }}
+      >
+        <LockKeyhole size={18} style={{ color: '#005A70', flexShrink: 0 }} />
+        <span style={{ fontSize: '12.5px', color: '#475569', lineHeight: '1.5' }}>
+          <strong>Confidential 1-on-1 Reviews:</strong> Under federal law (42 CFR Part 2) and BHG policy, laboratory results are confidential and discussed privately with your counselor to support your recovery goals.
+        </span>
       </div>
 
+      {/* Screening History */}
       <Card className="bhg-lab-history-card">
-        <SectionTitle title="Recent screenings" description="Click any screening row to view review details, status, and care actions." />
+        <SectionTitle
+          title="Past Screenings"
+          description="Log of completed routine treatment screens on file."
+        />
         <div className="bhg-lab-history">
           {labStatus.history.map((item) => (
             <button
@@ -1304,7 +1831,11 @@ export function Labs() {
                   <span className="bhg-lab-id-chip">{item.id}</span>
                 </div>
                 <span>{item.collectionSite || item.collection} · {item.date}</span>
-                <small>{item.reviewedBy ? `Reviewed with ${item.reviewedBy} on ${item.reviewedDate}` : `Awaiting private review with ${labStatus.latest.reviewWith}`}</small>
+                <small>
+                  {item.reviewedBy
+                    ? `Reviewed with ${item.reviewedBy} on ${item.reviewedDate}`
+                    : `Scheduled for private review with ${labStatus.latest.reviewWith}`}
+                </small>
               </div>
               <PillBadge tone={labStatusTone(item.status)}>{item.status}</PillBadge>
               <ChevronRight size={16} className="bhg-row-chevron" />
@@ -1313,9 +1844,10 @@ export function Labs() {
         </div>
       </Card>
 
+      {/* Minimal, Calm Drawer */}
       {selectedScreen && (
         <WorkflowDrawer
-          title={`Screening details · ${selectedScreen.id}`}
+          title={`Screening Record · ${selectedScreen.id}`}
           subtitle={`${selectedScreen.type} collected on ${selectedScreen.date}`}
           onClose={() => setSelectedScreen(null)}
           footer={
@@ -1323,66 +1855,53 @@ export function Labs() {
               <button
                 type="button"
                 className="bhg-button bhg-button-secondary"
-                onClick={() => {
-                  setSelectedScreen(null);
-                  navigate('messages');
-                }}
+                onClick={() => setSelectedScreen(null)}
               >
-                <MessageCircle size={15} /> Message care team
+                Close
               </button>
               <button
                 type="button"
                 className="bhg-button"
                 onClick={() => {
                   setSelectedScreen(null);
-                  navigate('appointments');
+                  navigate('messages');
                 }}
               >
-                <CalendarDays size={15} /> View counseling visit
+                <MessageCircle size={15} style={{ marginRight: '6px' }} /> Message counselor
               </button>
             </div>
           }
         >
           <div className="bhg-screening-detail-body">
-            <div className="bhg-screening-detail-header">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <PillBadge tone={labStatusTone(selectedScreen.status)}>{selectedScreen.status}</PillBadge>
-              <h3>{selectedScreen.panelName || (selectedScreen.type === 'Random UDS' ? 'Random OTP Compliance Screening' : '8-Panel Standard OTP Treatment Screen')}</h3>
-              <p>Specimen ID: <strong>{selectedScreen.id}</strong></p>
+              <span style={{ fontSize: '12px', color: '#64748B' }}>Specimen ID: <strong>{selectedScreen.id}</strong></span>
             </div>
 
-            <div className="bhg-detail-grid bhg-detail-grid-treatment">
-              <div><span>Collection date</span><strong>{selectedScreen.date}</strong></div>
-              <div><span>Screening type</span><strong>{selectedScreen.type}</strong></div>
-              <div><span>Collection site</span><strong>{selectedScreen.collectionSite || 'BHG Knoxville · Specimen Window'}</strong></div>
+            <div className="bhg-detail-grid bhg-detail-grid-treatment" style={{ marginBottom: '16px' }}>
+              <div><span>Collection Date</span><strong>{selectedScreen.date}</strong></div>
+              <div><span>Screen Type</span><strong>{selectedScreen.type}</strong></div>
+              <div><span>Site</span><strong>{selectedScreen.collectionSite || 'BHG Knoxville'}</strong></div>
               <div><span>Reviewer</span><strong>{selectedScreen.reviewedBy || labStatus.latest.reviewWith}</strong></div>
             </div>
 
-            <div className="bhg-screening-section">
-              <h4>Review status & clinical plan</h4>
-              <div className="bhg-screening-plan-box">
-                <CheckCircle2 size={18} className="bhg-plan-icon" />
+            <div style={{ padding: '14px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                <CheckCircle2 size={18} style={{ color: '#16A34A', marginTop: '2px', flexShrink: 0 }} />
                 <div>
-                  <strong>{selectedScreen.reviewedBy ? 'Reviewed & On File' : 'Pending 1-on-1 Counselor Review'}</strong>
-                  <p>{getScreenReviewPlan(selectedScreen)}</p>
+                  <strong style={{ fontSize: '13px', color: '#1E293B', display: 'block' }}>
+                    {selectedScreen.reviewedBy ? 'Reviewed & On File' : 'Pending 1-on-1 Review'}
+                  </strong>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748B', lineHeight: '1.5' }}>
+                    {selectedScreen.reviewPlan || `Scheduled for private review with ${labStatus.latest.reviewWith} at your upcoming counseling session.`}
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div className="bhg-screening-section">
-              <h4>Privacy & Confidentiality Notice</h4>
-              <div className="bhg-safe-callout">
-                <LockKeyhole size={18} />
-                <span>{selectedScreen.privacyNote || 'Protected under 42 CFR Part 2 federal regulations. Detailed laboratory analyte breakdown remains confidential between you and your clinical care team.'}</span>
-              </div>
-            </div>
-
-            <div className="bhg-screening-section">
-              <h4>What this means for your care</h4>
-              <ul className="bhg-lab-privacy-list">
-                <li>Routine drug screening is a supportive tool in Medication-Assisted Treatment (MAT).</li>
-                <li>Results are evaluated in full context with your counselor to track your recovery milestones.</li>
-                <li>No disciplinary or automatic changes occur without private 1-on-1 counseling review.</li>
-              </ul>
+            <div style={{ padding: '12px', background: '#F1F5F9', borderRadius: '8px', fontSize: '11.5px', color: '#475569', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <LockKeyhole size={14} style={{ color: '#005A70', flexShrink: 0 }} />
+              <span>Protected by federal 42 CFR Part 2 regulations. Analyte values remain private to your clinical care team.</span>
             </div>
           </div>
         </WorkflowDrawer>
@@ -1391,6 +1910,7 @@ export function Labs() {
   );
 }
 
+
 export function SupportFaq() {
   const { center, navigate } = useApp();
   const [query, setQuery] = useState('');
@@ -1398,6 +1918,37 @@ export function SupportFaq() {
   const [openFaq, setOpenFaq] = useState({});
 
   const toggleFaq = (key) => setOpenFaq((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  const topFaqs = [
+    {
+      icon: Clock,
+      title: 'Missed Medication Window?',
+      desc: 'Medication window closes promptly at 11:30 AM. Call the clinic immediately if delayed.',
+      categoryId: 'medication',
+      targetQuestion: 'miss a medication visit',
+    },
+    {
+      icon: Pill,
+      title: 'Take-Home Bottle Rules',
+      desc: 'Phase 2 allows 2 bottles/week. Must be transported and stored in a locked lockbox.',
+      categoryId: 'medication',
+      targetQuestion: 'take-home days work',
+    },
+    {
+      icon: Share2,
+      title: 'Traveling or Moving?',
+      desc: 'Request courtesy guest dosing or a permanent clinic transfer across 115+ BHG centers.',
+      categoryId: 'medication',
+      targetQuestion: 'dose at another clinic',
+    },
+    {
+      icon: CreditCard,
+      title: 'Copay & Financial Help',
+      desc: 'Sliding fee assistance and grant programs are available so your care is never interrupted.',
+      categoryId: 'coverage',
+      targetQuestion: 'cannot afford my patient balance',
+    },
+  ];
 
   const filteredCategories = supportFaqs
     .map((category) => ({
@@ -1414,10 +1965,97 @@ export function SupportFaq() {
     ? filteredCategories.filter((category) => category.id === activeCategory)
     : filteredCategories;
 
+  const allVisibleKeys = displayCategories.flatMap((cat) =>
+    cat.faqs.map((_, idx) => `${cat.id}-${idx}`)
+  );
+  const totalQuestions = allVisibleKeys.length;
+  const isAllOpen = totalQuestions > 0 && allVisibleKeys.every((key) => Boolean(openFaq[key]));
+
+  const handleToggleAll = () => {
+    if (isAllOpen) {
+      setOpenFaq({});
+    } else {
+      const next = {};
+      allVisibleKeys.forEach((key) => {
+        next[key] = true;
+      });
+      setOpenFaq(next);
+    }
+  };
+
+  const handleQuickPick = (item) => {
+    setActiveCategory(item.categoryId);
+    setQuery('');
+    const cat = supportFaqs.find((c) => c.id === item.categoryId);
+    if (cat) {
+      const qIndex = cat.faqs.findIndex((f) => f.q.toLowerCase().includes(item.targetQuestion.toLowerCase()));
+      if (qIndex >= 0) {
+        setOpenFaq((prev) => ({ ...prev, [`${item.categoryId}-${qIndex}`]: true }));
+      }
+    }
+  };
+
   return (
     <div className="bhg-page bhg-faq-page animate-fade-in">
-      <PageHeader eyebrow="Support" title="Help & FAQ" description="Answers about treatment, the portal, and when to contact your care team." />
+      <PageHeader
+        eyebrow="Support"
+        title="Help & FAQ"
+        description="Quick answers about medication dosing windows, counseling, take-home bottles, and clinic policies."
+      />
 
+      {/* Top High-Priority MAT Questions for instant help */}
+      {!query && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 750, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: 8 }}>
+            Frequently Needed Answers
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 12 }}>
+            {topFaqs.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.title}
+                  type="button"
+                  onClick={() => handleQuickPick(item)}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    textAlign: 'left',
+                    gap: 6,
+                    padding: '14px 16px',
+                    background: 'white',
+                    border: '1px solid var(--border)',
+                    borderRadius: 10,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = '#9CCDDD';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--primary)' }}>
+                    <Icon size={16} />
+                    <strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>{item.title}</strong>
+                  </div>
+                  <span style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.45 }}>{item.desc}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', marginTop: 2, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    View full answer <ChevronRight size={13} />
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Search and Category Filter Bar */}
       <Card className="bhg-faq-search-card">
         <div className="bhg-faq-search">
           <Search size={17} />
@@ -1436,7 +2074,7 @@ export function SupportFaq() {
         </div>
         <div className="bhg-faq-filters">
           <button type="button" className={`bhg-faq-filter ${!activeCategory ? 'active' : ''}`} onClick={() => setActiveCategory(null)}>
-            All topics
+            All topics ({supportFaqs.reduce((sum, c) => sum + c.faqs.length, 0)})
           </button>
           {supportFaqs.map((category) => (
             <button
@@ -1445,25 +2083,30 @@ export function SupportFaq() {
               className={`bhg-faq-filter ${activeCategory === category.id ? 'active' : ''}`}
               onClick={() => setActiveCategory(activeCategory === category.id ? null : category.id)}
             >
-              {category.title}
+              {category.title} ({category.faqs.length})
             </button>
           ))}
         </div>
       </Card>
 
-      {!query && !activeCategory && (
-        <div className="bhg-faq-topics">
-          {supportFaqs.map((category) => (
-            <button key={category.id} type="button" className="bhg-card bhg-faq-topic-card" onClick={() => setActiveCategory(category.id)}>
-              <HelpCircle size={20} />
-              <strong>{category.title}</strong>
-              <span>{category.description}</span>
-              <small>{category.faqs.length} questions</small>
-            </button>
-          ))}
+      {/* Accordion Controls */}
+      {totalQuestions > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, padding: '0 4px', flexWrap: 'wrap', gap: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 650, color: 'var(--text-secondary)' }}>
+            Showing {totalQuestions} {totalQuestions === 1 ? 'question' : 'questions'} {activeCategory ? `in ${supportFaqs.find((c) => c.id === activeCategory)?.title}` : 'across all topics'}
+          </span>
+          <button
+            type="button"
+            className="bhg-button bhg-button-sm bhg-button-secondary"
+            style={{ fontSize: 11.5, padding: '5px 12px' }}
+            onClick={handleToggleAll}
+          >
+            {isAllOpen ? 'Collapse all questions' : 'Expand all questions'}
+          </button>
         </div>
       )}
 
+      {/* Question Accordion Sections */}
       {displayCategories.map((category) => (
         <Card key={category.id} className="bhg-faq-section">
           <SectionTitle title={category.title} description={category.description} />
@@ -1477,7 +2120,23 @@ export function SupportFaq() {
                     <span>{faq.q}</span>
                     {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                   </button>
-                  {isOpen && <div className="bhg-faq-answer">{faq.a}</div>}
+                  {isOpen && (
+                    <div className="bhg-faq-answer">
+                      <p style={{ margin: 0, lineHeight: 1.55 }}>{faq.a}</p>
+                      {(faq.q.toLowerCase().includes('traveling or moving') || faq.q.toLowerCase().includes('transfer my treatment records')) && (
+                        <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                          <button
+                            type="button"
+                            className="bhg-button bhg-button-secondary bhg-button-sm"
+                            onClick={() => navigate('center')}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 650 }}
+                          >
+                            <Share2 size={13} /> Open Clinic Transfer &amp; Guest Dosing Tool &rarr;
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -1486,40 +2145,91 @@ export function SupportFaq() {
       ))}
 
       {displayCategories.length === 0 && (
-        <Card className="bhg-card-compact">
-          <p className="bhg-body-copy">No questions matched your search. Try another keyword or contact your care team.</p>
+        <Card className="bhg-card-compact" style={{ textAlign: 'center', padding: '32px 20px' }}>
+          <p className="bhg-body-copy" style={{ margin: 0 }}>
+            No questions matched &ldquo;<strong>{query}</strong>&rdquo;.
+          </p>
+          <button
+            type="button"
+            className="bhg-button bhg-button-secondary"
+            style={{ marginTop: 12, display: 'inline-flex' }}
+            onClick={() => { setQuery(''); setActiveCategory(null); }}
+          >
+            Clear search & show all topics
+          </button>
         </Card>
       )}
 
-      <Card>
-        <SectionTitle title="Still need help?" description="Choose the safest option for your situation." />
-        <div className="bhg-faq-contact-grid">
-          <a href={`tel:${center.phone.replace(/\D/g, '')}`} className="bhg-faq-contact-item">
-            <Phone size={18} />
-            <strong>Call {center.shortName}</strong>
-            <span>Medication visits and same-day treatment questions</span>
-            <b>{center.phone}</b>
-          </a>
-          <button type="button" className="bhg-faq-contact-item" onClick={() => navigate('messages')}>
-            <MessageCircle size={18} />
-            <strong>Secure message</strong>
-            <span>Non-urgent questions for your care team</span>
-            <b>Open messages</b>
-          </button>
-          <a href={getCenterMapsUrl(center)} target="_blank" rel="noreferrer" className="bhg-faq-contact-item">
-            <Navigation size={18} />
-            <strong>Get directions</strong>
-            <span>{center.address}</span>
-            <b>Google Maps</b>
-          </a>
-          <a href="tel:988" className="bhg-faq-contact-item crisis">
-            <HeartHandshake size={18} />
-            <strong>Crisis support · 988</strong>
-            <span>Free, confidential help 24/7 — call or text</span>
-            <b>Not for emergencies</b>
-          </a>
+      {/* Instant AI Assistant Banner */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 14,
+          padding: '12px 16px',
+          background: 'var(--primary-light)',
+          border: '1px solid #9CCDDD',
+          borderRadius: 10,
+          marginBottom: 16,
+          flexWrap: 'wrap',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Sparkles size={18} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+          <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600 }}>
+            Looking for personalized answers about your Phase 2 schedule, next visit, or lockbox rules?
+          </span>
         </div>
-        <div className="bhg-privacy-note"><AlertCircle size={17} /><span>For emergencies call 911. Secure messages are not monitored continuously.</span></div>
+        <button
+          type="button"
+          className="bhg-button bhg-button-sm"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+          onClick={() => {
+            const launcher = document.querySelector('.bhg-chat-launcher');
+            if (launcher) launcher.click();
+          }}
+        >
+          <MessageCircle size={14} /> Ask BHG Assistant
+        </button>
+      </div>
+
+      {/* Direct Contact Options */}
+      <Card>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
+              Can’t find what you’re looking for?
+            </h3>
+            <p style={{ margin: '4px 0 0 0', fontSize: 13, color: 'var(--text-secondary)' }}>
+              Your care team is available to help with medication questions, appointments, and billing.
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <a
+              href={`tel:${center.phone.replace(/\D/g, '')}`}
+              className="bhg-button bhg-button-secondary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+            >
+              <Phone size={14} /> Call {center.shortName}
+            </a>
+            <button
+              type="button"
+              className="bhg-button"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              onClick={() => navigate('messages')}
+            >
+              <MessageCircle size={14} /> Send a message
+            </button>
+          </div>
+        </div>
+
+        <div className="bhg-safe-callout" style={{ marginTop: 14 }}>
+          <AlertCircle size={16} />
+          <span>
+            <strong>Need immediate help?</strong> Call or text <strong>988</strong> for free, confidential 24/7 crisis support. For medical emergencies, dial <strong>911</strong>. Secure messages are reviewed during regular clinic hours.
+          </span>
+        </div>
       </Card>
     </div>
   );
@@ -1858,11 +2568,19 @@ function claimStatusTone(status) {
 }
 
 export function Payments() {
-  const { coverage, careTeam, createRequest, addToast } = useApp();
+  const { coverage, careTeam, createRequest, addToast, patient, center } = useApp();
+  const [activeTab, setActiveTab] = useState('claims');
   const [showHelp, setShowHelp] = useState(false);
+  const [showUpdateCoverage, setShowUpdateCoverage] = useState(false);
+  const [frontCardUploaded, setFrontCardUploaded] = useState(false);
+  const [backCardUploaded, setBackCardUploaded] = useState(false);
+  const [payerName, setPayerName] = useState('');
+  const [newMemberId, setNewMemberId] = useState('');
   const [helpType, setHelpType] = useState('I have a question about my coverage');
   const [details, setDetails] = useState('');
   const [selectedClaim, setSelectedClaim] = useState(null);
+  const [selectedReceipt, setSelectedReceipt] = useState(null);
+  const [selectedStatement, setSelectedStatement] = useState(null);
 
   const submit = () => {
     createRequest({ type: 'Financial assistance', title: helpType, detail: details || helpType, page: 'payments' });
@@ -1870,8 +2588,29 @@ export function Payments() {
     setShowHelp(false);
   };
 
+  const handleSubmitCoverageUpdate = () => {
+    createRequest({
+      type: 'Insurance update',
+      title: `Insurance Card Upload: ${payerName || 'Updated Card'}`,
+      detail: `Front card: ${frontCardUploaded ? 'Uploaded' : 'Provided'}, Back card: ${backCardUploaded ? 'Uploaded' : 'Provided'}. Member ID: ${newMemberId || 'On Card'}.`,
+      page: 'payments',
+    });
+    addToast('Insurance card submitted. Our team usually confirms within 2 business days.', 'success');
+    setShowUpdateCoverage(false);
+    setFrontCardUploaded(false);
+    setBackCardUploaded(false);
+    setPayerName('');
+    setNewMemberId('');
+  };
+
   const payBalance = () => {
     addToast('Demo payment submitted. Your balance will update after processing.', 'success');
+  };
+
+  const financialCounselor = careTeam.find((m) => m.role.toLowerCase().includes('financial')) || careTeam[2] || {
+    name: 'David Morales',
+    role: 'Patient Financial Counselor',
+    initials: 'DM',
   };
 
   return (
@@ -1879,129 +2618,312 @@ export function Payments() {
       <PageHeader
         eyebrow="Account"
         title="Coverage & payments"
-        description="Insurance, claims, statements, and your current patient balance."
+        description="Active insurance, current patient balance, and your complete billing history."
         action={<PillBadge tone={coverage.balance > 0 ? 'warning' : 'success'}>{coverage.balanceStatus}</PillBadge>}
       />
 
-      <div className="bhg-treatment-stats bhg-payments-stats">
-        <div><strong>${coverage.balance.toFixed(2)}</strong><span>Amount you owe</span></div>
-        <div><strong>{coverage.summary.claimsYtd}</strong><span>Claims this year</span></div>
-        <div><strong>${coverage.summary.insurancePaidYtd.toFixed(0)}</strong><span>Insurance paid YTD</span></div>
-        <div><strong>{coverage.dueDate}</strong><span>Balance due date</span></div>
-      </div>
+      {/* ── Top Summary Grid: Patient Balance & Active Coverage Side-by-Side ── */}
+      <div className="bhg-two-column" style={{ marginBottom: 18 }}>
+        {/* Card 1: Balance & Immediate Payment Actions */}
+        <Card style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 750, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
+                  Current Patient Balance
+                </span>
+                <div style={{ fontSize: 32, fontWeight: 800, color: coverage.balance > 0 ? 'var(--text-primary)' : 'var(--primary)', lineHeight: 1.15, marginTop: 2 }}>
+                  ${coverage.balance.toFixed(2)}
+                </div>
+              </div>
+              <PillBadge tone={coverage.balance > 0 ? 'warning' : 'success'}>
+                {coverage.balanceStatus}
+              </PillBadge>
+            </div>
 
-      <Card className="bhg-billing-explainer">
-        <AlertCircle size={18} />
-        <p>
-          <strong>How to read this page:</strong> Claims show services BHG billed to your plan.
-          Insurance paid is what TennCare covered. Your share is copays or allowed patient responsibility still owed after claims process.
-        </p>
-      </Card>
+            <p style={{ margin: '0 0 14px 0', fontSize: 12.5, color: 'var(--text-secondary)' }}>
+              {coverage.nextPayment} &middot; <strong style={{ color: 'var(--text-primary)' }}>Due {coverage.dueDate}</strong>
+            </p>
 
-      <div className="bhg-two-column bhg-two-column-wide">
-        <Card className="bhg-feature-card">
-          <div className="bhg-feature-heading">
-            <span className="bhg-large-icon"><ShieldCheck size={25} /></span>
-            <div>
-              <PillBadge tone="success">{coverage.status}</PillBadge>
-              <h2>{coverage.payer}</h2>
-              <p>{coverage.planType}</p>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+              <button
+                type="button"
+                className="bhg-button"
+                onClick={payBalance}
+                disabled={coverage.balance <= 0}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                <CreditCard size={15} /> Pay ${coverage.balance.toFixed(2)} now
+              </button>
+              <button
+                type="button"
+                className="bhg-button bhg-button-secondary"
+                onClick={() => setShowHelp(true)}
+              >
+                Request financial help
+              </button>
             </div>
           </div>
-          <div className="bhg-detail-grid bhg-detail-grid-treatment">
-            <div><span>Member ID</span><strong>{coverage.memberId}</strong></div>
-            <div><span>Group number</span><strong>{coverage.groupNumber}</strong></div>
-            <div><span>Last verified</span><strong>{coverage.verified}</strong></div>
-            <div><span>Authorization</span><strong>{coverage.authorization}</strong></div>
-            <div><span>Authorization ID</span><strong>{coverage.authorizationId}</strong></div>
-            <div><span>Patient share YTD</span><strong>${coverage.summary.patientShareYtd.toFixed(2)}</strong></div>
+
+          {/* Counselor & Sliding Scale Assurance Note */}
+          <div
+            style={{
+              padding: '10px 12px',
+              borderRadius: 8,
+              background: 'var(--bg-alt)',
+              border: '1px solid var(--border)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              marginTop: 4,
+            }}
+          >
+            <div className="bhg-person-avatar" style={{ width: 32, height: 32, fontSize: 11, flexShrink: 0 }}>
+              {financialCounselor.initials}
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+              <strong>{financialCounselor.name}</strong> &middot; {financialCounselor.role}
+              <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>
+                Treatment is never interrupted for cost. Sliding fee & grant assistance available.
+              </div>
+            </div>
           </div>
         </Card>
 
-        <Card className="bhg-balance-card">
-          <SectionTitle title="Patient balance" description="After insurance has processed recent claims." />
-          <div className="bhg-balance">${coverage.balance.toFixed(2)}</div>
-          <p className="bhg-body-copy">{coverage.nextPayment}</p>
-          <DetailRow label="Due date" value={coverage.dueDate} />
-          <DetailRow label="Last payment" value={`$${coverage.lastPayment.amount.toFixed(2)} on ${coverage.lastPayment.date}`} />
-          <DetailRow label="Payment method" value={coverage.lastPayment.method} />
-          <div className="bhg-balance-actions">
-            <button type="button" className="bhg-button" onClick={payBalance} disabled={coverage.balance <= 0}>
-              <CreditCard size={15} /> Pay balance
+        {/* Card 2: Active Insurance & Policy Details */}
+        <Card style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div
+                  style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 10,
+                    background: 'var(--primary-light)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--primary)',
+                    flexShrink: 0,
+                  }}
+                >
+                  <ShieldCheck size={22} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {coverage.payer}
+                  </h3>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{coverage.planType}</span>
+                </div>
+              </div>
+              <PillBadge tone="success">{coverage.status}</PillBadge>
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                gap: '10px 14px',
+                padding: '12px 14px',
+                background: 'var(--bg-alt)',
+                border: '1px solid var(--border)',
+                borderRadius: 8,
+                marginBottom: 12,
+              }}
+            >
+              <div>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block' }}>Member ID</span>
+                <strong style={{ fontSize: 12.5, color: 'var(--text-primary)' }}>{coverage.memberId}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block' }}>Group #</span>
+                <strong style={{ fontSize: 12.5, color: 'var(--text-primary)' }}>{coverage.groupNumber}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block' }}>Authorization</span>
+                <strong style={{ fontSize: 12.5, color: 'var(--text-primary)' }}>{coverage.authorization}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block' }}>Plan Paid YTD</span>
+                <strong style={{ fontSize: 12.5, color: '#166534' }}>${coverage.summary.insurancePaidYtd.toFixed(0)}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11.5, color: 'var(--text-muted)', paddingTop: 4 }}>
+            <span>Last verified {coverage.verified}</span>
+            <button
+              type="button"
+              className="bhg-text-button"
+              style={{ fontSize: 11.5 }}
+              onClick={() => setShowUpdateCoverage(true)}
+            >
+              Update insurance card &rarr;
             </button>
-            <ActionButton secondary onClick={() => setShowHelp(true)}>Request help</ActionButton>
           </div>
         </Card>
       </div>
 
-      <Card className="bhg-claims-card">
-        <SectionTitle title="Recent claims" description="Treatment services billed to your coverage — click a row for details." />
-        <div className="bhg-claims-table">
-          <div className="bhg-claims-head">
-            <span>Date</span><span>Service</span><span>Billed</span><span>Plan paid</span><span>Your share</span><span>Status</span>
-          </div>
-          {coverage.claims.map((claim) => (
-            <button key={claim.id} type="button" className="bhg-claims-row" onClick={() => setSelectedClaim(claim)}>
-              <span>{claim.date}</span>
-              <span><strong>{claim.service}</strong><small>{claim.provider}</small></span>
-              <span>${claim.billed.toFixed(2)}</span>
-              <span>${claim.insurancePaid.toFixed(2)}</span>
-              <span>${claim.patientOwes.toFixed(2)}</span>
-              <PillBadge tone={claimStatusTone(claim.status)}>{claim.status}</PillBadge>
+      {/* ── Transaction History Tabs: Claims, Payments, Statements ── */}
+      <Card style={{ padding: '18px 20px' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 12,
+            borderBottom: '1px solid var(--border-light)',
+            paddingBottom: 14,
+            marginBottom: 16,
+          }}
+        >
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className={`bhg-faq-filter ${activeTab === 'claims' ? 'active' : ''}`}
+              onClick={() => setActiveTab('claims')}
+              style={{ padding: '7px 14px', fontSize: 12, borderRadius: 8 }}
+            >
+              Recent Claims ({coverage.claims.length})
             </button>
-          ))}
-        </div>
-      </Card>
+            <button
+              type="button"
+              className={`bhg-faq-filter ${activeTab === 'payments' ? 'active' : ''}`}
+              onClick={() => setActiveTab('payments')}
+              style={{ padding: '7px 14px', fontSize: 12, borderRadius: 8 }}
+            >
+              Payment History ({coverage.paymentHistory.length})
+            </button>
+            <button
+              type="button"
+              className={`bhg-faq-filter ${activeTab === 'statements' ? 'active' : ''}`}
+              onClick={() => setActiveTab('statements')}
+              style={{ padding: '7px 14px', fontSize: 12, borderRadius: 8 }}
+            >
+              Monthly Statements ({coverage.statements.length})
+            </button>
+          </div>
 
-      <div className="bhg-two-column">
-        <Card>
-          <SectionTitle title="Payment history" description="Posted payments on your account." />
+          <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+            {activeTab === 'claims' && 'Click any claim to view service breakdown'}
+            {activeTab === 'payments' && 'Click any payment to view official receipt'}
+            {activeTab === 'statements' && 'Click any statement to view itemized monthly bill'}
+          </span>
+        </div>
+
+        {/* Tab 1: Claims */}
+        {activeTab === 'claims' && (
+          <div>
+            <div className="bhg-claims-table">
+              <div className="bhg-claims-head">
+                <span>Date</span><span>Service</span><span>Billed</span><span>Plan paid</span><span>Your share</span><span>Status</span>
+              </div>
+              {coverage.claims.map((claim) => (
+                <button key={claim.id} type="button" className="bhg-claims-row" onClick={() => setSelectedClaim(claim)}>
+                  <span>{claim.date}</span>
+                  <span><strong>{claim.service}</strong><small>{claim.provider}</small></span>
+                  <span>${claim.billed.toFixed(2)}</span>
+                  <span>${claim.insurancePaid.toFixed(2)}</span>
+                  <span style={{ fontWeight: claim.patientOwes > 0 ? 700 : 400, color: claim.patientOwes > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                    ${claim.patientOwes.toFixed(2)}
+                  </span>
+                  <PillBadge tone={claimStatusTone(claim.status)}>{claim.status}</PillBadge>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Tab 2: Payment History (Clickable to view authentic receipt) */}
+        {activeTab === 'payments' && (
           <div className="bhg-payment-history">
             {coverage.paymentHistory.map((payment) => (
-              <div key={payment.id} className="bhg-payment-history-row">
+              <div
+                key={payment.id}
+                onClick={() => setSelectedReceipt(payment)}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '13px 14px',
+                  borderBottom: '1px solid var(--border-light)',
+                  cursor: 'pointer',
+                  borderRadius: 8,
+                  transition: 'background 0.15s ease',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-alt)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+              >
                 <div>
-                  <strong>${payment.amount.toFixed(2)} · {payment.method}</strong>
-                  <span>{payment.date}</span>
-                  <small>{payment.detail}</small>
+                  <strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>
+                    ${payment.amount.toFixed(2)} &middot; {payment.method}
+                  </strong>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{payment.detail}</div>
+                  <small style={{ color: 'var(--text-muted)', fontSize: 11 }}>{payment.date} &middot; Receipt #{payment.id}</small>
                 </div>
-                <PillBadge tone="success">{payment.status}</PillBadge>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <PillBadge tone="success">{payment.status}</PillBadge>
+                  <span
+                    className="bhg-button bhg-button-secondary bhg-button-sm"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, padding: '4px 10px' }}
+                  >
+                    <FileText size={13} /> View Receipt
+                  </span>
+                </div>
               </div>
             ))}
           </div>
-        </Card>
+        )}
 
-        <Card>
-          <SectionTitle title="Statements" description="Monthly patient-responsibility summaries." />
+        {/* Tab 3: Monthly Statements (Clickable to view authentic itemized statement) */}
+        {activeTab === 'statements' && (
           <div className="bhg-statement-list">
             {coverage.statements.map((statement) => (
-              <div key={statement.id} className="bhg-statement-row">
+              <div
+                key={statement.id}
+                onClick={() => setSelectedStatement(statement)}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '13px 14px',
+                  borderBottom: '1px solid var(--border-light)',
+                  cursor: 'pointer',
+                  borderRadius: 8,
+                  transition: 'background 0.15s ease',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-alt)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+              >
                 <div>
-                  <strong>{statement.period}</strong>
-                  <span>Issued {statement.issued} · Due {statement.due}</span>
+                  <strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>{statement.period} Statement</strong>
+                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
+                    Issued {statement.issued} &middot; Due {statement.due}
+                  </div>
                 </div>
-                <div className="bhg-statement-meta">
-                  <b>${statement.balance.toFixed(2)}</b>
-                  <PillBadge tone={statement.status === 'Open' ? 'warning' : 'success'}>{statement.status}</PillBadge>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <span style={{ fontSize: 13, fontWeight: 750, color: 'var(--text-primary)' }}>
+                    ${statement.balance.toFixed(2)}
+                  </span>
+                  <PillBadge tone={statement.status === 'Open' ? 'warning' : 'success'}>
+                    {statement.status}
+                  </PillBadge>
+                  <span
+                    className="bhg-button bhg-button-secondary bhg-button-sm"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, padding: '4px 10px' }}
+                  >
+                    <Download size={13} /> View Statement
+                  </span>
                 </div>
-                <button type="button" className="bhg-text-button" onClick={() => addToast('Demo statement PDF opened.', 'info')}>
-                  <Download size={14} /> PDF
-                </button>
               </div>
             ))}
           </div>
-        </Card>
-      </div>
-
-      <Card>
-        <SectionTitle title="Help with coverage or cost" />
-        <p className="bhg-body-copy">{coverage.assistance}</p>
-        <div className="bhg-contact-strip">
-          <div className="bhg-person-avatar">{careTeam[2].initials}</div>
-          <div><strong>{careTeam[2].name}</strong><span>{careTeam[2].role}</span></div>
-          <ActionButton secondary onClick={() => setShowHelp(true)}>Request help</ActionButton>
-        </div>
+        )}
       </Card>
 
+      {/* ── Claim Breakdown Drawer ── */}
       {selectedClaim && (
         <WorkflowDrawer
           title={selectedClaim.service}
@@ -2033,11 +2955,432 @@ export function Payments() {
         </WorkflowDrawer>
       )}
 
+      {/* ── Realistic Interactive Payment Receipt Drawer (Slide-out for consistency) ── */}
+      {selectedReceipt && (
+        <WorkflowDrawer
+          title="Official Payment Receipt"
+          subtitle={`Receipt #${selectedReceipt.id} · ${selectedReceipt.date}`}
+          onClose={() => setSelectedReceipt(null)}
+          size="md"
+          footer={(
+            <>
+              <button
+                type="button"
+                className="bhg-button bhg-button-secondary"
+                onClick={() => addToast(`Receipt #${selectedReceipt.id} downloaded as PDF.`, 'success')}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                <Download size={14} /> Download PDF
+              </button>
+              <button
+                type="button"
+                className="bhg-button"
+                onClick={() => setSelectedReceipt(null)}
+              >
+                Close Receipt
+              </button>
+            </>
+          )}
+        >
+          <div
+            style={{
+              background: '#FAFCFD',
+              border: '1px solid var(--border)',
+              borderRadius: 10,
+              padding: '20px 22px',
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid var(--border)', paddingBottom: 14, marginBottom: 16 }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--primary)' }}>
+                  Behavioral Health Group
+                </div>
+                <h3 style={{ margin: '2px 0 0 0', fontSize: 16, fontWeight: 750, color: 'var(--text-primary)' }}>
+                  {center.name}
+                </h3>
+                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
+                  {center.address} &middot; {center.phone}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <span style={{ display: 'inline-block', background: '#DCFCE7', color: '#166534', border: '1px solid #BBF7D0', padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 750 }}>
+                  PAID IN FULL
+                </span>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                  Receipt #{selectedReceipt.id}
+                </div>
+              </div>
+            </div>
+
+            {/* Metadata Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px 16px', fontSize: 12, marginBottom: 18 }}>
+              <div>
+                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: 11 }}>Patient Name</span>
+                <strong style={{ color: 'var(--text-primary)' }}>{patient.name}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: 11 }}>Patient ID</span>
+                <strong style={{ color: 'var(--text-primary)' }}>{patient.id}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: 11 }}>Transaction Date</span>
+                <strong style={{ color: 'var(--text-primary)' }}>{selectedReceipt.date}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: 11 }}>Payment Method</span>
+                <strong style={{ color: 'var(--text-primary)' }}>{selectedReceipt.method} (ending in ····4219)</strong>
+              </div>
+            </div>
+
+            {/* Itemized Charge Box */}
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 14px', background: 'var(--bg-alt)', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <span>Item / Service Description</span>
+                <span>Amount</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', borderBottom: '1px solid var(--border-light)', fontSize: 12.5 }}>
+                <div>
+                  <strong style={{ color: 'var(--text-primary)' }}>{selectedReceipt.detail}</strong>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Coverage: {coverage.payer}</div>
+                </div>
+                <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>${selectedReceipt.amount.toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', fontSize: 11.5, color: 'var(--text-secondary)' }}>
+                <span>Subtotal</span>
+                <span>${selectedReceipt.amount.toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', fontSize: 11.5, color: 'var(--text-secondary)', borderTop: '1px dashed var(--border-light)' }}>
+                <span>Processing / Convenience Fee</span>
+                <span>$0.00</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: '#F8FAFC', borderTop: '1px solid var(--border)', fontSize: 14 }}>
+                <strong style={{ color: 'var(--text-primary)' }}>Total Amount Paid</strong>
+                <strong style={{ color: '#166534', fontSize: 16 }}>${selectedReceipt.amount.toFixed(2)}</strong>
+              </div>
+            </div>
+
+            {/* Official Confirmation */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--text-muted)' }}>
+              <CheckCircle2 size={15} style={{ color: '#166534', flexShrink: 0 }} />
+              <span>Payment posted successfully. Keep this electronic receipt for your financial records or HSA/FSA documentation.</span>
+            </div>
+          </div>
+        </WorkflowDrawer>
+      )}
+
+      {/* ── Realistic Interactive Monthly Billing Statement Drawer (Slide-out for consistency) ── */}
+      {selectedStatement && (
+        <WorkflowDrawer
+          title={`Monthly Patient Statement — ${selectedStatement.period}`}
+          subtitle={`Statement #${selectedStatement.id} · Issued ${selectedStatement.issued}`}
+          onClose={() => setSelectedStatement(null)}
+          size="lg"
+          footer={(
+            <>
+              <button
+                type="button"
+                className="bhg-button bhg-button-secondary"
+                onClick={() => addToast(`Statement ${selectedStatement.id} downloaded as PDF.`, 'success')}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                <Download size={14} /> Download PDF
+              </button>
+              {selectedStatement.balance > 0 && selectedStatement.status === 'Open' ? (
+                <button
+                  type="button"
+                  className="bhg-button"
+                  onClick={() => {
+                    payBalance();
+                    setSelectedStatement(null);
+                  }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                >
+                  <CreditCard size={15} /> Pay Balance (${selectedStatement.balance.toFixed(2)})
+                </button>
+              ) : (
+                <button type="button" className="bhg-button" onClick={() => setSelectedStatement(null)}>
+                  Close Statement
+                </button>
+              )}
+            </>
+          )}
+        >
+          <div
+            style={{
+              background: '#FAFCFD',
+              border: '1px solid var(--border)',
+              borderRadius: 10,
+              padding: '22px 24px',
+            }}
+          >
+            {/* Statement Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid var(--border)', paddingBottom: 16, marginBottom: 18 }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--primary)' }}>
+                  Behavioral Health Group
+                </div>
+                <h3 style={{ margin: '2px 0 0 0', fontSize: 18, fontWeight: 750, color: 'var(--text-primary)' }}>
+                  Patient Billing Statement
+                </h3>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+                  {center.name} &middot; {center.address}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 13, fontWeight: 750, color: 'var(--text-primary)' }}>
+                  Statement #{selectedStatement.id}
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
+                  Billing Period: <strong>{selectedStatement.period}</strong>
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                  Issued: {selectedStatement.issued}
+                </div>
+              </div>
+            </div>
+
+            {/* Patient & Account Info Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14, background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 16px', marginBottom: 18 }}>
+              <div>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block' }}>Patient</span>
+                <strong style={{ fontSize: 12.5, color: 'var(--text-primary)' }}>{patient.name}</strong>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>DOB: {patient.dateOfBirth}</div>
+              </div>
+              <div>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block' }}>Account / Member ID</span>
+                <strong style={{ fontSize: 12.5, color: 'var(--text-primary)' }}>{patient.id}</strong>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Plan: {coverage.payer}</div>
+              </div>
+              <div>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block' }}>Payment Due Date</span>
+                <strong style={{ fontSize: 12.5, color: selectedStatement.balance > 0 ? '#B91C1C' : 'var(--text-primary)' }}>
+                  {selectedStatement.due}
+                </strong>
+                <div style={{ marginTop: 2 }}>
+                  <PillBadge tone={selectedStatement.status === 'Open' ? 'warning' : 'success'}>
+                    {selectedStatement.status}
+                  </PillBadge>
+                </div>
+              </div>
+            </div>
+
+            {/* Statement Summary Callout */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '14px 18px',
+                background: selectedStatement.balance > 0 ? '#FFFBEB' : '#F0FDF4',
+                border: `1px solid ${selectedStatement.balance > 0 ? '#FDE68A' : '#BBF7D0'}`,
+                borderRadius: 8,
+                marginBottom: 20,
+              }}
+            >
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 750, textTransform: 'uppercase', letterSpacing: '0.05em', color: selectedStatement.balance > 0 ? '#92400E' : '#166534' }}>
+                  Total Amount {selectedStatement.balance > 0 ? 'Due' : 'Paid'}
+                </span>
+                <div style={{ fontSize: 24, fontWeight: 800, color: selectedStatement.balance > 0 ? '#92400E' : '#166534', marginTop: 2 }}>
+                  ${selectedStatement.balance.toFixed(2)}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right', fontSize: 12, color: 'var(--text-secondary)' }}>
+                <div>Previous Balance: $0.00</div>
+                <div>Insurance Payments (TennCare): -$382.00</div>
+                <div>Patient Responsibility: ${selectedStatement.balance.toFixed(2)}</div>
+              </div>
+            </div>
+
+            {/* Itemized Services Table */}
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ fontSize: 12, fontWeight: 750, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 8 }}>
+                Itemized Services for {selectedStatement.period}
+              </div>
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 75px 85px 80px', gap: 8, padding: '9px 12px', background: 'var(--bg-alt)', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                  <span>Date</span>
+                  <span>Service Description</span>
+                  <span style={{ textAlign: 'right' }}>Billed</span>
+                  <span style={{ textAlign: 'right' }}>Plan Paid</span>
+                  <span style={{ textAlign: 'right' }}>Your Share</span>
+                </div>
+                {coverage.claims.slice(0, 4).map((claim) => (
+                  <div
+                    key={claim.id}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '80px 1fr 75px 85px 80px',
+                      gap: 8,
+                      padding: '11px 12px',
+                      borderBottom: '1px solid var(--border-light)',
+                      fontSize: 12,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <span style={{ color: 'var(--text-secondary)', fontSize: 11.5 }}>{claim.date.split(',')[0]}</span>
+                    <div>
+                      <strong style={{ color: 'var(--text-primary)' }}>{claim.service}</strong>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{claim.provider}</div>
+                    </div>
+                    <span style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>${claim.billed.toFixed(2)}</span>
+                    <span style={{ textAlign: 'right', color: '#166534' }}>-${claim.insurancePaid.toFixed(2)}</span>
+                    <span style={{ textAlign: 'right', fontWeight: 700, color: claim.patientOwes > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                      ${claim.patientOwes.toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Assistance Reminder */}
+            <div style={{ padding: '10px 14px', background: 'var(--bg-alt)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 11.5, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <AlertCircle size={15} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+              <span>
+                Need help with your balance? Sliding-scale financial assistance and state grant programs are available through counselor {financialCounselor.name} at {center.phone}.
+              </span>
+            </div>
+          </div>
+        </WorkflowDrawer>
+      )}
+
+      {/* ── Update Coverage Drawer (Slide-out matching user design) ── */}
+      {showUpdateCoverage && (
+        <WorkflowDrawer
+          title="Update coverage"
+          subtitle="Upload photos of your new card for clinic verification"
+          onClose={() => setShowUpdateCoverage(false)}
+          size="md"
+          footer={(
+            <>
+              <button
+                type="button"
+                className="bhg-button bhg-button-secondary"
+                onClick={() => setShowUpdateCoverage(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="bhg-button"
+                onClick={handleSubmitCoverageUpdate}
+              >
+                Submit updates
+              </button>
+            </>
+          )}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+              Did your plan change? Upload photos of your new card (front and back). Our team usually confirms within 2 business days.
+            </p>
+
+            {/* Front and Back Upload Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14, margin: '6px 0' }}>
+              {/* FRONT */}
+              <div
+                onClick={() => setFrontCardUploaded(!frontCardUploaded)}
+                style={{
+                  border: frontCardUploaded ? '2px solid #166534' : '2px dashed #94A3B8',
+                  borderRadius: 14,
+                  padding: '30px 14px',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  background: frontCardUploaded ? '#F0FDF4' : '#F8FAFC',
+                  transition: 'all 0.18s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                }}
+              >
+                {frontCardUploaded ? (
+                  <>
+                    <CheckCircle2 size={32} style={{ color: '#166534' }} />
+                    <strong style={{ fontSize: 12, color: '#166534', letterSpacing: '0.06em' }}>FRONT UPLOADED</strong>
+                    <span style={{ fontSize: 11, color: '#166534' }}>card_front.jpg</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload size={30} style={{ color: 'var(--primary)' }} />
+                    <strong style={{ fontSize: 13, color: 'var(--text-primary)', letterSpacing: '0.06em' }}>FRONT</strong>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Tap to select photo</span>
+                  </>
+                )}
+              </div>
+
+              {/* BACK */}
+              <div
+                onClick={() => setBackCardUploaded(!backCardUploaded)}
+                style={{
+                  border: backCardUploaded ? '2px solid #166534' : '2px dashed #94A3B8',
+                  borderRadius: 14,
+                  padding: '30px 14px',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  background: backCardUploaded ? '#F0FDF4' : '#F8FAFC',
+                  transition: 'all 0.18s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                }}
+              >
+                {backCardUploaded ? (
+                  <>
+                    <CheckCircle2 size={32} style={{ color: '#166534' }} />
+                    <strong style={{ fontSize: 12, color: '#166534', letterSpacing: '0.06em' }}>BACK UPLOADED</strong>
+                    <span style={{ fontSize: 11, color: '#166534' }}>card_back.jpg</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload size={30} style={{ color: 'var(--primary)' }} />
+                    <strong style={{ fontSize: 13, color: 'var(--text-primary)', letterSpacing: '0.06em' }}>BACK</strong>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Tap to select photo</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <Field label="Insurance Payer Name (Optional)" hint="e.g. TennCare, BlueCare, Wellpoint, Medicare">
+                <input
+                  type="text"
+                  value={payerName}
+                  onChange={(e) => setPayerName(e.target.value)}
+                  placeholder="Enter insurance plan name"
+                />
+              </Field>
+              <Field label="Member / Policy ID (Optional)" hint="Printed on the front of your card">
+                <input
+                  type="text"
+                  value={newMemberId}
+                  onChange={(e) => setNewMemberId(e.target.value)}
+                  placeholder="Enter Member ID"
+                />
+              </Field>
+            </div>
+
+            <div className="bhg-safe-callout" style={{ marginTop: 4 }}>
+              <AlertCircle size={16} />
+              <span>
+                Your current coverage remains active in our records while your new card is verified. Your daily clinic dosing and appointments will not be interrupted.
+              </span>
+            </div>
+          </div>
+        </WorkflowDrawer>
+      )}
+
+      {/* ── Request Help Drawer (Slide-out for consistency) ── */}
       {showHelp && (
-        <WorkflowModal
+        <WorkflowDrawer
           title="Request coverage or payment help"
-          subtitle={careTeam[2].name}
+          subtitle={financialCounselor.name}
           onClose={() => setShowHelp(false)}
+          size="md"
           footer={(
             <>
               <button type="button" className="bhg-button bhg-button-secondary" onClick={() => setShowHelp(false)}>Cancel</button>
@@ -2057,46 +3400,341 @@ export function Payments() {
           <Field label="Details">
             <textarea rows="4" value={details} onChange={(event) => setDetails(event.target.value)} placeholder="Share any helpful details…" />
           </Field>
-        </WorkflowModal>
+        </WorkflowDrawer>
       )}
     </div>
   );
 }
 
 export function Documents() {
-  const { documents, acknowledgeDocument, addToast } = useApp();
+  const { documents, patient, acknowledgeDocument, addToast } = useApp();
   const [selected, setSelected] = useState(null);
-  const acknowledge = () => {
-    acknowledgeDocument(selected.id);
-    addToast('Your acknowledgment was saved.');
+  const [query, setQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState('All');
+
+  const acknowledge = (docId) => {
+    acknowledgeDocument(docId);
+    addToast('Document update electronically acknowledged and archived.', 'success');
     setSelected(null);
   };
+
+  const filters = ['All', 'Treatment Consents', 'Program Policies', 'Privacy Notices', 'Medication Agreements'];
+
+  const categoryMap = {
+    'Treatment Consents': 'Consent',
+    'Program Policies': 'Program',
+    'Privacy Notices': 'Privacy',
+    'Medication Agreements': 'Medication',
+  };
+
+  const getDocIconConfig = (category) => {
+    switch (category) {
+      case 'Consent':
+        return { icon: ClipboardCheck, bg: '#F0FDF4', color: '#16A34A' };
+      case 'Privacy':
+        return { icon: LockKeyhole, bg: '#E0F2FE', color: '#0284C7' };
+      case 'Medication':
+        return { icon: Pill, bg: '#EDE9FE', color: '#7C3AED' };
+      default:
+        return { icon: FileText, bg: '#FEF3C7', color: '#D97706' };
+    }
+  };
+
+  const filteredDocs = useMemo(() => {
+    return documents.filter((doc) => {
+      // Filter chip
+      if (activeFilter !== 'All') {
+        const targetCategory = categoryMap[activeFilter];
+        if (doc.category !== targetCategory) return false;
+      }
+      // Search query
+      if (query.trim()) {
+        const q = query.toLowerCase();
+        const matchesName = doc.name.toLowerCase().includes(q);
+        const matchesCat = doc.category.toLowerCase().includes(q);
+        const matchesId = doc.id.toLowerCase().includes(q);
+        if (!matchesName && !matchesCat && !matchesId) return false;
+      }
+      return true;
+    });
+  }, [documents, activeFilter, query]);
+
   return (
     <div className="bhg-page animate-fade-in">
-      <PageHeader eyebrow="Account" title="Forms & documents" description="Your treatment forms, privacy notices and agreements." />
-      <Card>
-        <div className="bhg-document-list">
-          {documents.map((document) => (
-            <div className="bhg-document-row" key={document.id}>
-              <span className="bhg-doc-icon"><FileText size={19} /></span>
-              <div><h3>{document.name}</h3><p>{document.category} · {document.date}</p></div>
-              <PillBadge tone={document.status === 'Review due' ? 'warning' : 'success'}>{document.status}</PillBadge>
-              <button aria-label={`Open ${document.name}`} onClick={() => setSelected(document)}><Download size={18} /></button>
+      {/* Detail Side Drawer */}
+      {selected && (
+        <WorkflowDrawer
+          title={selected.name}
+          subtitle={`${selected.category} Document · ${selected.date}`}
+          onClose={() => setSelected(null)}
+          size="lg"
+          footer={
+            <>
+              <button
+                type="button"
+                className="bhg-button bhg-button-secondary"
+                onClick={() => setSelected(null)}
+              >
+                Close
+              </button>
+              {selected.status === 'Review due' ? (
+                <button
+                  type="button"
+                  className="bhg-button"
+                  onClick={() => acknowledge(selected.id)}
+                >
+                  <CheckCircle2 size={14} style={{ marginRight: 6 }} /> Acknowledge & Sign Update
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="bhg-button bhg-button-secondary"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    onClick={() => window.print()}
+                  >
+                    <Printer size={14} /> Print
+                  </button>
+                  <button
+                    type="button"
+                    className="bhg-button"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    onClick={() => {
+                      addToast(`Downloaded official copy of ${selected.name} (PDF).`, 'success');
+                    }}
+                  >
+                    <Download size={14} /> Download PDF
+                  </button>
+                </>
+              )}
+            </>
+          }
+        >
+          <div style={{ padding: '20px 24px' }}>
+            {/* Status & Date Tag */}
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+              <PillBadge tone={selected.status === 'Review due' ? 'warning' : 'success'}>
+                {selected.status}
+              </PillBadge>
+              <span className="badge badge-muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                <Calendar size={12} /> {selected.date}
+              </span>
             </div>
-          ))}
+
+            {/* Provider / Facility Box */}
+            <div style={{ background: '#F8FAFC', borderRadius: 10, padding: '12px 16px', border: '1px solid #E2E8F0', marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 12, color: '#64748B' }}>Issuing Facility</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>BHG Knoxville Treatment Center</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 12, color: '#64748B' }}>Document Number</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#005A70' }}>{selected.id}</span>
+              </div>
+            </div>
+
+            {/* Document Details Table */}
+            <div style={{ background: '#F8FAFC', borderRadius: 10, padding: '16px', border: '1px solid #E2E8F0', marginBottom: 16 }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', color: '#005A70', letterSpacing: '0.04em', marginBottom: 12 }}>
+                Document Information & Signatures
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 8, borderBottom: '1px dashed #E2E8F0', fontSize: 13 }}>
+                  <span style={{ color: '#64748B' }}>Agreement Title:</span>
+                  <span style={{ fontWeight: 500, color: '#0F172A', textAlign: 'right' }}>{selected.name}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 8, borderBottom: '1px dashed #E2E8F0', fontSize: 13 }}>
+                  <span style={{ color: '#64748B' }}>Category:</span>
+                  <span style={{ fontWeight: 500, color: '#0F172A', textAlign: 'right' }}>{selected.category}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 8, borderBottom: '1px dashed #E2E8F0', fontSize: 13 }}>
+                  <span style={{ color: '#64748B' }}>Signed by Patient:</span>
+                  <span style={{ fontWeight: 500, color: '#0F172A', textAlign: 'right' }}>{patient.name}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 8, borderBottom: '1px dashed #E2E8F0', fontSize: 13 }}>
+                  <span style={{ color: '#64748B' }}>Date Executed:</span>
+                  <span style={{ fontWeight: 500, color: '#0F172A', textAlign: 'right' }}>{selected.date}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                  <span style={{ color: '#64748B' }}>Audit Trail:</span>
+                  <span style={{ fontWeight: 500, color: '#0F172A', textAlign: 'right' }}>Electronic Signature Captured & Verified</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Document Content / Plain Language Summary */}
+            <div style={{ background: 'white', padding: '16px', borderRadius: 10, border: '1px solid #E2E8F0', marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: '#475569', marginBottom: 8 }}>
+                Document Summary
+              </div>
+              <p style={{ margin: '0 0 10px 0', fontSize: 13, color: '#334155', lineHeight: 1.6 }}>
+                {selected.id === 'DOC-1' && 'Outlines patient rights to respectful, individualized care, grievance procedures, and responsibilities regarding clinic attendance, conduct, and treatment guidelines.'}
+                {selected.id === 'DOC-2' && 'Formal informed consent for outpatient Medication-Assisted Treatment (MMT) with Methadone, covering treatment goals, potential side effects, dosing protocols, and medical oversight.'}
+                {selected.id === 'DOC-3' && 'Federal 42 CFR Part 2 and HIPAA privacy disclosure notice explaining the strict legal confidentiality protecting your substance use disorder treatment records.'}
+                {selected.id === 'DOC-4' && 'Authorizes preferred methods of clinic contact (phone, SMS, secure portal) for appointment reminders, lab alerts, and center schedule changes.'}
+                {selected.id === 'DOC-5' && 'Phase 2 Take-Home Agreement governing the secure locked-box storage, handling, bottle return rules, and compliance requirements for unsupervised doses.'}
+              </p>
+              {selected.id === 'DOC-4' && selected.status === 'Review due' && (
+                <div className="bhg-safe-callout" style={{ marginTop: 12 }}>
+                  <AlertCircle size={18} style={{ color: '#D97706', flexShrink: 0 }} />
+                  <span style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+                    <strong>Annual Policy Review Due:</strong> Please review your contact preferences to ensure clinic schedule updates and emergency dosing announcements reach you without delay.
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Confidentiality Notice */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: '#64748B', padding: '10px 12px', background: '#F1F5F9', borderRadius: 8 }}>
+              <LockKeyhole size={14} style={{ color: '#005A70', flexShrink: 0 }} />
+              <span>Permanent electronic document archived in compliance with federal 42 CFR Part 2 and HIPAA regulations.</span>
+            </div>
+          </div>
+        </WorkflowDrawer>
+      )}
+
+      {/* Page Header */}
+      <div className="page-header" style={{ marginBottom: 16 }}>
+        <div className="page-header-left">
+          <h1 className="page-header-title" style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#0F172A' }}>
+            Forms & Documents
+          </h1>
+          <p className="page-header-subtitle" style={{ margin: '4px 0 0 0', fontSize: 13.5, color: '#64748B' }}>
+            Your signed treatment forms, program agreements, and privacy notices on file.
+          </p>
         </div>
-      </Card>
-      {selected && <WorkflowModal title={selected.name} subtitle={`${selected.category} · ${selected.date}`} onClose={() => setSelected(null)} footer={<><button className="bhg-button bhg-button-secondary" onClick={() => addToast('Demo PDF preview opened.', 'info')}>View document</button>{selected.status === 'Review due' ? <button className="bhg-button" onClick={acknowledge}>Acknowledge update</button> : <button className="bhg-button" onClick={() => setSelected(null)}>Done</button>}</>}>
-        <DemoBanner />
-        <div className="bhg-document-preview">
-          <FileCheck2 size={28} />
-          <h3>{selected.name}</h3>
-          <p>This demonstration represents the patient-facing summary of the document stored with the treatment record.</p>
-          <DetailRow label="Current status" value={selected.status} />
-          <DetailRow label="Recorded date" value={selected.date} />
-          {selected.id === 'DOC-4' && <div className="bhg-safe-callout"><LockKeyhole size={18} /><span>I agree that BHG may use my selected phone, text, and voicemail preferences to communicate about treatment operations. Sensitive details should not be included in voicemail.</span></div>}
+      </div>
+
+      {/* Search Bar */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+        <div className="search-bar" style={{ flex: 1, minWidth: 260, background: 'white' }}>
+          <Search size={16} color="#64748B" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search forms, consents, agreements, privacy notices..."
+            style={{ width: '100%', border: 'none', outline: 'none', background: 'transparent', fontSize: '13.5px' }}
+          />
+          {query && (
+            <X size={14} style={{ cursor: 'pointer', color: '#64748B' }} onClick={() => setQuery('')} />
+          )}
         </div>
-      </WorkflowModal>}
+      </div>
+
+      {/* Filter Chips Bar */}
+      <div
+        className="filter-bar"
+        style={{
+          marginBottom: 18,
+          display: 'flex',
+          gap: 8,
+          overflowX: 'auto',
+          flexWrap: 'nowrap',
+          WebkitOverflowScrolling: 'touch',
+          paddingBottom: 4,
+        }}
+      >
+        {filters.map((f) => (
+          <button
+            key={f}
+            type="button"
+            className={`filter-chip${activeFilter === f ? ' active' : ''}`}
+            onClick={() => setActiveFilter(f)}
+            style={{
+              fontSize: '12.5px',
+              padding: '6px 14px',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+              background: activeFilter === f ? '#005A70' : 'white',
+              color: activeFilter === f ? 'white' : '#475569',
+              border: activeFilter === f ? '1px solid #005A70' : '1px solid #CBD5E1',
+              borderRadius: '20px',
+              cursor: 'pointer',
+              fontWeight: activeFilter === f ? 600 : 500,
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {f}
+          </button>
+        ))}
+      </div>
+
+      {/* Documents List Card */}
+      <div className="card" style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+        {filteredDocs.length === 0 ? (
+          <div className="empty-state" style={{ padding: '48px 24px', textAlign: 'center' }}>
+            <div className="empty-state-icon" style={{ margin: '0 auto 12px auto', width: 48, height: 48, borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FileText size={24} color="#64748B" />
+            </div>
+            <div className="empty-state-title" style={{ fontSize: 16, fontWeight: 600, color: '#0F172A', marginBottom: 4 }}>No documents found</div>
+            <div className="empty-state-desc" style={{ fontSize: 13, color: '#64748B' }}>Try changing your search term or filter selection</div>
+          </div>
+        ) : (
+          filteredDocs.map((doc) => {
+            const iconConfig = getDocIconConfig(doc.category);
+            const IconComponent = iconConfig.icon;
+            return (
+              <div
+                key={doc.id}
+                className="record-item"
+                onClick={() => setSelected(doc)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 16,
+                  padding: '16px 20px',
+                  borderBottom: '1px solid #F1F5F9',
+                  cursor: 'pointer',
+                  transition: 'background 0.15s ease',
+                }}
+              >
+                {/* Category Icon */}
+                <div
+                  className="record-item-icon"
+                  style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: 10,
+                    background: iconConfig.bg,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <IconComponent size={20} color={iconConfig.color} />
+                </div>
+
+                {/* Title & Metadata */}
+                <div className="record-item-info" style={{ flex: 1, minWidth: 0 }}>
+                  <div className="record-item-title" style={{ fontSize: 14.5, fontWeight: 600, color: '#0F172A', lineHeight: 1.3 }}>
+                    {doc.name}
+                  </div>
+                  <div className="record-item-meta" style={{ fontSize: 12.5, color: '#64748B', marginTop: 3, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span>{doc.category} Document</span>
+                    <span>·</span>
+                    <span>{doc.date}</span>
+                    <span>·</span>
+                    <span>BHG Knoxville</span>
+                  </div>
+                </div>
+
+                {/* Status Badge + Arrow */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                  <PillBadge tone={doc.status === 'Review due' ? 'warning' : 'success'}>{doc.status}</PillBadge>
+                  <ChevronRight size={16} color="#94A3B8" />
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Footer Privacy Note */}
+      <div className="bhg-privacy-note" style={{ marginTop: '24px' }}>
+        <LockKeyhole size={17} />
+        <span>Signed agreements and consents are confidential. Protected under federal 42 CFR Part 2 regulations.</span>
+      </div>
     </div>
   );
 }
@@ -2123,221 +3761,633 @@ function GoalRing({ progress: pct, size = 72, stroke = 7, color = 'var(--accent)
   );
 }
 
-function MilestoneTimeline({ milestones }) {
-  const icons = ['🏁', '⭐', '💙', '🤝', '✅'];
-  return (
-    <div className="bhg-milestone-timeline" aria-label="Recovery milestones">
-      {milestones.map((item, i) => (
-        <div key={item.date} className={`bhg-milestone-item ${i === 0 ? 'bhg-milestone-latest' : ''}`}>
-          <div className="bhg-milestone-icon-col">
-            <span className="bhg-milestone-icon">{icons[i % icons.length]}</span>
-            {i < milestones.length - 1 && <span className="bhg-milestone-connector" aria-hidden="true" />}
-          </div>
-          <div className="bhg-milestone-body">
-            <small>{item.date}</small>
-            <strong>{item.title}</strong>
-            <p>{item.detail}</p>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export function Progress() {
   const { progress, treatment, navigate } = useApp();
-  const overallProgress = Math.round(
-    progress.currentGoals.reduce((sum, goal) => sum + goal.progress, 0) / progress.currentGoals.length
-  );
-
-  const ringColors = ['var(--accent)', 'var(--secondary)', '#22A06B'];
 
   return (
     <div className="bhg-page bhg-progress-page animate-fade-in">
+      {/* ── Page Header ── */}
       <PageHeader
         eyebrow="My recovery"
         title="Recovery progress"
-        description="A private view of the goals you set with your care team."
-        action={<PillBadge tone="primary">{treatment.phase} phase</PillBadge>}
+        description="Your treatment milestones, take-home schedule, and counselor visits."
+        action={<PillBadge tone="primary">{treatment.phase} · 2 Take-Home Days</PillBadge>}
       />
 
-      {/* Visual metrics strip */}
+      {/* ── Native Encouragement Banner ── */}
+      <div className="bhg-encouragement-banner">
+        <div className="bhg-encouragement-badge">
+          <Sparkles size={20} />
+        </div>
+        <div>
+          <div className="bhg-encouragement-days">{progress.enrolledDays} days in continuous recovery</div>
+          <div className="bhg-encouragement-sub">
+            {treatment.phase} achieved · 2 weekly take-home days · 6 months strong
+          </div>
+        </div>
+      </div>
+
+      {/* ── Native Progress Metrics Strip ── */}
       <div className="bhg-progress-visual-strip">
-        <div className="bhg-progress-visual-stat">
-          <GoalRing progress={overallProgress} size={88} stroke={8} color="var(--accent)" />
-          <div><strong>{overallProgress}%</strong><span>Overall goal progress</span></div>
-        </div>
-        <div className="bhg-progress-visual-stat">
-          <GoalRing progress={progress.attendanceRate} size={88} stroke={8} color="var(--secondary)" />
-          <div><strong>{progress.attendanceRate}%</strong><span>Visit consistency</span></div>
-        </div>
         <div className="bhg-progress-visual-center-stat">
           <span className="bhg-progress-big-number">{progress.enrolledDays}</span>
           <span className="bhg-progress-big-label">Days in treatment</span>
+        </div>
+        <div className="bhg-progress-visual-center-stat">
+          <span className="bhg-progress-big-number">{progress.attendanceRate}%</span>
+          <span className="bhg-progress-big-label">Visit consistency</span>
         </div>
         <div className="bhg-progress-visual-center-stat">
           <span className="bhg-progress-big-number">{progress.counselingSessions}</span>
           <span className="bhg-progress-big-label">Counseling sessions</span>
         </div>
         <div className="bhg-progress-visual-center-stat">
-          <span className="bhg-progress-big-number">{progress.completedGoals}</span>
-          <span className="bhg-progress-big-label">Goals completed</span>
+          <span className="bhg-progress-big-number" style={{ color: '#16A34A' }}>Active</span>
+          <span className="bhg-progress-big-label">No account holds</span>
         </div>
       </div>
 
-      <div className="bhg-two-column bhg-two-column-wide">
-        <Card className="bhg-feature-card">
-          <div className="bhg-feature-heading">
-            <span className="bhg-large-icon"><Target size={25} /></span>
-            <div>
-              <PillBadge tone="success">Active goals</PillBadge>
-              <h2>{treatment.phase} recovery plan</h2>
-              <p>Last reviewed {progress.lastReview} · Next review {progress.nextReview}</p>
+      {/* ── Two-Column Core Row: Take-Home & Next Counseling Session ── */}
+      <div className="bhg-two-column">
+        {/* Card 1: Take-Home Schedule */}
+        <Card>
+          <SectionTitle
+            title="Take-home schedule"
+            description="Your current take-home bottle privileges and phase status."
+            action={<PillBadge tone="success">Phase 2 Approved</PillBadge>}
+          />
+
+          <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 10, padding: '13px 15px', margin: '14px 0 12px 0' }}>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3 }}>
+              Approved Take-Home Days
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
+              Tuesday & Wednesday (2 bottles/week)
+            </div>
+            <div style={{ fontSize: 12, color: '#475569', marginTop: 3 }}>
+              In-person clinic window on Monday, Thursday, Friday, Saturday & Sunday.
             </div>
           </div>
-          <p className="bhg-body-copy">{progress.summary}</p>
-          <div className="bhg-detail-grid bhg-detail-grid-treatment">
-            <div><span>Primary counselor</span><strong>{progress.counselor}</strong></div>
-            <div><span>Last plan update</span><strong>{treatment.lastPlanUpdate}</strong></div>
-            <div><span>Goals completed</span><strong>{progress.completedGoals} total</strong></div>
-            <div><span>Current focus</span><strong>{treatment.lastPlanFocus}</strong></div>
-          </div>
-        </Card>
 
-        <Card>
-          <SectionTitle title="Engagement at a glance" description="How your recovery supports connect across care." />
-          <div className="bhg-progress-engagement">
-            {progress.engagementAreas.map((area) => (
-              <button key={area.title} type="button" className="bhg-progress-engagement-row" onClick={() => navigate(area.page)}>
-                <div>
-                  <strong>{area.title}</strong>
-                  <span>{area.note}</span>
-                </div>
-                <div className="bhg-progress-engagement-meta">
-                  <b>{area.metric}</b>
-                  <div className="bhg-progress-track"><span style={{ width: `${area.progress}%` }} /></div>
-                </div>
-                <ChevronRight size={16} />
-              </button>
-            ))}
-          </div>
-        </Card>
-      </div>
-
-      {/* Visual goal rings */}
-      <Card>
-        <SectionTitle title="Current goals" description="Set and reviewed with your counselor — not self-assigned in the portal." />
-        <div className="bhg-goal-rings-grid">
-          {progress.currentGoals.map((goal, i) => (
-            <div key={goal.title} className="bhg-goal-ring-card">
-              <GoalRing progress={goal.progress} size={80} stroke={7} color={ringColors[i % ringColors.length]} />
-              <div className="bhg-goal-ring-info">
-                <PillBadge tone="neutral">{goal.focus}</PillBadge>
-                <strong>{goal.title}</strong>
-                <span>{goal.note}</span>
+          <div style={{ background: 'var(--bg-alt)', borderRadius: 10, padding: '12px 14px', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: '#0F172A' }}>
+                Phase 3 Readiness (3 bottles/week)
+              </span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#16A34A', background: '#DCFCE7', padding: '2px 8px', borderRadius: 12 }}>
+                3 of 4 Met (75%)
+              </span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 10px', fontSize: 11.5, color: '#475569' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CheckCircle2 size={13} color="#16A34A" /> <span>90+ days attendance</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CheckCircle2 size={13} color="#16A34A" /> <span>Negative UDS labs</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CheckCircle2 size={13} color="#16A34A" /> <span>Counseling on-track</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Clock size={13} color="#D97706" /> <span>Review due Oct 2</span>
               </div>
             </div>
-          ))}
+          </div>
+        </Card>
+
+        {/* Card 2: Next Counseling Check-In */}
+        <Card>
+          <SectionTitle
+            title="Next counseling session"
+            description="Individual visit with your primary counselor."
+            action={<PillBadge tone="primary">Confirmed</PillBadge>}
+          />
+
+          <div style={{ background: 'var(--bg-alt)', border: '1px solid var(--border)', borderRadius: 10, padding: '13px 15px', margin: '14px 0 12px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: '#E0F2FE', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <CalendarDays size={20} color="#0284C7" />
+              </div>
+              <div>
+                <div style={{ fontSize: 14.5, fontWeight: 700, color: '#0F172A' }}>
+                  Thursday, September 17 at 10:30 AM
+                </div>
+                <div style={{ fontSize: 12, color: '#64748B' }}>
+                  Individual Counseling · BHG Knoxville Room 204
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, paddingTop: 8, borderTop: '1px dashed var(--border)', color: '#475569' }}>
+              <span>Primary counselor:</span>
+              <strong style={{ color: '#0F172A' }}>Alicia Monroe, LPC</strong>
+            </div>
+          </div>
+
+          <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 9, padding: '9px 12px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Sparkles size={15} color="#2563EB" style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: 11.5, color: '#1E40AF', lineHeight: 1.4 }}>
+              <strong>Upcoming Plan Review:</strong> Scheduled for October 2, 2026. Phase 3 take-home evaluation occurs here.
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              type="button"
+              className="bhg-button"
+              style={{ flex: 1, justifyContent: 'center', fontSize: 12.5 }}
+              onClick={() => navigate('messages')}
+            >
+              <MessageCircle size={14} style={{ marginRight: 6 }} /> Message counselor
+            </button>
+            <button
+              type="button"
+              className="bhg-button bhg-button-secondary"
+              style={{ flex: 1, justifyContent: 'center', fontSize: 12.5 }}
+              onClick={() => navigate('appointments')}
+            >
+              View appointments
+            </button>
+          </div>
+        </Card>
+      </div>
+
+      {/* ── Card 3: Recovery Milestones ── */}
+      <Card>
+        <SectionTitle
+          title="Recovery milestones"
+          description="Key moments and achievements in your treatment journey."
+        />
+        <div className="bhg-milestone-timeline" aria-label="Recovery milestones">
+          {progress.milestones.map((item, i) => {
+            const icons = [CheckCircle2, Pill, Target, Sparkles];
+            const colors = ['#16A34A', '#0284C7', '#7C3AED', '#D97706'];
+            const bgs = ['#DCFCE7', '#E0F2FE', '#EDE9FE', '#FEF3C7'];
+            const IconComp = icons[i % icons.length];
+            return (
+              <div key={item.date} className={`bhg-milestone-item ${i === 0 ? 'bhg-milestone-latest' : ''}`}>
+                <div className="bhg-milestone-icon-col">
+                  <span
+                    className="bhg-milestone-icon"
+                    style={{
+                      background: bgs[i % bgs.length],
+                      width: 32,
+                      height: 32,
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <IconComp size={15} color={colors[i % colors.length]} />
+                  </span>
+                  {i < progress.milestones.length - 1 && <span className="bhg-milestone-connector" aria-hidden="true" />}
+                </div>
+                <div className="bhg-milestone-body">
+                  <small>{item.date}</small>
+                  <strong>{item.title}</strong>
+                  <p>{item.detail}</p>
+                </div>
+              </div>
+            );
+          })}
         </div>
-        <button type="button" className="bhg-link-row" onClick={() => navigate('appointments')}>
-          Prepare for your next counseling visit <ArrowRight size={16} />
-        </button>
       </Card>
 
-      {/* Visual milestone timeline + completed goals side by side */}
-      <div className="bhg-two-column">
-        <Card>
-          <SectionTitle title="Recovery milestones" description="Key moments in your treatment journey." />
-          <MilestoneTimeline milestones={progress.milestones} />
-        </Card>
-
-        <Card>
-          <SectionTitle title="Completed goals" description="Earlier goals you and your care team have already achieved." />
-          <div className="bhg-progress-completed">
-            {progress.completedGoalsList.map((goal) => (
-              <div key={goal.title} className="bhg-progress-completed-row">
-                <CheckCircle2 size={18} />
-                <div>
-                  <strong>{goal.title}</strong>
-                  <span>Completed {goal.completedDate}</span>
-                  <small>{goal.note}</small>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="bhg-safe-callout bhg-progress-privacy">
-            <LockKeyhole size={18} />
-            <span>Recovery progress is shared only with your authorized BHG care team. Detailed clinical notes remain in your treatment record.</span>
-          </div>
-        </Card>
+      {/* ── Privacy Note ── */}
+      <div className="bhg-privacy-note" style={{ marginTop: 20 }}>
+        <LockKeyhole size={16} />
+        <span>
+          Recovery progress and treatment records are confidential. Protected under federal 42 CFR Part 2 and HIPAA regulations.
+        </span>
       </div>
     </div>
   );
 }
 
 export function Center() {
-  const { center, recoveryResources } = useApp();
+  const { center, createRequest, addToast } = useApp();
+  const [showTransferDrawer, setShowTransferDrawer] = useState(false);
+  const [transferType, setTransferType] = useState('permanent');
+  const [destinationClinic, setDestinationClinic] = useState('');
+  const [destinationCity, setDestinationCity] = useState('');
+  const [effectiveDate, setEffectiveDate] = useState('2026-10-01');
+  const [returnDate, setReturnDate] = useState('2026-10-08');
+  const [transferNotes, setTransferNotes] = useState('');
+  const [consentChecked, setConsentChecked] = useState(false);
+
   const mapsUrl = getCenterMapsUrl(center);
   const mapEmbedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(center.address)}&output=embed`;
+
+  const handleSubmitTransfer = () => {
+    createRequest({
+      type: 'Center transfer',
+      title: `${transferType === 'guest' ? 'Courtesy Guest Dosing' : 'Permanent Center Transfer'}: ${destinationClinic}`,
+      detail: `Type: ${transferType === 'guest' ? 'Guest Dosing' : 'Permanent Transfer'}, Target: ${destinationClinic} ${destinationCity ? `(${destinationCity})` : ''}, Effective: ${effectiveDate} ${transferType === 'guest' ? `to ${returnDate}` : ''}. Notes: ${transferNotes || 'Standard transfer'}. 42 CFR Part 2 Consent verified.`,
+      page: 'center',
+    });
+    addToast(
+      transferType === 'guest'
+        ? `Courtesy guest dosing request sent for ${destinationClinic}. Coordinator will verify dosing within 24 hours.`
+        : `Transfer request to ${destinationClinic} submitted. Intake coordinator will contact you.`,
+      'success'
+    );
+    setShowTransferDrawer(false);
+    setConsentChecked(false);
+  };
 
   return (
     <div className="bhg-page bhg-center-page animate-fade-in">
       <PageHeader
         eyebrow="Support"
-        title="Treatment center"
-        description="Hours, directions and important contact information."
-        action={(
-          <a className="bhg-button" href={mapsUrl} target="_blank" rel="noreferrer">
-            <Navigation size={16} /> Get directions
-          </a>
-        )}
+        title="Treatment Center"
+        description="Hours, directions, and essential contact details for BHG Knoxville."
       />
-      <Card className="bhg-center-map-card">
-        <div className="bhg-center-map-frame">
-          <iframe title={`Map — ${center.name}`} src={mapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen />
+
+      {/* ── Location & Interactive Map Hero Card ── */}
+      <Card style={{ padding: 0, overflow: 'hidden', marginBottom: 18 }}>
+        <div style={{ position: 'relative', width: '100%', height: 260, background: '#e2e8f0' }}>
+          <iframe
+            title={`Map — ${center.name}`}
+            src={mapEmbedUrl}
+            style={{ width: '100%', height: '100%', border: 0, display: 'block' }}
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            allowFullScreen
+          />
         </div>
-        <div className="bhg-center-map-footer">
-          <div>
-            <strong>{center.address}</strong>
-            <span>{center.directions}</span>
+        <div
+          style={{
+            padding: '16px 20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 16,
+            background: 'white',
+          }}
+        >
+          <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 10,
+                background: 'var(--primary-light)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--primary)',
+                flexShrink: 0,
+              }}
+            >
+              <MapPin size={22} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {center.name}
+                </h2>
+                <PillBadge tone="success">{center.status}</PillBadge>
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>
+                {center.address} &middot; <span style={{ color: 'var(--text-muted)' }}>{center.directions}</span>
+              </div>
+            </div>
           </div>
-          <a className="bhg-button bhg-button-secondary" href={mapsUrl} target="_blank" rel="noreferrer">
-            <Navigation size={15} /> Open in Google Maps
-          </a>
+
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <a
+              className="bhg-button"
+              href={mapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+            >
+              <Navigation size={15} /> Start GPS Directions
+            </a>
+            <a
+              className="bhg-button bhg-button-secondary"
+              href={`tel:${center.phone.replace(/\D/g, '')}`}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+            >
+              <Phone size={15} /> Call Front Desk
+            </a>
+          </div>
         </div>
       </Card>
+
+      {/* ── Two-Column: Hours & Holiday Schedule ── */}
       <div className="bhg-two-column">
-        <Card className="bhg-feature-card">
-          <div className="bhg-feature-heading"><span className="bhg-large-icon"><MapPin size={25} /></span><div><PillBadge tone="success">{center.status}</PillBadge><h2>{center.name}</h2><p>{center.address}</p></div></div>
-          <DetailRow label="Medication window" value={center.medicationWindow} />
-          <DetailRow label="Counseling hours" value={center.counselingHours} />
-          <DetailRow label="Main phone" value={center.phone} />
-          <DetailRow label="Today’s hours" value={center.todayHours} />
-          <p className="bhg-body-copy">{center.directions}</p>
-          <a className="bhg-link-row" href={mapsUrl} target="_blank" rel="noreferrer">
-            Start navigation to BHG Knoxville <ArrowRight size={16} />
-          </a>
-        </Card>
+        {/* Card 1: Hours */}
         <Card>
-          <SectionTitle title="Schedule notice" />
-          <div className="bhg-safe-callout"><CalendarDays size={18} /><span>{center.holidayNotice}</span></div>
-          <p className="bhg-body-copy">Call before traveling if severe weather or an emergency may affect center hours.</p>
+          <SectionTitle
+            title="Clinic & Medication Hours"
+            description="Arrive early to ensure uninterrupted dosing."
+          />
+
+          <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 10, padding: '14px 16px', margin: '14px 0 12px 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Medication Window Hours
+              </span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#166534', background: '#DCFCE7', padding: '2px 8px', borderRadius: 10 }}>
+                Today Open
+              </span>
+            </div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: '#0F172A' }}>
+              {center.medicationWindow}
+            </div>
+            <div style={{ fontSize: 12, color: '#475569', marginTop: 3 }}>
+              Observed clinic dosing window closes promptly at 11:30 AM under state OTP regulations.
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+            <DetailRow label="Counseling Hours" value={center.counselingHours} />
+            <DetailRow label="Center Phone" value={center.phone} />
+            <DetailRow label="Today’s Full Hours" value={center.todayHours} />
+          </div>
+        </Card>
+
+        {/* Card 2: Holiday Notices & Weather Advisories */}
+        <Card>
+          <SectionTitle
+            title="Schedule & Weather Notices"
+            description="Upcoming holiday hours and clinic adjustments."
+          />
+
+          <div style={{ background: 'var(--bg-alt)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px', margin: '14px 0 12px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+              <CalendarDays size={18} style={{ color: 'var(--primary)', flexShrink: 0, marginTop: 2 }} />
+              <div>
+                <strong style={{ fontSize: 13, color: 'var(--text-primary)', display: 'block', marginBottom: 3 }}>
+                  Upcoming Holiday Schedule
+                </strong>
+                <span style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+                  {center.holidayNotice}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bhg-safe-callout" style={{ marginTop: 12 }}>
+            <AlertCircle size={16} />
+            <span>
+              <strong>Severe Weather Policy:</strong> If severe winter weather or storms affect Knoxville, call <strong>{center.phone}</strong> before traveling to confirm dosing window operating hours.
+            </span>
+          </div>
         </Card>
       </div>
-      <Card>
-        <SectionTitle title="Important contacts" />
-        <div className="bhg-resource-grid">
-          {recoveryResources.map((resource) => (
-            <a href={resource.href} key={resource.title}><Phone size={18} /><strong>{resource.title}</strong><span>{resource.detail}</span><b>{resource.action}</b></a>
-          ))}
+
+      {/* ── Clinic Transfer & Courtesy Guest Dosing Card ── */}
+      <Card style={{ marginTop: 18, border: '1px solid #9CCDDD', background: '#F8FCFD' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+          <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+            <div
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: 10,
+                background: 'var(--primary-light)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--primary)',
+                flexShrink: 0,
+              }}
+            >
+              <Share2 size={20} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Moving or Traveling to Another Area?
+                </h3>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', background: 'var(--primary-light)', padding: '2px 8px', borderRadius: 6 }}>
+                  115+ BHG Centers Nationwide
+                </span>
+              </div>
+              <p style={{ margin: '4px 0 0 0', fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.45, maxWidth: 680 }}>
+                BHG coordinates continuous medication access across our entire clinic network. Whether you are relocating permanently or need temporary courtesy guest dosing while traveling, our care team will transfer your records and ensure your medication is ready with zero missed doses.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="bhg-button"
+            onClick={() => setShowTransferDrawer(true)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
+          >
+            <Share2 size={14} /> Request Center Transfer
+          </button>
         </div>
       </Card>
+
+      {/* ── Compact Emergency & Crisis Callout ── */}
+      <div
+        className="bhg-privacy-note"
+        style={{
+          marginTop: 20,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 12,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <HeartHandshake size={16} color="#005A70" />
+          <span>
+            <strong>24/7 Crisis Support:</strong> Call or text <strong>988</strong> anytime for confidential assistance. For medical emergencies, dial <strong>911</strong>.
+          </span>
+        </div>
+        <a href="tel:988" style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--primary)', textDecoration: 'none' }}>
+          Call 988 Lifeline &rarr;
+        </a>
+      </div>
+
+      {/* ── Transfer / Guest Dosing WorkflowDrawer ── */}
+      {showTransferDrawer && (
+        <WorkflowDrawer
+          title="Transfer Treatment Center"
+          subtitle="Coordinate seamless medication continuity with another BHG or certified OTP clinic"
+          onClose={() => setShowTransferDrawer(false)}
+          size="md"
+          footer={(
+            <>
+              <button
+                type="button"
+                className="bhg-button bhg-button-secondary"
+                onClick={() => setShowTransferDrawer(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="bhg-button"
+                disabled={!destinationClinic || !consentChecked}
+                onClick={handleSubmitTransfer}
+              >
+                Submit Transfer Request
+              </button>
+            </>
+          )}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <DemoBanner>
+              Transfer coordination is reviewed by BHG clinical staff to ensure uninterrupted dosing.
+            </DemoBanner>
+
+            {/* Transfer Type Selector */}
+            <div>
+              <span style={{ fontSize: 12, fontWeight: 750, color: 'var(--text-primary)', display: 'block', marginBottom: 8 }}>
+                What type of transfer do you need?
+              </span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => setTransferType('permanent')}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: 10,
+                    border: `2px solid ${transferType === 'permanent' ? 'var(--primary)' : 'var(--border)'}`,
+                    background: transferType === 'permanent' ? 'var(--primary-light)' : 'white',
+                    color: transferType === 'permanent' ? 'var(--primary)' : 'var(--text-secondary)',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <strong style={{ display: 'block', fontSize: 13, color: 'var(--text-primary)', marginBottom: 2 }}>
+                    Permanent Relocation
+                  </strong>
+                  <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                    Moving to a new city or home
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTransferType('guest')}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: 10,
+                    border: `2px solid ${transferType === 'guest' ? 'var(--primary)' : 'var(--border)'}`,
+                    background: transferType === 'guest' ? 'var(--primary-light)' : 'white',
+                    color: transferType === 'guest' ? 'var(--primary)' : 'var(--text-secondary)',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <strong style={{ display: 'block', fontSize: 13, color: 'var(--text-primary)', marginBottom: 2 }}>
+                    Courtesy / Guest Dosing
+                  </strong>
+                  <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                    Temporary travel or family visit
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Destination Clinic Selection */}
+            <Field label="Destination Treatment Center" hint="Select a BHG sister clinic or specify another certified OTP">
+              <select
+                value={destinationClinic}
+                onChange={(e) => setDestinationClinic(e.target.value)}
+              >
+                <option value="">-- Choose destination clinic --</option>
+                <option value="BHG Nashville (Downtown) — Nashville, TN">BHG Nashville (Downtown) — Nashville, TN</option>
+                <option value="BHG Memphis (Midtown) — Memphis, TN">BHG Memphis (Midtown) — Memphis, TN</option>
+                <option value="BHG Chattanooga — Chattanooga, TN">BHG Chattanooga — Chattanooga, TN</option>
+                <option value="BHG Johnson City (Tri-Cities) — Johnson City, TN">BHG Johnson City (Tri-Cities) — Johnson City, TN</option>
+                <option value="BHG Asheville — Asheville, NC">BHG Asheville — Asheville, NC</option>
+                <option value="BHG Lexington — Lexington, KY">BHG Lexington — Lexington, KY</option>
+                <option value="Other certified OTP clinic outside BHG network">Other certified OTP clinic outside BHG network</option>
+              </select>
+            </Field>
+
+            {destinationClinic.includes('Other') && (
+              <Field label="Receiving Clinic Name & City" hint="Provide the name or location of the OTP clinic you plan to visit">
+                <input
+                  type="text"
+                  value={destinationCity}
+                  onChange={(e) => setDestinationCity(e.target.value)}
+                  placeholder="e.g. Metro Treatment Center, Atlanta, GA"
+                />
+              </Field>
+            )}
+
+            {/* Dates Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: transferType === 'guest' ? 'repeat(2, minmax(0, 1fr))' : '1fr', gap: 12 }}>
+              <Field label={transferType === 'guest' ? 'Travel Start Date' : 'Effective Relocation Date'}>
+                <input
+                  type="date"
+                  value={effectiveDate}
+                  onChange={(e) => setEffectiveDate(e.target.value)}
+                />
+              </Field>
+              {transferType === 'guest' && (
+                <Field label="Return Date">
+                  <input
+                    type="date"
+                    value={returnDate}
+                    onChange={(e) => setReturnDate(e.target.value)}
+                  />
+                </Field>
+              )}
+            </div>
+
+            <Field label="Additional Notes for Care Coordinator (Optional)" hint="e.g. Travel details, preferred dosing window time">
+              <textarea
+                rows="2"
+                value={transferNotes}
+                onChange={(e) => setTransferNotes(e.target.value)}
+                placeholder="Let your care coordinator know about your travel plans…"
+              />
+            </Field>
+
+            {/* Medication Continuity Assurance Strip */}
+            <div style={{ padding: '12px 14px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8, fontSize: 12, color: '#166534', lineHeight: 1.5 }}>
+              <strong>Zero-Dosing Interruption Guarantee:</strong> Our clinical transfer coordinator will transmit your active <strong>Phase 2 take-home schedule (2 bottles/wk)</strong>, prescriber orders, and last verified clinic dose directly to the receiving medical team so you are cleared to dose upon arrival.
+            </div>
+
+            {/* 42 CFR Part 2 Consent Checkbox */}
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 10,
+                fontSize: 12,
+                color: 'var(--text-secondary)',
+                lineHeight: 1.45,
+                cursor: 'pointer',
+                background: 'var(--bg-alt)',
+                border: '1px solid var(--border)',
+                borderRadius: 8,
+                padding: '10px 12px',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={consentChecked}
+                onChange={(e) => setConsentChecked(e.target.checked)}
+                style={{ marginTop: 2, accentColor: 'var(--primary)', cursor: 'pointer' }}
+              />
+              <span>
+                <strong>42 CFR Part 2 Consent:</strong> I authorize BHG Knoxville to release my active medication dosing schedule, medical orders, and treatment records to the destination clinic for uninterrupted continuity of care.
+              </span>
+            </label>
+          </div>
+        </WorkflowDrawer>
+      )}
     </div>
   );
 }
 
 export function Profile() {
-  const { patient, center, updatePatient, addToast } = useApp();
+  const { patient, center, updatePatient, addToast, navigate } = useApp();
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({});
   const openEdit = (type) => {
@@ -2358,7 +4408,22 @@ export function Profile() {
           <DetailRow label="Full name" value={patient.name} />
           <DetailRow label="Patient ID" value={patient.id} />
           <DetailRow label="Date of birth" value={patient.dateOfBirth} />
-          <DetailRow label="Treatment center" value={center.shortName} />
+          <DetailRow
+            label="Treatment center"
+            value={
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                <strong>{center.shortName}</strong>
+                <button
+                  type="button"
+                  className="bhg-text-button"
+                  style={{ fontSize: 11.5, padding: 0 }}
+                  onClick={() => navigate('center')}
+                >
+                  Transfer clinic &rarr;
+                </button>
+              </span>
+            }
+          />
         </Card>
         <Card>
           <SectionTitle title="Contact preferences" action={<button className="bhg-text-button" onClick={() => openEdit('preferences')}>Manage</button>} />
@@ -2408,520 +4473,733 @@ export function Notifications() {
 
 /* ══════════════════════════════════════════════════════════════════════════
    TREATMENT RECORDS PAGE
-   BHG-specific record view grounded in SAMMS tables:
-   tbl_Orders, tbl_DOSE, tbl_DartsSrv, tbl_UAResults, tbl_BamForm/BamScore,
-   tbl_AdmissionAssessmentSummary, tbl_CONSENTS
+   BHG Health Record Hub with Medication Orders, Dose History, Labs & Consents
    ══════════════════════════════════════════════════════════════════════════ */
-
-function RecordsTab({ id, label, icon: Icon, active, count, onClick }) {
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={active}
-      className={`bhg-rec-tab ${active ? 'active' : ''}`}
-      onClick={() => onClick(id)}
-    >
-      <Icon size={15} />
-      <span>{label}</span>
-      {count != null && <span className="bhg-rec-tab-count">{count}</span>}
-    </button>
-  );
-}
-
-function RecordsBadge({ status }) {
-  const tone = status === 'Active' || status === 'Given' || status === 'Signed' || status === 'Acknowledged'
-    ? 'success'
-    : status === 'Take-home'
-      ? 'takehome'
-      : status === 'Missed' || status === 'Hold'
-        ? 'danger'
-        : status === 'Review due'
-          ? 'warning'
-          : 'neutral';
-  return <span className={`bhg-rec-badge bhg-rec-badge-${tone}`}>{status}</span>;
-}
-
-function BamScoreBar({ score, maxScore, lower }) {
-  const pct = Math.round((score / maxScore) * 100);
-  // For "lower is better" subscales, good = low pct → green at left end
-  // For "higher is better" subscales, good = high pct → green fill
-  const fillColor = lower
-    ? (pct <= 25 ? '#22A06B' : pct <= 50 ? '#f59e0b' : '#ef4444')
-    : (pct >= 75 ? '#22A06B' : pct >= 50 ? '#f59e0b' : '#ef4444');
-
-  return (
-    <div className="bhg-bam-bar-wrap">
-      <div className="bhg-bam-bar-track">
-        <span
-          className="bhg-bam-bar-fill"
-          style={{ width: `${pct}%`, background: fillColor }}
-        />
-      </div>
-      <span className="bhg-bam-bar-value">{score} / {maxScore}</span>
-    </div>
-  );
-}
 
 export function TreatmentRecords() {
   const {
     patient,
     treatment,
-    orderHistory,
-    medicationHistory,
-    counselingSessions,
-    bamAssessments,
-    intakeSummary,
     documents,
-    labStatus,
     careTeam,
     emergencyContact,
+    center,
     navigate,
     addToast,
+    createRequest,
+    acknowledgeDocument,
   } = useApp();
 
-  const TABS = [
-    { id: 'medication',  label: 'Medication',  icon: Pill },
-    { id: 'counseling',  label: 'Counseling',  icon: MessageCircle },
-    { id: 'screening',   label: 'UDS & Labs',  icon: TestTube2 },
-    { id: 'assessments', label: 'Assessments', icon: Activity },
-    { id: 'consents',    label: 'Consents',    icon: FileCheck2 },
+  const [activeFilter, setActiveFilter] = useState('All');
+  const [query, setQuery] = useState('');
+  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [showRecordsRequestModal, setShowRecordsRequestModal] = useState(false);
+  const [recordsRecipient, setRecordsRecipient] = useState('Self (Personal records)');
+  const [recordsNotes, setRecordsNotes] = useState('');
+
+  const counselor = careTeam?.find((m) => m.role.toLowerCase().includes('counselor')) || careTeam?.[0];
+  const doctor = careTeam?.find((m) => m.role.toLowerCase().includes('provider')) || careTeam?.[1];
+
+  const handleRequestOfficialRecords = () => {
+    createRequest({
+      type: 'Official records request',
+      title: `Records request for ${recordsRecipient}`,
+      detail: recordsNotes || 'Standard certified treatment record release.',
+      page: 'records',
+    });
+    addToast('Your records request was submitted to the medical records department.', 'success');
+    setShowRecordsRequestModal(false);
+    setRecordsNotes('');
+  };
+
+  const filters = [
+    'All',
+    'Medication Orders',
+    'Dose History',
+    'Lab Results',
+    'Clinical Notes',
+    'Consent Forms',
+    'Verification Letters',
+    'Privacy (42 CFR Part 2)',
   ];
 
-  const [activeTab, setActiveTab] = useState('medication');
-  const [expandedDose, setExpandedDose] = useState(false);
-  const [expandedSession, setExpandedSession] = useState(null);
-  const [expandedDimension, setExpandedDimension] = useState(null);
+  // Unified BHG Clinical Records Dataset
+  const allRecords = useMemo(() => {
+    const list = [];
 
-  const SHOW_DOSES = 5;
-  const visibleDoses = expandedDose ? medicationHistory : medicationHistory.slice(0, SHOW_DOSES);
+    // 1. Medication Orders (orderHistory)
+    orderHistory.forEach((ord) => {
+      list.push({
+        id: ord.id,
+        category: 'medication',
+        filterType: 'Medication Orders',
+        icon: Pill,
+        iconBg: '#EDE9FE',
+        iconColor: '#7C3AED',
+        title: `${ord.med} ${ord.dose} Daily Maintenance Order`,
+        type: `Prescription Order · ${ord.type}`,
+        date: ord.effectiveDate,
+        provider: ord.prescriber,
+        status: ord.status,
+        statusTone: ord.status === 'Active' ? 'success' : 'neutral',
+        detailSummary: ord.notes,
+        details: [
+          { label: 'Order Number', value: ord.id },
+          { label: 'Medication & Form', value: `${ord.med} (Oral Liquid Concentrate)` },
+          { label: 'Daily Dose Strength', value: ord.dose },
+          { label: 'Dispensing Schedule', value: ord.type },
+          { label: 'Prescribing Physician', value: `${ord.prescriber}, MD (Medical Director)` },
+          { label: 'Effective Date', value: ord.effectiveDate },
+          { label: 'Expiration Date', value: ord.expirationDate },
+          { label: 'Physician Clinical Notes', value: ord.notes },
+        ],
+      });
+    });
+
+    // 2. Dose History (medicationHistory)
+    medicationHistory.forEach((dose) => {
+      list.push({
+        id: dose.id,
+        category: 'dose',
+        filterType: 'Dose History',
+        icon: Clock,
+        iconBg: '#E0F2FE',
+        iconColor: '#0284C7',
+        title: `Dose Dispensed: ${dose.date} (${dose.mg} mg)`,
+        type: `Dispensing Log · ${dose.visitType}`,
+        date: dose.date,
+        provider: dose.location,
+        status: dose.status,
+        statusTone: dose.status === 'Given' ? 'success' : dose.status === 'Take-home' ? 'primary' : dose.status === 'Missed' ? 'danger' : 'neutral',
+        detailSummary: `Methadone ${dose.mg} mg oral suspension administration record for ${dose.date}.`,
+        details: [
+          { label: 'Dose Log ID', value: dose.id },
+          { label: 'Date of Administration', value: dose.date },
+          { label: 'Dose Quantity', value: `${dose.mg} mg oral liquid` },
+          { label: 'Dispensing Modality', value: dose.visitType === 'Take-home' ? 'Take-home bottle dispensed' : 'Observed window dosing' },
+          { label: 'Location / Bottle', value: dose.location },
+          { label: 'Administration Status', value: dose.status },
+          { label: 'Audit Verification', value: 'Electronic MAR (Medication Administration Record) Barcode Verified' },
+        ],
+      });
+    });
+
+    // 3. Lab & Toxicology Results (UDS)
+    const udsLabs = [
+      {
+        id: 'UDS-9102',
+        category: 'lab',
+        hubTab: 'lab',
+        filterType: 'Lab Results',
+        icon: FlaskConical,
+        iconBg: '#DCFCE7',
+        iconColor: '#16A34A',
+        title: '8-Panel Urine Toxicology Screen (Sep 2026)',
+        type: 'Lab Result · Comprehensive UDS',
+        date: 'September 11, 2026',
+        provider: 'Quest Diagnostics / BHG Knoxville Lab',
+        status: 'Available',
+        statusTone: 'success',
+        detailSummary: 'Routine monthly compliance screen. Methadone metabolite confirmed present as prescribed; negative for all non-prescribed illicit substances.',
+        details: [
+          { label: 'Accession Number', value: 'UDS-9102-TN' },
+          { label: 'Collection Timestamp', value: 'September 11, 2026 at 7:42 AM' },
+          { label: 'Reviewed by Clinician', value: 'Alicia Monroe, LPC (Sep 14, 2026)' },
+          { label: 'Methadone / EDDP Metabolite', value: 'Positive (Expected prescribed MAT)' },
+          { label: 'Opiates (Morphine/Codeine)', value: 'Negative' },
+          { label: 'Oxycodone', value: 'Negative' },
+          { label: 'Fentanyl & Analogues', value: 'Negative' },
+          { label: 'Buprenorphine', value: 'Negative' },
+          { label: 'Benzodiazepines', value: 'Negative' },
+          { label: 'Cocaine Metabolite', value: 'Negative' },
+          { label: 'Amphetamines / Meth', value: 'Negative' },
+          { label: 'Specimen Validity & Temp', value: 'Normal (96.4°F, Creatinine 82 mg/dL)' },
+        ],
+      },
+      {
+        id: 'UDS-8841',
+        category: 'lab',
+        hubTab: 'lab',
+        filterType: 'Lab Results',
+        icon: FlaskConical,
+        iconBg: '#DCFCE7',
+        iconColor: '#16A34A',
+        title: '8-Panel Urine Toxicology Screen (Aug 2026)',
+        type: 'Lab Result · Comprehensive UDS',
+        date: 'August 14, 2026',
+        provider: 'Quest Diagnostics / BHG Knoxville Lab',
+        status: 'Reviewed',
+        statusTone: 'success',
+        detailSummary: 'Expected methadone metabolite verified. Consistent with Phase 2 take-home stability criteria.',
+        details: [
+          { label: 'Accession Number', value: 'UDS-8841-TN' },
+          { label: 'Collection Timestamp', value: 'August 14, 2026' },
+          { label: 'Reviewed by Clinician', value: 'Dr. Marcus Hill, MD' },
+          { label: 'Prescribed Methadone', value: 'Positive (Consistent)' },
+          { label: 'Non-Prescribed Substances', value: 'None detected (Negative)' },
+        ],
+      },
+      {
+        id: 'LAB-7102',
+        category: 'lab',
+        hubTab: 'lab',
+        filterType: 'Lab Results',
+        icon: FlaskConical,
+        iconBg: '#DCFCE7',
+        iconColor: '#16A34A',
+        title: 'Comprehensive Chemistry & Hep C Intake Panel',
+        type: 'Lab Result · Blood Work & Serology',
+        date: 'March 14, 2026',
+        provider: 'Quest Diagnostics / BHG Lab Services',
+        status: 'Reviewed',
+        statusTone: 'success',
+        detailSummary: 'Baseline admission blood work, complete metabolic panel (CMP), Hepatitis C antibody screening, and liver function assessment.',
+        details: [
+          { label: 'Accession Number', value: 'CMP-7102-TN' },
+          { label: 'Collection Timestamp', value: 'March 14, 2026' },
+          { label: 'Comprehensive Metabolic Panel', value: 'Normal limits' },
+          { label: 'Liver Function (ALT / AST)', value: 'Normal (ALT: 28 U/L, AST: 24 U/L)' },
+          { label: 'Hep C Antibody Screen', value: 'Non-reactive' },
+          { label: 'TB QuantiFERON Gold', value: 'Negative' },
+        ],
+      },
+    ];
+    list.push(...udsLabs);
+
+    // 4. Clinical & Counseling Summaries
+    const clinicalNotes = [
+      {
+        id: 'CLIN-901',
+        category: 'clinical',
+        hubTab: 'clinical',
+        filterType: 'Clinical Notes',
+        icon: UserCheck,
+        iconBg: '#DBEAFE',
+        iconColor: '#2563EB',
+        title: 'Individual Counseling Clinical Summary',
+        type: 'Clinical Note · Counseling',
+        date: 'September 3, 2026',
+        provider: 'Alicia Monroe, LPC',
+        status: 'Reviewed',
+        statusTone: 'success',
+        detailSummary: '50-minute individual counseling session. Treatment progress, coping strategies for workplace stress, and family recovery support reviewed.',
+        details: [
+          { label: 'Session Note ID', value: 'DS-2901' },
+          { label: 'Clinician', value: 'Alicia Monroe, LPC (Primary Counselor)' },
+          { label: 'Service Modality', value: 'Individual Counseling (50 min, In Person)' },
+          { label: 'Treatment Phase', value: 'Phase 2 Maintenance' },
+          { label: 'Clinical Assessment', value: 'Patient demonstrates solid emotional regulation and attendance consistency. No cravings reported on current 90 mg regimen.' },
+          { label: 'Signatures on File', value: 'Patient & Clinician electronic signatures logged' },
+        ],
+      },
+      {
+        id: 'CLIN-807',
+        category: 'clinical',
+        hubTab: 'clinical',
+        filterType: 'Clinical Notes',
+        icon: UserCheck,
+        iconBg: '#DBEAFE',
+        iconColor: '#2563EB',
+        title: 'Take-Home Medication Readiness Evaluation',
+        type: 'Clinical Evaluation · Medical Provider',
+        date: 'August 7, 2026',
+        provider: 'Dr. Marcus Hill, MD',
+        status: 'Reviewed',
+        statusTone: 'success',
+        detailSummary: 'Clinical medical evaluation for take-home bottle eligibility under SAMHSA and Tennessee state guidelines. Approved for 2 weekly take-home doses.',
+        details: [
+          { label: 'Evaluation ID', value: 'MED-REV-807' },
+          { label: 'Evaluating Physician', value: 'Dr. Marcus Hill, MD (Medical Director)' },
+          { label: 'Criteria Verified', value: 'Absence of illicit drug use, regular clinic attendance, locked home storage box verified, positive counseling engagement.' },
+          { label: 'Clinical Outcome', value: 'Approved for Phase 2 Take-Home Schedule (Tuesday & Wednesday bottles)' },
+        ],
+      },
+      {
+        id: 'CLIN-314',
+        category: 'clinical',
+        hubTab: 'clinical',
+        filterType: 'Clinical Notes',
+        icon: UserCheck,
+        iconBg: '#DBEAFE',
+        iconColor: '#2563EB',
+        title: 'Initial Medical & Clinical Intake Assessment',
+        type: 'Clinical Assessment · Admission',
+        date: 'March 14, 2026',
+        provider: 'Dr. Marcus Hill, MD & Alicia Monroe',
+        status: 'Completed',
+        statusTone: 'success',
+        detailSummary: 'Comprehensive clinical evaluation on admission day. Opioid Use Disorder diagnosis confirmed, medical appropriateness established for outpatient MAT.',
+        details: [
+          { label: 'Admission Assessment ID', value: 'INTAKE-2026-0314' },
+          { label: 'Medical Director', value: 'Dr. Marcus Hill, MD' },
+          { label: 'Primary Counselor', value: 'Alicia Monroe, LPC' },
+          { label: 'Primary Diagnosis', value: 'Opioid Use Disorder (ICD-10 F11.20)' },
+          { label: 'Care Plan Established', value: 'Individualized Opioid Treatment Plan signed and active' },
+        ],
+      },
+    ];
+    list.push(...clinicalNotes);
+
+    // 5. Signed Consents & Program Agreements
+    documents.forEach((doc) => {
+      list.push({
+        id: doc.id,
+        category: 'consent',
+        hubTab: 'consent',
+        filterType: 'Consent Forms',
+        icon: ClipboardCheck,
+        iconBg: '#F0FDF4',
+        iconColor: '#16A34A',
+        title: doc.name,
+        type: `Signed Agreement · ${doc.category}`,
+        date: doc.date,
+        provider: 'BHG Knoxville Treatment Center',
+        status: doc.status,
+        statusTone: doc.status === 'Signed' || doc.status === 'Acknowledged' ? 'success' : 'warning',
+        detailSummary: `Official legal and clinical document electronically signed by ${patient.name} at BHG Knoxville.`,
+        details: [
+          { label: 'Document Number', value: doc.id },
+          { label: 'Agreement Title', value: doc.name },
+          { label: 'Category', value: doc.category },
+          { label: 'Date Acknowledged', value: doc.date },
+          { label: 'Status', value: doc.status },
+          { label: 'Audit Trail', value: 'Verified electronic signature archived under 42 CFR Part 2' },
+        ],
+      });
+    });
+
+    // 6. Verification Letter
+    list.push({
+      id: 'VER-9184',
+      category: 'letter',
+      filterType: 'Verification Letters',
+      icon: FileCheck2,
+      iconBg: '#FEF3C7',
+      iconColor: '#D97706',
+      title: 'Official Treatment Enrollment Verification Letter',
+      type: 'Verification Letter · Formal Letterhead',
+      date: 'September 16, 2026',
+      provider: 'Dr. Marcus Hill, MD (BHG Knoxville)',
+      status: 'Certified',
+      statusTone: 'success',
+      isLetter: true,
+      detailSummary: 'Certified clinic letterhead document confirming active enrollment, daily dosing adherence, and compliance in good standing.',
+      details: [
+        { label: 'Document ID', value: 'VER-2026-9184' },
+        { label: 'Patient Name', value: `${patient.name} (DOB: June 18, 1988)` },
+        { label: 'Patient ID', value: 'BHG-20481' },
+        { label: 'Continuous Enrollment', value: `${patient.daysInTreatment} days (Since March 14, 2026)` },
+        { label: 'Prescribing Physician', value: 'Dr. Marcus Hill, MD (Medical Director)' },
+        { label: 'Assigned Counselor', value: 'Alicia Monroe, LPC' },
+        { label: 'Compliance Status', value: 'Full compliance with observed dosing and counseling requirements' },
+        { label: 'Confidentiality Protection', value: 'Protected under Federal 42 CFR Part 2 and HIPAA regulations' },
+      ],
+    });
+
+    return list;
+  }, [documents, patient]);
+
+  // Filtering Logic
+  const filtered = useMemo(() => {
+    return allRecords.filter((record) => {
+      // Sub-filter chips
+      if (activeFilter !== 'All' && record.filterType !== activeFilter) {
+        return false;
+      }
+      // Search query
+      if (query.trim()) {
+        const q = query.toLowerCase();
+        const matchesTitle = record.title.toLowerCase().includes(q);
+        const matchesType = record.type.toLowerCase().includes(q);
+        const matchesProvider = record.provider.toLowerCase().includes(q);
+        const matchesSummary = record.detailSummary?.toLowerCase().includes(q);
+        const matchesId = record.id.toLowerCase().includes(q);
+        if (!matchesTitle && !matchesType && !matchesProvider && !matchesSummary && !matchesId) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [allRecords, activeFilter, query]);
+
+  const pendingReviewCount = allRecords.filter((r) => r.status === 'Review due' || r.status === 'Pending Review').length;
 
   return (
     <div className="bhg-page bhg-records-page animate-fade-in">
-      <PageHeader
-        eyebrow="My treatment"
-        title="Treatment records"
-        description="Your BHG treatment history — medications, counseling, drug screens, assessments, and consents."
-        action={<PillBadge tone="success">{treatment.status} · {treatment.program.split('(')[0].trim()}</PillBadge>}
-      />
+      {/* ══════ DETAIL SIDE DRAWER (PERFECTLY ALIGNED WORKFLOW DRAWER) ══════ */}
+      {selectedRecord && (
+        <WorkflowDrawer
+          title={selectedRecord.title}
+          subtitle={`${selectedRecord.type} · ${selectedRecord.date}`}
+          onClose={() => setSelectedRecord(null)}
+          size="lg"
+          footer={
+            <>
+              <button
+                type="button"
+                className="bhg-button bhg-button-secondary"
+                onClick={() => setSelectedRecord(null)}
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                className="bhg-button bhg-button-secondary"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                onClick={() => window.print()}
+              >
+                <Printer size={14} /> Print
+              </button>
+              <button
+                type="button"
+                className="bhg-button"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                onClick={() => {
+                  addToast(`PDF export generated for ${selectedRecord.title}.`, 'success');
+                }}
+              >
+                <Download size={14} /> Download PDF
+              </button>
+            </>
+          }
+        >
+          <div style={{ padding: '20px 24px' }}>
+            {/* Status & Date Tag */}
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+              <PillBadge tone={selectedRecord.statusTone}>{selectedRecord.status}</PillBadge>
+              <span className="badge badge-muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                <Calendar size={12} /> {selectedRecord.date}
+              </span>
+            </div>
 
-      {/* ── Quick stats strip ── */}
-      <div className="bhg-rec-stats">
-        <div><strong>{patient.daysInTreatment}</strong><span>Days in treatment</span></div>
-        <div><strong>{orderHistory.filter(o => o.status === 'Active').length}</strong><span>Active medication order</span></div>
-        <div><strong>{counselingSessions.length}</strong><span>Counseling sessions</span></div>
-        <div><strong>{labStatus.history.length}</strong><span>Drug screens on file</span></div>
-        <div><strong>{bamAssessments.length}</strong><span>BAM assessments</span></div>
-        <div><strong>{documents.filter(d => d.status !== 'Review due').length} / {documents.length}</strong><span>Consents current</span></div>
+            {/* Provider Info Box */}
+            <div style={{ background: '#F8FAFC', borderRadius: 10, padding: '12px 16px', border: '1px solid #E2E8F0', marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 12, color: '#64748B' }}>Provider / Facility</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{selectedRecord.provider}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 12, color: '#64748B' }}>Record ID</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#005A70' }}>{selectedRecord.id}</span>
+              </div>
+            </div>
+
+            {/* If Verification Letter: Render Official Letterhead Preview */}
+            {selectedRecord.isLetter ? (
+              <div style={{ background: 'white', padding: '20px', border: '1px solid #CBD5E1', borderRadius: '8px', fontFamily: 'Georgia, serif', color: '#1E293B', marginBottom: 16 }}>
+                <div style={{ borderBottom: '2px solid #005A70', paddingBottom: '10px', marginBottom: '14px', display: 'flex', justifyContent: 'space-between' }}>
+                  <div>
+                    <strong style={{ fontSize: '15px', color: '#005A70', display: 'block' }}>BHG KNOXVILLE TREATMENT CENTER</strong>
+                    <span style={{ fontSize: '11px', color: '#64748B', fontFamily: 'sans-serif' }}>Behavioral Health Group · Outpatient Opioid Treatment Program (OTP)</span>
+                  </div>
+                </div>
+                <div style={{ fontSize: '12px', color: '#64748B', fontFamily: 'sans-serif', marginBottom: '12px' }}>
+                  Date: September 16, 2026 · Patient: <strong>{patient.name}</strong> (DOB: June 18, 1988)
+                </div>
+                <p style={{ fontSize: '12.5px', lineHeight: '1.6', margin: '0 0 10px 0' }}>
+                  This letter certifies that <strong>{patient.name}</strong> is an active patient in good standing at BHG Knoxville Treatment Center, receiving outpatient Medication-Assisted Treatment (MMT). The patient has maintained continuous attendance for <strong>{patient.daysInTreatment} days</strong>.
+                </p>
+                <p style={{ fontSize: '12.5px', lineHeight: '1.6', margin: '0 0 10px 0' }}>
+                  The patient maintains full compliance with observed clinic dosing, regular toxicology monitoring, and clinical counseling requirements.
+                </p>
+                <div style={{ paddingTop: '12px', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', fontFamily: 'sans-serif', fontSize: '11.5px' }}>
+                  <div><strong>Dr. Marcus Hill, MD</strong><br /><span style={{ color: '#64748B' }}>Medical Director</span></div>
+                  <div style={{ color: '#94A3B8', textAlign: 'right' }}>Document ID: VER-2026-9184</div>
+                </div>
+              </div>
+            ) : (
+              /* Clinical Details Rows */
+              <div style={{ background: '#F8FAFC', borderRadius: 10, padding: '16px', border: '1px solid #E2E8F0', marginBottom: 16 }}>
+                <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', color: '#005A70', letterSpacing: '0.04em', marginBottom: 12 }}>
+                  Clinical Record Specifications
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {selectedRecord.details?.map((item, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        paddingBottom: 8,
+                        borderBottom: idx < selectedRecord.details.length - 1 ? '1px dashed #E2E8F0' : 'none',
+                        fontSize: 13,
+                      }}
+                    >
+                      <span style={{ color: '#64748B', flexShrink: 0, marginRight: 12 }}>{item.label}:</span>
+                      <span style={{ fontWeight: 500, color: '#0F172A', textAlign: 'right' }}>{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Confidentiality Notice */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: '#64748B', padding: '10px 12px', background: '#F1F5F9', borderRadius: 8 }}>
+              <LockKeyhole size={14} style={{ color: '#005A70', flexShrink: 0 }} />
+              <span>Confidential substance use disorder patient record protected under federal 42 CFR Part 2 and HIPAA regulations.</span>
+            </div>
+          </div>
+        </WorkflowDrawer>
+      )}
+
+      {/* ══════ PAGE HEADER ══════ */}
+      <div className="page-header" style={{ marginBottom: 16 }}>
+        <div className="page-header-left">
+          <h1 className="page-header-title" style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#0F172A' }}>
+            My Records
+          </h1>
+          <p className="page-header-subtitle" style={{ margin: '4px 0 0 0', fontSize: 13.5, color: '#64748B' }}>
+            Your health record hub · {allRecords.length} clinical records · {pendingReviewCount} pending review
+          </p>
+        </div>
       </div>
 
-      {/* ── Tab bar ── */}
-      <div className="bhg-rec-tabs" role="tablist" aria-label="Treatment record sections">
-        {TABS.map((tab) => (
-          <RecordsTab
-            key={tab.id}
-            id={tab.id}
-            label={tab.label}
-            icon={tab.icon}
-            active={activeTab === tab.id}
-            onClick={setActiveTab}
+      {/* Search Bar */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+        <div className="search-bar" style={{ flex: 1, minWidth: 260, background: 'white' }}>
+          <Search size={16} color="#64748B" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search medication orders, dose history, labs, clinical notes, consents..."
+            style={{ width: '100%', border: 'none', outline: 'none', background: 'transparent', fontSize: '13.5px' }}
           />
+          {query && (
+            <X size={14} style={{ cursor: 'pointer', color: '#64748B' }} onClick={() => setQuery('')} />
+          )}
+        </div>
+        <button
+          type="button"
+          className="bhg-button bhg-button-secondary"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13 }}
+          onClick={() => setShowRecordsRequestModal(true)}
+        >
+          <FileText size={14} /> Request Certified Records
+        </button>
+      </div>
+
+      {/* Unified Filter Chips Bar */}
+      <div
+        className="filter-bar"
+        style={{
+          marginBottom: 18,
+          display: 'flex',
+          gap: 8,
+          overflowX: 'auto',
+          flexWrap: 'nowrap',
+          WebkitOverflowScrolling: 'touch',
+          paddingBottom: 4,
+        }}
+      >
+        {filters.map((f) => (
+          <button
+            key={f}
+            type="button"
+            className={`filter-chip${activeFilter === f ? ' active' : ''}`}
+            onClick={() => setActiveFilter(f)}
+            style={{
+              fontSize: '12.5px',
+              padding: '6px 14px',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+              background: activeFilter === f ? '#005A70' : 'white',
+              color: activeFilter === f ? 'white' : '#475569',
+              border: activeFilter === f ? '1px solid #005A70' : '1px solid #CBD5E1',
+              borderRadius: '20px',
+              cursor: 'pointer',
+              fontWeight: activeFilter === f ? 600 : 500,
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {f}
+          </button>
         ))}
       </div>
 
-      {/* ══════ TAB: MEDICATION ══════ */}
-      {activeTab === 'medication' && (
-        <div className="bhg-rec-panel animate-fade-in" role="tabpanel">
-
-          {/* Current active order — featured card */}
-          {orderHistory.filter(o => o.status === 'Active').map((order) => (
-            <div key={order.id} className="bhg-rec-order-featured">
-              <div className="bhg-rec-order-featured-left">
-                <div className="bhg-rec-order-med-icon" aria-hidden="true"><Pill size={22} /></div>
-                <div>
-                  <div className="bhg-eyebrow">Current active order · {order.id}</div>
-                  <h2>{order.med} <span>{order.dose}</span></h2>
-                  <p>{order.type}</p>
-                  <p className="bhg-rec-order-note">{order.notes}</p>
+      {/* ══════ VIEW 1: RECORDS LIST ══════ */}
+      {activeFilter !== 'Privacy (42 CFR Part 2)' && (
+        <div className="card" style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+            {filtered.length === 0 ? (
+              <div className="empty-state" style={{ padding: '48px 24px', textAlign: 'center' }}>
+                <div className="empty-state-icon" style={{ margin: '0 auto 12px auto', width: 48, height: 48, borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <FileText size={24} color="#64748B" />
                 </div>
+                <div className="empty-state-title" style={{ fontSize: 16, fontWeight: 600, color: '#0F172A', marginBottom: 4 }}>No records found</div>
+                <div className="empty-state-desc" style={{ fontSize: 13, color: '#64748B' }}>Try changing your search term or filter selection</div>
               </div>
-              <div className="bhg-rec-order-featured-right">
-                <div><span>Prescriber</span><strong>{order.prescriber}</strong></div>
-                <div><span>Effective</span><strong>{order.effectiveDate}</strong></div>
-                <div><span>Authorization</span><strong>{order.expirationDate}</strong></div>
-                <div><span>Status</span><RecordsBadge status={order.status} /></div>
-              </div>
-            </div>
-          ))}
-
-          {/* Order history */}
-          <Card>
-            <SectionTitle title="Medication order history" description="Orders are written by your prescriber and cannot be changed in the portal." />
-            <div className="bhg-rec-order-list">
-              {orderHistory.map((order) => (
-                <div key={order.id} className={`bhg-rec-order-row ${order.status === 'Active' ? 'active' : ''}`}>
-                  <div className="bhg-rec-order-row-left">
-                    <div className="bhg-rec-order-icon-sm" aria-hidden="true">
-                      {order.status === 'Active' ? <Pill size={16} /> : <CheckCircle2 size={16} />}
-                    </div>
-                    <div>
-                      <strong>{order.med} · {order.dose}</strong>
-                      <span>{order.type}</span>
-                      <small>{order.notes}</small>
-                    </div>
-                  </div>
-                  <div className="bhg-rec-order-row-right">
-                    <span>{order.effectiveDate}</span>
-                    <RecordsBadge status={order.status} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* Recent doses */}
-          <Card>
-            <SectionTitle
-              title="Recent dose log"
-              description="Observed clinic visits and approved take-home days — last 10 entries."
-            />
-            <div className="bhg-rec-dose-list">
-              <div className="bhg-rec-dose-head">
-                <span>Date</span><span>Type</span><span>Dose (mg)</span><span>Location</span><span>Status</span>
-              </div>
-              {visibleDoses.map((dose) => (
-                <div key={dose.id} className="bhg-rec-dose-row">
-                  <span>{dose.date}</span>
-                  <span>{dose.visitType}</span>
-                  <span><strong>{dose.mg} mg</strong></span>
-                  <span>{dose.location}</span>
-                  <RecordsBadge status={dose.status} />
-                </div>
-              ))}
-            </div>
-            {medicationHistory.length > SHOW_DOSES && (
-              <button type="button" className="bhg-steps-toggle" onClick={() => setExpandedDose(v => !v)}>
-                {expandedDose
-                  ? <><ChevronUp size={14} /> Show fewer</>
-                  : <><ChevronDown size={14} /> Show all {medicationHistory.length} entries</>}
-              </button>
-            )}
-            <div className="bhg-safe-callout" style={{ marginTop: 14 }}>
-              <ShieldCheck size={18} />
-              <span>Contact the center before any changes to your medication routine. Your prescriber manages all dose adjustments.</span>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* ══════ TAB: COUNSELING ══════ */}
-      {activeTab === 'counseling' && (
-        <div className="bhg-rec-panel animate-fade-in" role="tabpanel">
-
-          {/* Stats */}
-          <div className="bhg-rec-session-stats">
-            <div className="bhg-rec-session-stat">
-              <strong>{counselingSessions.filter(s => s.serviceType === 'Individual').length}</strong>
-              <span>Individual sessions</span>
-            </div>
-            <div className="bhg-rec-session-stat">
-              <strong>{counselingSessions.filter(s => s.serviceType === 'Group').length}</strong>
-              <span>Group sessions</span>
-            </div>
-            <div className="bhg-rec-session-stat">
-              <strong>{counselingSessions.filter(s => s.telehealth).length}</strong>
-              <span>Telehealth sessions</span>
-            </div>
-            <div className="bhg-rec-session-stat">
-              <strong>{counselingSessions.filter(s => s.patientSigned).length}</strong>
-              <span>Patient-acknowledged</span>
-            </div>
-          </div>
-
-          <Card>
-            <SectionTitle
-              title="Counseling session log"
-              description="Sessions documented by your counselor in SAMMS. Patient-facing summaries only — detailed clinical notes stay in your treatment record."
-            />
-            <div className="bhg-rec-session-list">
-              {counselingSessions.map((session) => (
-                <div key={session.id} className="bhg-rec-session-row">
-                  <button
-                    type="button"
-                    className="bhg-rec-session-header"
-                    onClick={() => setExpandedSession(expandedSession === session.id ? null : session.id)}
-                    aria-expanded={expandedSession === session.id}
-                  >
-                    <div className="bhg-rec-session-date-tile">
-                      <span>{session.dateShort.split(' ')[0]}</span>
-                      <strong>{session.dateShort.split(' ')[1]}</strong>
-                    </div>
-                    <div className="bhg-rec-session-info">
-                      <div className="bhg-rec-session-top">
-                        <strong>{session.type}</strong>
-                        <div className="bhg-rec-session-chips">
-                          <PillBadge tone={session.serviceType === 'Group' ? 'neutral' : 'primary'}>
-                            {session.serviceType}
-                          </PillBadge>
-                          {session.telehealth && <PillBadge tone="neutral"><Video size={11} /> Telehealth</PillBadge>}
-                          {session.patientSigned && <PillBadge tone="success"><Check size={11} /> Signed</PillBadge>}
-                        </div>
-                      </div>
-                      <span>{session.counselor} · {session.duration}</span>
-                    </div>
-                    {expandedSession === session.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                  </button>
-
-                  {expandedSession === session.id && (
-                    <div className="bhg-rec-session-detail">
-                      <div className="bhg-rec-detail-grid">
-                        <div><span>Date</span><strong>{session.date}</strong></div>
-                        <div><span>Format</span><strong>{session.format}</strong></div>
-                        <div><span>Duration</span><strong>{session.duration}</strong></div>
-                        <div><span>Counselor</span><strong>{session.counselor}</strong></div>
-                      </div>
-                      <div className="bhg-rec-session-summary">
-                        <strong>Session summary</strong>
-                        <p>{session.summary}</p>
-                      </div>
-                      <DemoBanner>Patient-facing session summary only — not counselor documentation or raw clinical notes.</DemoBanner>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* ══════ TAB: UDS & LABS ══════ */}
-      {activeTab === 'screening' && (
-        <div className="bhg-rec-panel animate-fade-in" role="tabpanel">
-
-          <div className="bhg-rec-uds-stats">
-            <div><strong>{labStatus.stats.screensThisYear}</strong><span>Screens this year</span></div>
-            <div><strong>{labStatus.stats.complianceLabel}</strong><span>Monitoring status</span></div>
-            <div><strong>{labStatus.history.filter(h => h.status === 'Reviewed').length}</strong><span>Reviewed with counselor</span></div>
-            <div><strong>{labStatus.stats.lastReviewed}</strong><span>Last reviewed</span></div>
-          </div>
-
-          {/* Latest status card */}
-          <Card className="bhg-feature-card">
-            <div className="bhg-feature-heading">
-              <span className="bhg-large-icon"><TestTube2 size={25} /></span>
-              <div>
-                <PillBadge tone="warning">{labStatus.latest.status}</PillBadge>
-                <h2>{labStatus.latest.type}</h2>
-                <p>Collected {labStatus.latest.collected} · {labStatus.latest.collectionSite}</p>
-              </div>
-            </div>
-            <div className="bhg-safe-callout">
-              <LockKeyhole size={18} />
-              <span>{labStatus.latest.detail}</span>
-            </div>
-            <DetailRow label="Review with" value={labStatus.latest.reviewWith} />
-            <DetailRow label="Planned at" value={labStatus.latest.reviewWhen} />
-            <button type="button" className="bhg-link-row" onClick={() => navigate('labs')}>
-              Open full Lab & UDS page <ArrowRight size={16} />
-            </button>
-          </Card>
-
-          {/* Screen history */}
-          <Card>
-            <SectionTitle title="Drug screen history" description="Collection dates and review status — not analyte-level results. Results are always reviewed privately with your counselor." />
-            <div className="bhg-rec-uds-list">
-              <div className="bhg-rec-uds-head">
-                <span>Date</span><span>Type</span><span>Status</span><span>Reviewed by</span>
-              </div>
-              {labStatus.history.map((item) => (
-                <div key={item.id} className="bhg-rec-uds-row">
-                  <span><strong>{item.dateShort}</strong><small>{item.date}</small></span>
-                  <span>{item.type}</span>
-                  <RecordsBadge status={item.status} />
-                  <span>{item.reviewedBy ? `${item.reviewedBy} · ${item.reviewedDate}` : 'Pending review'}</span>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          <div className="bhg-info-banner">
-            <LockKeyhole size={18} />
-            <span>Detailed drug screen results are protected under 42 CFR Part 2. They are reviewed with you privately — never posted in the portal.</span>
-          </div>
-        </div>
-      )}
-
-      {/* ══════ TAB: ASSESSMENTS ══════ */}
-      {activeTab === 'assessments' && (
-        <div className="bhg-rec-panel animate-fade-in" role="tabpanel">
-
-          {/* Intake summary */}
-          <Card className="bhg-feature-card">
-            <SectionTitle
-              title="Admission assessment"
-              description={`Completed ${intakeSummary.date} · ${intakeSummary.assessedBy}`}
-              action={<PillBadge tone="success">Signed {intakeSummary.patientSignedDate}</PillBadge>}
-            />
-            <div className="bhg-rec-intake-hero">
-              <div className="bhg-rec-intake-field">
-                <span>Program recommended</span><strong>{intakeSummary.recommendation}</strong>
-              </div>
-              <div className="bhg-rec-intake-field">
-                <span>ASAM level of care</span><strong>{intakeSummary.asamLevel}</strong>
-              </div>
-              <div className="bhg-rec-intake-field">
-                <span>COWS score at admission</span>
-                <strong>{intakeSummary.cowsScore} <small>({intakeSummary.cowsInterpretation})</small></strong>
-              </div>
-            </div>
-            <div className="bhg-rec-intake-summary">
-              <strong>Clinical summary</strong>
-              <p>{intakeSummary.clinicalSummary}</p>
-            </div>
-
-            {/* ASAM 6 dimensions accordion */}
-            <div className="bhg-rec-asam-section">
-              <div className="bhg-rec-asam-label">
-                <Activity size={14} /> Six ASAM dimensions assessed at intake
-              </div>
-              <div className="bhg-rec-asam-grid">
-                {intakeSummary.sixDimensions.map((dim, i) => (
-                  <button
-                    key={dim.name}
-                    type="button"
-                    className={`bhg-rec-asam-item ${expandedDimension === i ? 'open' : ''}`}
-                    onClick={() => setExpandedDimension(expandedDimension === i ? null : i)}
-                  >
-                    <div className="bhg-rec-asam-item-head">
-                      <span className="bhg-rec-asam-num">{i + 1}</span>
-                      <span>{dim.name}</span>
-                      {expandedDimension === i ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                    </div>
-                    {expandedDimension === i && (
-                      <p className="bhg-rec-asam-detail">{dim.summary}</p>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </Card>
-
-          {/* BAM assessments */}
-          <Card>
-            <SectionTitle
-              title="Brief Addiction Monitor (BAM)"
-              description="Periodic recovery check-ins completed with your counselor. Subscale scores only — individual responses stay in your clinical record."
-            />
-            <div className="bhg-rec-bam-list">
-              {bamAssessments.map((bam) => (
-                <div key={bam.id} className="bhg-rec-bam-item">
-                  <div className="bhg-rec-bam-header">
-                    <div className="bhg-rec-bam-date-tile">
-                      <span>{bam.dateShort.split(' ')[0]}</span>
-                      <strong>{bam.dateShort.split(' ')[1]}</strong>
-                    </div>
-                    <div className="bhg-rec-bam-meta">
-                      <strong>BAM Assessment · {bam.date}</strong>
-                      <span>Completed with {bam.completedWith} · {bam.interval}</span>
-                    </div>
-                  </div>
-                  <div className="bhg-rec-bam-scores">
-                    {bam.scores.map((s) => (
-                      <div key={s.subscale} className="bhg-rec-bam-score-row">
-                        <div className="bhg-rec-bam-score-label">
-                          <span>{s.subscale}</span>
-                          <small>{s.interpretation}</small>
-                        </div>
-                        <BamScoreBar score={s.score} maxScore={s.maxScore} lower={s.lower} />
-                      </div>
-                    ))}
-                  </div>
-                  <p className="bhg-rec-bam-note"><Sparkles size={12} /> {bam.clinicianNote}</p>
-                </div>
-              ))}
-            </div>
-            <div className="bhg-safe-callout" style={{ marginTop: 14 }}>
-              <Activity size={18} />
-              <span>BAM scores are reviewed with your counselor over time to track recovery progress. Individual question responses stay in your clinical record.</span>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* ══════ TAB: CONSENTS ══════ */}
-      {activeTab === 'consents' && (
-        <div className="bhg-rec-panel animate-fade-in" role="tabpanel">
-
-          <Card>
-            <SectionTitle
-              title="Consents & program documents"
-              description="Documents signed or acknowledged during your enrollment at BHG Knoxville."
-            />
-            <div className="bhg-rec-consent-list">
-              {documents.map((doc) => (
-                <div key={doc.id} className={`bhg-rec-consent-row ${doc.status === 'Review due' ? 'needs-review' : ''}`}>
-                  <span className="bhg-rec-consent-icon" aria-hidden="true">
-                    {doc.status === 'Review due' ? <AlertCircle size={18} /> : <FileCheck2 size={18} />}
-                  </span>
-                  <div className="bhg-rec-consent-info">
-                    <strong>{doc.name}</strong>
-                    <span>{doc.category} · {doc.date}</span>
-                  </div>
-                  <RecordsBadge status={doc.status} />
-                  <button
-                    type="button"
-                    className="bhg-hold-cta"
-                    style={{ minWidth: 80 }}
-                    onClick={() => {
-                      addToast(`Demo: ${doc.name} preview opened.`, 'info');
+            ) : (
+              filtered.map((record) => (
+                <div
+                  key={record.id}
+                  className="record-item"
+                  onClick={() => setSelectedRecord(record)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 16,
+                    padding: '16px 20px',
+                    borderBottom: '1px solid #F1F5F9',
+                    cursor: 'pointer',
+                    transition: 'background 0.15s ease',
+                  }}
+                >
+                  {/* Category Icon */}
+                  <div
+                    className="record-item-icon"
+                    style={{
+                      width: 42,
+                      height: 42,
+                      borderRadius: 10,
+                      background: record.iconBg,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
                     }}
                   >
-                    <Download size={13} /> View
-                  </button>
-                </div>
-              ))}
-            </div>
-          </Card>
+                    <record.icon size={20} color={record.iconColor} />
+                  </div>
 
-          {/* Privacy note */}
-          <Card>
-            <SectionTitle title="42 CFR Part 2 privacy protection" />
-            <div className="bhg-safe-callout">
-              <LockKeyhole size={18} />
-              <span>
-                Your substance-use treatment records are protected by federal law (42 CFR Part 2) and HIPAA.
-                This information cannot be shared without your written consent except in limited circumstances.
+                  {/* Title & Metadata */}
+                  <div className="record-item-info" style={{ flex: 1, minWidth: 0 }}>
+                    <div className="record-item-title" style={{ fontSize: 14.5, fontWeight: 600, color: '#0F172A', lineHeight: 1.3 }}>
+                      {record.title}
+                    </div>
+                    <div className="record-item-meta" style={{ fontSize: 12.5, color: '#64748B', marginTop: 3, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span>{record.type}</span>
+                      <span>·</span>
+                      <span>{record.date}</span>
+                      <span>·</span>
+                      <span>{record.provider}</span>
+                    </div>
+                  </div>
+
+                  {/* Status Badge + Arrow */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                    <PillBadge tone={record.statusTone}>{record.status}</PillBadge>
+                    <ChevronRight size={16} color="#94A3B8" />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+      )}
+
+      {/* ══════ VIEW 2: PRIVACY & 42 CFR PART 2 ══════ */}
+      {activeFilter === 'Privacy (42 CFR Part 2)' && (
+        <div className="animate-fade-in">
+          <Card style={{ marginBottom: '20px' }}>
+            <SectionTitle
+              title="42 CFR Part 2: Federal Privacy Protections"
+              description="Your substance use disorder treatment records carry the highest legal confidentiality in the United States."
+            />
+            <div className="bhg-safe-callout" style={{ margin: '16px 0' }}>
+              <LockKeyhole size={20} />
+              <span style={{ fontSize: '13px', lineHeight: '1.5' }}>
+                Under federal law (42 CFR Part 2) and HIPAA, BHG cannot confirm or deny to an employer, family member, court, or law enforcement that you are a patient, unless you provide specific written consent.
               </span>
             </div>
-            <div className="bhg-rec-privacy-grid">
-              <div><ShieldCheck size={16} /><strong>Confidential by law</strong><span>BHG cannot confirm or deny that you are a patient without your consent.</span></div>
-              <div><FileCheck2 size={16} /><strong>You control disclosure</strong><span>You may authorize releases to family, courts, or other providers through signed consent forms.</span></div>
-              <div><LockKeyhole size={16} /><strong>Substance-use specific</strong><span>These protections go further than general HIPAA for addiction treatment records.</span></div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginTop: '16px' }}>
+              <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+                <strong style={{ fontSize: '14px', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <ShieldCheck size={18} style={{ color: '#16A34A' }} /> Employment Protection
+                </strong>
+                <p style={{ margin: '6px 0 0 0', fontSize: '12.5px', color: '#64748B', lineHeight: '1.5' }}>
+                  Your employer cannot view your records, counseling notes, or toxicology results. Background checks cannot access your BHG enrollment.
+                </p>
+              </div>
+
+              <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+                <strong style={{ fontSize: '14px', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <FileCheck2 size={18} style={{ color: '#005A70' }} /> You Control All Releases
+                </strong>
+                <p style={{ margin: '6px 0 0 0', fontSize: '12.5px', color: '#64748B', lineHeight: '1.5' }}>
+                  Records can only be shared with outside doctors, courts, or family members if you sign a specific Release of Information (ROI) form.
+                </p>
+              </div>
+
+              <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+                <strong style={{ fontSize: '14px', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <LockKeyhole size={18} style={{ color: '#0284C7' }} /> Revoke Consent Anytime
+                </strong>
+                <p style={{ margin: '6px 0 0 0', fontSize: '12.5px', color: '#64748B', lineHeight: '1.5' }}>
+                  You have the right to revoke or cancel any signed release form at any time simply by notifying the clinic front desk.
+                </p>
+              </div>
             </div>
           </Card>
 
-          {/* Emergency contact */}
+          {/* Emergency Contact */}
           <Card>
             <SectionTitle
-              title="Emergency contact on file"
-              description="Used for urgent clinical situations only. Update through Profile & Privacy or speak to the front desk."
+              title="Authorized Emergency Contact on File"
+              description="Permitted to be contacted for urgent medical emergencies only."
             />
-            <div className="bhg-rec-emergency">
-              <div className="bhg-rec-emergency-info">
-                <strong>{emergencyContact.name}</strong>
-                <span>{emergencyContact.relation} · {emergencyContact.phone}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', padding: '16px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0', marginTop: '12px' }}>
+              <div>
+                <strong style={{ fontSize: '14.5px', color: '#0F172A' }}>{emergencyContact.name}</strong>
+                <div style={{ fontSize: '13px', color: '#64748B', marginTop: '3px' }}>
+                  {emergencyContact.relation} · {emergencyContact.phone}
+                </div>
               </div>
-              <button type="button" className="bhg-button bhg-button-secondary" onClick={() => navigate('profile')}>
-                <UserRound size={14} /> Update in profile
+              <button
+                type="button"
+                className="bhg-button bhg-button-secondary"
+                style={{ fontSize: '12.5px' }}
+                onClick={() => navigate('profile')}
+              >
+                <UserRound size={14} style={{ marginRight: '6px' }} /> Update in Profile
               </button>
             </div>
           </Card>
         </div>
       )}
 
-      <div className="bhg-privacy-note">
+      {/* ══════ MODAL: REQUEST CERTIFIED RECORDS ══════ */}
+      {showRecordsRequestModal && (
+        <WorkflowModal
+          title="Request Certified Medical Records"
+          subtitle="Submit a formal records request to the BHG Health Information Management team"
+          onClose={() => setShowRecordsRequestModal(false)}
+          footer={
+            <>
+              <button type="button" className="bhg-button bhg-button-secondary" onClick={() => setShowRecordsRequestModal(false)}>
+                Cancel
+              </button>
+              <button type="button" className="bhg-button" onClick={handleRequestOfficialRecords}>
+                Submit Request
+              </button>
+            </>
+          }
+        >
+          <Field label="Who is this records request for?">
+            <select value={recordsRecipient} onChange={(e) => setRecordsRecipient(e.target.value)}>
+              <option>Self (Personal records)</option>
+              <option>Outside Healthcare Provider / Physician</option>
+              <option>Legal Counsel / Court / Probation</option>
+              <option>Insurance / Disability Determination</option>
+            </select>
+          </Field>
+          <Field label="Additional details or date range" hint="Include any specific dates or records needed.">
+            <textarea
+              rows="3"
+              value={recordsNotes}
+              onChange={(e) => setRecordsNotes(e.target.value)}
+              placeholder="e.g., Full attendance and treatment summary for the past 6 months..."
+            />
+          </Field>
+          <div style={{ padding: '10px 12px', background: '#F8FAFC', borderRadius: '8px', fontSize: '11.5px', color: '#64748B', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+            <LockKeyhole size={14} style={{ color: '#005A70', flexShrink: 0 }} />
+            <span>Records requests are processed within 2 to 5 business days in accordance with 42 CFR Part 2 and HIPAA.</span>
+          </div>
+        </WorkflowModal>
+      )}
+
+      {/* Footer Privacy Note */}
+      <div className="bhg-privacy-note" style={{ marginTop: '24px' }}>
         <LockKeyhole size={17} />
-        <span>Treatment records are private. Only you and authorized BHG care team members can access this information.</span>
+        <span>Treatment records are confidential. Protected under federal 42 CFR Part 2 regulations.</span>
       </div>
     </div>
   );
