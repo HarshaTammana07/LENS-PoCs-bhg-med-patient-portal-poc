@@ -34,21 +34,24 @@ export function WorkflowDrawer({ title, subtitle, children, onClose, footer, siz
   );
 }
 
-export function WorkflowModal({ title, subtitle, children, onClose, footer, size = 'md' }) {
+export function WorkflowModal({ title, subtitle, eyebrow, children, onClose, footer, actions, size = 'md' }) {
   useBodyScrollLock(true);
+
+  const modalFooter = footer || actions;
 
   return createPortal(
     <div className="bhg-workflow-overlay" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <section className={`bhg-workflow-modal ${size}`} role="dialog" aria-modal="true" aria-label={title}>
         <header>
           <div>
+            {eyebrow && <div className="bhg-eyebrow" style={{ marginBottom: 2 }}>{eyebrow}</div>}
             <h2>{title}</h2>
             {subtitle && <p>{subtitle}</p>}
           </div>
           <button type="button" onClick={onClose} aria-label="Close"><X size={18} /></button>
         </header>
         <div className="bhg-workflow-body">{children}</div>
-        {footer && <footer>{footer}</footer>}
+        {modalFooter && <footer>{modalFooter}</footer>}
       </section>
     </div>,
     document.body

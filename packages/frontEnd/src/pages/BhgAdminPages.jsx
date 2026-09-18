@@ -37,6 +37,7 @@ import {
   X,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { defaultCbtHomework } from '../data/bhgPatientData';
 import { DemoBanner, Field, WorkflowModal } from '../components/PrototypeUI';
 
 const patients = [
@@ -244,72 +245,7 @@ const centerLabels = {
   'jackson-tn': 'Jackson TN',
 };
 
-const defaultCbtHomework = [
-  {
-    id: 'HW-1',
-    patient: 'Jordan Williams',
-    patientId: 'BHG-20481',
-    title: '3-Column Automatic Thought Record',
-    category: 'Cognitive Restructuring',
-    assignedDate: 'Sep 10, 2026',
-    dueDate: 'Sep 17, 2026',
-    status: 'Completed',
-    situation: 'High stress shift at work on Monday; colleague called in sick and medication delivery was delayed.',
-    automaticThought: '"I can\'t manage this pressure without using. Everything will fall apart."',
-    cognitiveDistortion: 'Catastrophizing & All-or-Nothing Thinking',
-    rationalResponse: '"I have handled stressful workdays before by taking my scheduled 10-minute break, using 4-7-8 breathing, and texting my peer mentor. Using will only create worse problems tomorrow."',
-    outcome: 'Anxiety dropped from 8/10 to 3/10; finished shift without cravings.',
-    counselorFeedback: 'Superb evidence evaluation, Jordan. Identifying the catastrophizing trap allowed you to ground yourself before the urge escalated.',
-  },
-  {
-    id: 'HW-2',
-    patient: 'Jordan Williams',
-    patientId: 'BHG-20481',
-    title: 'Urge Surfing & Craving Wave Protocol',
-    category: 'Craving Management',
-    assignedDate: 'Sep 10, 2026',
-    dueDate: 'Sep 17, 2026',
-    status: 'Completed',
-    situation: 'Driving past former neighborhood on Tuesday evening.',
-    automaticThought: '"Just driving by won\'t hurt, I just want to see who is around."',
-    cognitiveDistortion: 'Minimization & Euphoric Recall',
-    rationalResponse: '"That route is a known high-risk trigger. I committed to the highway bypass route. The craving is just a wave that will crest and subside."',
-    outcome: 'Timed urge for 14 minutes with box breathing. Urge intensity reduced from 7/10 to 2/10.',
-    counselorFeedback: 'Very strong adherence to the Marlatt wave protocol. Notice how the craving peaked at 6 minutes then dissipated.',
-  },
-  {
-    id: 'HW-3',
-    patient: 'Taylor Brooks',
-    patientId: 'BHG-20476',
-    title: 'Decatastrophizing & Probability Thinking',
-    category: 'Cognitive Restructuring',
-    assignedDate: 'Sep 14, 2026',
-    dueDate: 'Sep 21, 2026',
-    status: 'Submitted',
-    situation: 'Bus ran 15 minutes late; worried about arriving before clinic dosing cutoff.',
-    automaticThought: '"If I am late, they will kick me out of the program and I\'ll lose my job."',
-    cognitiveDistortion: 'Catastrophizing',
-    rationalResponse: '"The clinic policy allows calling ahead if public transit is delayed. One delay does not equal program discharge."',
-    outcome: 'Called clinic while on bus; nurse documented arrival time.',
-    counselorFeedback: '',
-  },
-  {
-    id: 'HW-4',
-    patient: 'Riley Parker',
-    patientId: 'BHG-20432',
-    title: 'Behavioral Activation & Routine Schedule',
-    category: 'Behavioral Activation',
-    assignedDate: 'Sep 14, 2026',
-    dueDate: 'Sep 18, 2026',
-    status: 'In progress',
-    situation: 'Structuring non-work afternoon hours to avoid isolation.',
-    automaticThought: 'Feeling unmotivated to leave apartment after dosing.',
-    cognitiveDistortion: 'Emotional Reasoning',
-    rationalResponse: '',
-    outcome: '',
-    counselorFeedback: '',
-  },
-];
+
 
 const cbtOutcomesData = {
   'Jordan Williams': {
@@ -1614,6 +1550,7 @@ export function AdminPatientProfile() {
     setSelectedHomework(null);
     setAssignHomeworkModal(false);
     setReports(buildPatientReports(patient));
+    setHomeworkList([...defaultCbtHomework]);
   }, [patient]);
 
   const tabs = [
@@ -1635,6 +1572,11 @@ export function AdminPatientProfile() {
         : item
     ));
     setHomeworkList(updated);
+    const idx = defaultCbtHomework.findIndex((h) => h.id === selectedHomework.id);
+    if (idx !== -1) {
+      defaultCbtHomework[idx].counselorFeedback = counselorFeedbackDraft;
+      defaultCbtHomework[idx].status = 'Reviewed';
+    }
     setSelectedHomework(null);
     addToast('Counselor feedback saved and marked as reviewed.', 'success');
   };
@@ -1727,7 +1669,15 @@ export function AdminPatientProfile() {
             rows={homeworkList.filter((item) => item.patient === patient.name)}
             render={(item) => (
               <>
-                <td><strong>{item.title}</strong></td>
+                <td>
+                  <strong>{item.title}</strong>
+                  {item.counselorFeedback && (
+                    <div style={{ fontSize: '11.5px', color: '#0369a1', marginTop: 4, display: 'flex', alignItems: 'flex-start', gap: 5, background: '#f0f9ff', padding: '4px 8px', borderRadius: 4, border: '1px solid #bae6fd' }}>
+                      <MessageSquareText size={12} style={{ flexShrink: 0, marginTop: 2 }} />
+                      <span><strong>Counselor Feedback:</strong> "{item.counselorFeedback}"</span>
+                    </div>
+                  )}
+                </td>
                 <td><span className="bhg-chip" style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '12px', background: '#F1F5F9', color: '#334155' }}>{item.category}</span></td>
                 <td>{item.assignedDate}</td>
                 <td>{item.dueDate}</td>
@@ -1741,7 +1691,7 @@ export function AdminPatientProfile() {
                       setCounselorFeedbackDraft(item.counselorFeedback || '');
                     }}
                   >
-                    {item.status === 'Completed' || item.status === 'Submitted' ? 'Review & Feedback' : 'View details'}
+                    {item.status === 'Completed' || item.status === 'Submitted' ? 'Review & Feedback' : item.counselorFeedback ? 'View / Edit Feedback' : 'View details'}
                   </button>
                 </td>
               </>
@@ -2038,7 +1988,21 @@ export function AdminPatientProfile() {
               </div>
             )}
 
-            <Field label="Counselor Clinical Feedback (visible to patient in portal)">
+            {selectedHomework.counselorFeedback && (
+              <div style={{ padding: 12, background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <strong style={{ color: '#065F46', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <CheckCircle2 size={13} color="#059669" /> Current Counselor Feedback (Active in Patient Portal)
+                  </strong>
+                  <span style={{ fontSize: '11px', color: '#047857', fontWeight: 600 }}>Reviewed & Synced</span>
+                </div>
+                <p style={{ margin: 0, color: '#064E3B', fontSize: '13px', fontStyle: 'italic', lineHeight: 1.45 }}>
+                  "{selectedHomework.counselorFeedback}"
+                </p>
+              </div>
+            )}
+
+            <Field label={selectedHomework.counselorFeedback ? "Update Counselor Clinical Feedback" : "Counselor Clinical Feedback (visible to patient in portal)"}>
               <textarea
                 rows="3"
                 value={counselorFeedbackDraft}
@@ -2742,7 +2706,24 @@ export function AdminCbtLibrary() {
 
   const handleAssignSubmit = () => {
     const pt = patients.find((p) => p.id === selectedPatientId) || patients[0];
-    addToast(`Assigned "${assignTool.title}" to ${pt.name}. Due: ${assignDueDate}`, 'success');
+    const newAssignment = {
+      id: `HW-${Date.now()}`,
+      patient: pt.name,
+      patientId: pt.id,
+      title: assignTool.title,
+      category: assignTool.category,
+      assignedDate: 'Sep 17, 2026',
+      dueDate: assignDueDate || 'Sep 24, 2026',
+      status: 'Assigned',
+      situation: assignNote || `Assigned by counselor from CBT Tool Library: ${assignTool.title}.`,
+      automaticThought: '',
+      cognitiveDistortion: '',
+      rationalResponse: '',
+      outcome: 'Awaiting patient completion in Patient Portal.',
+      counselorFeedback: '',
+    };
+    defaultCbtHomework.unshift(newAssignment);
+    addToast(`Assigned "${assignTool.title}" to ${pt.name}'s caseload. Due: ${assignDueDate}`, 'success');
     setAssignTool(null);
     setAssignNote('');
   };
@@ -2836,8 +2817,9 @@ export function AdminCbtLibrary() {
           title={previewTool.title}
           eyebrow={`CBT Protocol · ${previewTool.category}`}
           onClose={() => setPreviewTool(null)}
-          actions={
-            <>
+          size="lg"
+          footer={
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, width: '100%' }}>
               <button
                 type="button"
                 className="bhg-button secondary"
@@ -2855,9 +2837,9 @@ export function AdminCbtLibrary() {
                   setSelectedPatientId(patients[0]?.id || '');
                 }}
               >
-                <Plus size={14} /> Assign to Patient
+                <Plus size={14} /> Assign to Patient Caseload
               </button>
-            </>
+            </div>
           }
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -2891,10 +2873,24 @@ export function AdminCbtLibrary() {
           title={`Assign "${assignTool.title}"`}
           eyebrow="Prescribe CBT Exercise"
           onClose={() => setAssignTool(null)}
-          actions={
-            <button type="button" className="bhg-button" onClick={handleAssignSubmit}>
-              <Send size={14} /> Send Assignment to Patient Portal
-            </button>
+          size="md"
+          footer={
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, width: '100%' }}>
+              <button
+                type="button"
+                className="bhg-button secondary"
+                onClick={() => setAssignTool(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="bhg-button"
+                onClick={handleAssignSubmit}
+              >
+                <Send size={14} /> Assign to Patient Caseload
+              </button>
+            </div>
           }
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

@@ -55,6 +55,7 @@ import {
   orderHistory,
   medicationHistory,
   counselingSessions,
+  defaultCbtHomework,
 } from '../data/bhgPatientData';
 import { DemoBanner, Field, RequestStatus, WorkflowDrawer, WorkflowModal } from '../components/PrototypeUI';
 
@@ -875,9 +876,16 @@ export function Dashboard() {
 
 export function Treatment() {
   const { treatment, patient, careTeam, counseling, progress, center, navigate } = useApp();
+  const [selectedCbtPractice, setSelectedCbtPractice] = useState(null);
 
   const counselor = careTeam.find((m) => m.role.toLowerCase().includes('counselor')) || careTeam[0];
   const doctor = careTeam.find((m) => m.role.toLowerCase().includes('provider')) || careTeam[1];
+
+  const patientHomework = useMemo(() => {
+    return defaultCbtHomework.filter(
+      (hw) => hw.patientId === patient.id || hw.patient === patient.name
+    );
+  }, [patient]);
 
   return (
     <div className="bhg-page bhg-treatment-page animate-fade-in">
@@ -1074,6 +1082,148 @@ export function Treatment() {
           </button>
         </Card>
       </div>
+
+      {/* Between-Session CBT Practice & Counselor Feedback Card */}
+      <Card>
+        <SectionTitle
+          title="Between-Session CBT Practice & Coping Exercises"
+          description={`Evidence-based exercises assigned by your counselor, ${counselor.name}. Review feedback and log practice between visits.`}
+          action={
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <PillBadge tone="primary">{patientHomework.length} Active</PillBadge>
+              <PillBadge tone="success">{patientHomework.filter((h) => h.status === 'Reviewed').length} Reviewed</PillBadge>
+            </div>
+          }
+        />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '14px', marginTop: '14px' }}>
+          {patientHomework.map((hw) => (
+            <div
+              key={hw.id}
+              style={{
+                padding: '14px 16px',
+                background: hw.status === 'Reviewed' ? '#F0FDF4' : 'var(--bhg-bg-subtle, #f8fafc)',
+                borderRadius: '10px',
+                border: hw.status === 'Reviewed' ? '1px solid #BBF7D0' : '1px solid var(--bhg-border-subtle, #e2e8f0)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                gap: 8,
+              }}
+            >
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <strong style={{ fontSize: '14px', color: '#0F172A' }}>{hw.title}</strong>
+                  <span className={`bhg-pill ${hw.status === 'Reviewed' ? 'bhg-pill-success' : 'bhg-pill-primary'}`} style={{ fontSize: '11px' }}>
+                    {hw.status}
+                  </span>
+                </div>
+                <div style={{ fontSize: '12px', color: '#64748B', marginBottom: 8 }}>
+                  <span>Category: <strong>{hw.category}</strong> · Target Due: {hw.dueDate}</span>
+                </div>
+
+                {hw.counselorFeedback ? (
+                  <div style={{ background: '#FFFFFF', border: '1px solid #A7F3D0', borderRadius: '8px', padding: '10px 12px', marginTop: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#065F46', fontSize: '11.5px', fontWeight: 700, marginBottom: '3px' }}>
+                      <CheckCircle2 size={13} color="#059669" /> Counselor Clinical Feedback:
+                    </div>
+                    <p style={{ margin: 0, fontSize: '12.5px', color: '#064E3B', fontStyle: 'italic', lineHeight: 1.45 }}>
+                      "{hw.counselorFeedback}"
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '12px', color: '#475569', background: '#FFFFFF', padding: '8px 10px', borderRadius: '6px', border: '1px solid #E2E8F0', marginTop: '6px' }}>
+                    <strong>Counselor Guidance:</strong> {hw.situation || 'Practice between sessions to reinforce coping skills.'}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="bhg-button bhg-button-secondary"
+                  style={{ fontSize: '12px', padding: '6px 12px', color: '#005A70' }}
+                  onClick={() => setSelectedCbtPractice(hw)}
+                >
+                  <FileText size={13} style={{ marginRight: 5 }} /> View Exercise & Feedback
+                </button>
+              </div>
+            </div>
+          ))}
+          {!patientHomework.length && (
+            <p style={{ margin: 0, fontSize: 13, color: '#64748B' }}>
+              No active exercises currently assigned. Your counselor will introduce new tools during your counseling sessions.
+            </p>
+          )}
+        </div>
+      </Card>
+
+      {/* Selected CBT Practice Modal */}
+      {selectedCbtPractice && (
+        <WorkflowModal
+          title={selectedCbtPractice.title}
+          subtitle={`Between-Session Practice · ${selectedCbtPractice.category}`}
+          onClose={() => setSelectedCbtPractice(null)}
+          size="md"
+          footer={
+            <button type="button" className="bhg-button" onClick={() => setSelectedCbtPractice(null)}>
+              Close
+            </button>
+          }
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: '#F8FAFC', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 12.5 }}>
+              <div><strong>Status:</strong> <span className={`bhg-pill ${selectedCbtPractice.status === 'Reviewed' ? 'bhg-pill-success' : 'bhg-pill-primary'}`}>{selectedCbtPractice.status}</span></div>
+              <div><strong>Due Date:</strong> {selectedCbtPractice.dueDate}</div>
+            </div>
+
+            {selectedCbtPractice.counselorFeedback && (
+              <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8, padding: '12px 14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#166534', fontWeight: 700, fontSize: 13, marginBottom: 4 }}>
+                  <CheckCircle2 size={15} color="#15803D" /> Counselor Clinical Feedback
+                </div>
+                <p style={{ margin: 0, fontSize: 13, color: '#14532D', fontStyle: 'italic', lineHeight: 1.5 }}>
+                  "{selectedCbtPractice.counselorFeedback}"
+                </p>
+                <div style={{ fontSize: 11, color: '#166534', marginTop: 6 }}>
+                  Shared by {patient.counselor || 'Alicia Monroe, LPC'}
+                </div>
+              </div>
+            )}
+
+            {selectedCbtPractice.situation && (
+              <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 8, padding: '12px 14px' }}>
+                <strong style={{ fontSize: 12.5, color: '#0F172A', display: 'block', marginBottom: 4 }}>1. Activating Situation / Trigger</strong>
+                <p style={{ margin: 0, fontSize: 12.5, color: '#334155' }}>{selectedCbtPractice.situation}</p>
+              </div>
+            )}
+
+            {selectedCbtPractice.automaticThought && (
+              <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '12px 14px' }}>
+                <strong style={{ fontSize: 12.5, color: '#991B1B', display: 'block', marginBottom: 4 }}>2. Automatic Thought & Identified Distortion</strong>
+                <p style={{ margin: 0, fontSize: 12.5, color: '#7F1D1D', fontStyle: 'italic' }}>{selectedCbtPractice.automaticThought}</p>
+                {selectedCbtPractice.cognitiveDistortion && (
+                  <div style={{ fontSize: 11.5, color: '#B91C1C', marginTop: 4 }}>
+                    <strong>Distortion:</strong> {selectedCbtPractice.cognitiveDistortion}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {selectedCbtPractice.rationalResponse && (
+              <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8, padding: '12px 14px' }}>
+                <strong style={{ fontSize: 12.5, color: '#166534', display: 'block', marginBottom: 4 }}>3. Your Rational Counter-Response</strong>
+                <p style={{ margin: 0, fontSize: 12.5, color: '#14532D' }}>{selectedCbtPractice.rationalResponse}</p>
+              </div>
+            )}
+
+            {selectedCbtPractice.outcome && (
+              <div style={{ background: '#F8FAFC', borderRadius: 8, padding: '10px 12px', fontSize: 12 }}>
+                <strong>Reported Outcome:</strong> <span style={{ color: '#334155' }}>{selectedCbtPractice.outcome}</span>
+              </div>
+            )}
+          </div>
+        </WorkflowModal>
+      )}
 
       {/* Safety, Privacy & Support */}
       <Card>
