@@ -24,6 +24,8 @@ const pageTitles = {
   'admin-patient-profile': ['Patient Profile', 'Overview, care plan, sessions, and laboratory review'],
   'admin-check-ins': ['Medication Visit Status', 'Read-only medical-team coordination'],
   'admin-appointments': ['Sessions', 'Documentation, attendance, and completed notes'],
+  'admin-group-sessions': ['Group Sessions', 'Rosters, attendance, and group recovery therapy'],
+  'admin-cbt-library': ['CBT Tool Library', 'Evidence-based handouts, worksheets, and exercises'],
   'admin-session-note': ['Session Note', 'Locked, finalized clinical documentation'],
   'admin-counseling': ['Counseling & Goals', 'Recovery planning and required services'],
   'admin-care-coordination': ['Care Coordination', 'Requests, referrals, and clinical routing'],

@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Bell,
+  BookOpen,
   Building2,
   CalendarDays,
   ClipboardCheck,
@@ -45,9 +46,11 @@ const accountNav = [
 
 const adminNav = [
   { id: 'admin-dashboard', label: 'Clinician Dashboard', icon: LayoutDashboard },
+  { id: 'admin-appointments', label: 'Sessions', icon: CalendarDays },
   { id: 'admin-patients', label: 'My Caseload', icon: UsersRound },
   { id: 'admin-messages', label: 'Secure Messages', icon: MessageCircle, badge: 'clinicianMessages' },
-  { id: 'admin-appointments', label: 'Sessions', icon: CalendarDays },
+  { id: 'admin-group-sessions', label: 'Group Sessions', icon: UsersRound },
+  { id: 'admin-cbt-library', label: 'CBT Tool Library', icon: BookOpen },
   { id: 'admin-counseling', label: 'Counseling & Goals', icon: ClipboardCheck },
   { id: 'admin-care-coordination', label: 'Care Coordination', icon: HeartHandshake },
   { id: 'admin-check-ins', label: 'Medication Visit Status', icon: UserRoundCheck },
