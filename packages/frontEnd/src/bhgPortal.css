@@ -7612,6 +7612,58 @@
   line-height: 1.45;
 }
 
+.bhg-admin-row-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px 10px;
+  min-width: 150px;
+}
+
+.bhg-admin-row-actions .bhg-button {
+  min-height: 30px;
+  padding: 5px 9px;
+  border-radius: 7px;
+  gap: 5px;
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.bhg-admin-row-actions .bhg-text-button {
+  white-space: nowrap;
+}
+
+.bhg-admin-cleared-label {
+  color: #087A57;
+  font-size: 10.5px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.bhg-referral-form {
+  display: grid;
+  gap: 16px;
+}
+
+.bhg-referral-source {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-light);
+  border-radius: 9px;
+  background: var(--bg-alt);
+}
+
+.bhg-referral-source strong {
+  color: var(--text-primary);
+  font-size: 11px;
+}
+
+.bhg-referral-source span {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
 .clinician-content .bhg-admin-toolbar {
   margin-bottom: 16px;
 }
@@ -7626,6 +7678,26 @@
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--primary-light);
   background: white;
+}
+
+.bhg-admin-search-clear {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: var(--text-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.bhg-admin-search-clear:hover,
+.bhg-admin-search-clear:focus-visible {
+  color: var(--primary);
+  background: var(--primary-light);
+  outline: none;
 }
 
 .clinician-content .bhg-caseload-card {
@@ -8572,6 +8644,135 @@
   margin-top: auto;
 }
 
+.bhg-clinician-priority-card {
+  margin-top: 16px;
+  padding: 18px 20px 20px;
+}
+
+.bhg-clinician-priority-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 2px 0 14px;
+}
+
+.bhg-clinician-priority-summary span {
+  padding: 5px 9px;
+  border: 1px solid var(--border-light);
+  border-radius: 99px;
+  color: var(--text-secondary);
+  background: var(--bg-alt);
+  font-size: 10px;
+  line-height: 1;
+}
+
+.bhg-clinician-priority-summary strong {
+  color: var(--text-primary);
+}
+
+.bhg-clinician-priority-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.bhg-clinician-priority-item {
+  min-width: 0;
+  min-height: 68px;
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  color: var(--text-primary);
+  background: #FFFFFF;
+  text-align: left;
+  transition: var(--transition);
+}
+
+.bhg-clinician-priority-item:hover,
+.bhg-clinician-priority-item:focus-visible {
+  border-color: #9CCFDF;
+  background: #F8FBFC;
+  box-shadow: 0 0 0 3px rgba(0, 98, 128, .08);
+  outline: none;
+}
+
+.bhg-clinician-priority-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  color: #176B4C;
+  background: #E7F6EF;
+}
+
+.bhg-clinician-priority-icon.urgent {
+  color: #9A5B08;
+  background: #FFF4D8;
+}
+
+.bhg-clinician-priority-icon.review {
+  color: var(--secondary);
+  background: var(--primary-light);
+}
+
+.bhg-clinician-priority-icon.waiting {
+  color: #5B5F9B;
+  background: #F0F1FF;
+}
+
+.bhg-clinician-priority-copy {
+  min-width: 0;
+}
+
+.bhg-clinician-priority-copy small,
+.bhg-clinician-priority-copy strong,
+.bhg-clinician-priority-copy > span {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bhg-clinician-priority-copy small {
+  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.bhg-clinician-priority-copy strong {
+  margin-top: 2px;
+  font-size: 11.5px;
+}
+
+.bhg-clinician-priority-copy > span {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 9.5px;
+}
+
+.bhg-clinician-priority-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--secondary);
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .bhg-clinician-priority-list {
+    grid-template-columns: 1fr;
+  }
+}
+
 .bhg-dashboard-record-list {
   display: grid;
 }
@@ -9039,7 +9240,46 @@
 }
 
 .bhg-session-table-card .bhg-admin-table {
-  min-width: 1100px;
+  min-width: 940px;
+}
+
+.bhg-session-table-card .bhg-admin-table th:last-child,
+.bhg-session-table-card .bhg-admin-table td:last-child {
+  position: sticky;
+  right: 0;
+  min-width: 150px;
+  background: #FFFFFF;
+  box-shadow: -8px 0 12px -12px rgba(15, 23, 42, .45);
+}
+
+.bhg-session-table-card .bhg-admin-table th:last-child {
+  z-index: 3;
+  background: var(--bg-alt);
+}
+
+.bhg-session-table-card .bhg-admin-table td:last-child {
+  z-index: 2;
+}
+
+.bhg-session-table-card .bhg-admin-table tbody tr:hover td:last-child {
+  background: #F8FBFC;
+}
+
+.bhg-session-table-summary {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bhg-session-table-summary > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-muted);
+  font-size: 9.5px;
+  font-weight: 700;
 }
 
 .bhg-session-actions {
@@ -9490,6 +9730,7 @@
 }
 
 .bhg-group-previous-box {
+  width: 100%;
   background: #f0fdfa;
   border: 1px solid #ccfbf1;
   border-left: 3px solid #0d9488;
@@ -9500,6 +9741,17 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bhg-group-previous-box:hover,
+.bhg-group-previous-box:focus-visible {
+  border-color: #5EEAD4;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, .1);
+  outline: none;
 }
 
 .bhg-group-previous-header {
@@ -9527,6 +9779,7 @@
 }
 
 .bhg-group-previous-topic {
+  display: block;
   font-size: 12px;
   color: #134e4a;
   margin: 0 0 4px;
@@ -9541,6 +9794,72 @@
   color: #0d9488;
 }
 
+.bhg-group-previous-status {
+  color: #0d9488;
+  font-weight: 700;
+}
+
+.bhg-group-details-summary {
+  min-height: 38px;
+  margin-bottom: 12px;
+  padding: 7px 9px;
+  display: flex;
+  align-items: center;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  background: #FBFDFE;
+}
+
+.bhg-group-details-summary > span {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-muted);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.bhg-group-details-toggle {
+  margin-left: auto;
+  padding: 3px 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--secondary);
+  background: transparent;
+  font-size: 10.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.bhg-group-details-toggle svg {
+  transition: transform .16s ease;
+}
+
+.bhg-group-details-toggle[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+
+.bhg-group-details-toggle:hover,
+.bhg-group-details-toggle:focus-visible {
+  background: var(--primary-light);
+  outline: none;
+}
+
+.bhg-group-expanded-details {
+  animation: bhgGroupDetailsIn .16s ease-out;
+}
+
+@keyframes bhgGroupDetailsIn {
+  from { opacity: 0; transform: translateY(-3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .bhg-group-roster-preview {
   margin-bottom: 16px;
 }
@@ -9553,6 +9872,10 @@
   font-weight: 600;
   color: #475569;
   margin-bottom: 8px;
+}
+
+.bhg-group-roster-preview-header > span:last-child {
+  color: #0284c7;
 }
 
 .bhg-group-roster-chips {
@@ -9770,7 +10093,7 @@
   border-radius: 8px;
   padding: 10px 12px;
   margin-bottom: 12px;
-  min-height: 78px;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -9792,6 +10115,29 @@
   font-size: 12px;
   color: #78350f;
   line-height: 1.45;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.bhg-group-not-held-text.expanded {
+  display: block;
+  overflow: visible;
+}
+
+.bhg-group-not-held-followup {
+  margin-top: 4px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: #B45309;
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+
+.bhg-group-not-held-followup strong {
+  flex: 0 0 auto;
 }
 
 /* Patient Group Notes Modal */

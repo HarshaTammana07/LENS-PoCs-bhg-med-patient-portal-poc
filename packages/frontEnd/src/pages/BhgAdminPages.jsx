@@ -88,15 +88,15 @@ const counseling = [
 ];
 
 const uds = [
-  { patient: 'Jordan Williams', centerId: 'knoxville-bernard', type: 'Random UDS', collected: 'Sep 12', result: 'Consistent', review: 'Reviewed' },
-  { patient: 'Taylor Brooks', centerId: 'knoxville-citico', type: 'Random UDS', collected: 'Sep 14', result: 'Processing', review: 'Pending' },
-  { patient: 'Casey Morgan', centerId: 'jackson-tn', type: 'Oral fluid', collected: 'Sep 11', result: 'Consistent', review: 'Reviewed' },
-  { patient: 'Riley Parker', centerId: 'knoxville-bernard', type: 'Random UDS', collected: 'Sep 14', result: 'Exception', review: 'Provider review' },
-  { patient: 'Avery Thompson', centerId: 'knoxville-bernard', type: 'Random UDS', collected: 'Sep 15', result: 'Processing', review: 'Pending' },
-  { patient: 'Jamie Carter', centerId: 'knoxville-citico', type: 'Random UDS', collected: 'Sep 13', result: 'Consistent', review: 'Reviewed' },
-  { patient: 'Emerson Davis', centerId: 'knoxville-citico', type: 'Oral fluid', collected: 'Sep 15', result: 'Processing', review: 'Pending' },
-  { patient: 'Kendall Wright', centerId: 'jackson-tn', type: 'Random UDS', collected: 'Sep 14', result: 'Exception', review: 'Provider review' },
-  { patient: 'Logan Mitchell', centerId: 'jackson-tn', type: 'Random UDS', collected: 'Sep 15', result: 'Consistent', review: 'Reviewed' },
+  { id: 'UDS-260912-01', patient: 'Jordan Williams', centerId: 'knoxville-bernard', type: 'Random UDS', collected: 'Sep 12', result: 'Consistent', review: 'Reviewed' },
+  { id: 'UDS-260914-02', patient: 'Taylor Brooks', centerId: 'knoxville-citico', type: 'Random UDS', collected: 'Sep 14', result: 'Processing', review: 'Pending' },
+  { id: 'OF-260911-03', patient: 'Casey Morgan', centerId: 'jackson-tn', type: 'Oral fluid', collected: 'Sep 11', result: 'Consistent', review: 'Reviewed' },
+  { id: 'UDS-260914-04', patient: 'Riley Parker', centerId: 'knoxville-bernard', type: 'Random UDS', collected: 'Sep 14', result: 'Exception', review: 'Provider review' },
+  { id: 'UDS-260915-05', patient: 'Avery Thompson', centerId: 'knoxville-bernard', type: 'Random UDS', collected: 'Sep 15', result: 'Processing', review: 'Pending' },
+  { id: 'UDS-260913-06', patient: 'Jamie Carter', centerId: 'knoxville-citico', type: 'Random UDS', collected: 'Sep 13', result: 'Consistent', review: 'Reviewed' },
+  { id: 'OF-260915-07', patient: 'Emerson Davis', centerId: 'knoxville-citico', type: 'Oral fluid', collected: 'Sep 15', result: 'Processing', review: 'Pending' },
+  { id: 'UDS-260914-08', patient: 'Kendall Wright', centerId: 'jackson-tn', type: 'Random UDS', collected: 'Sep 14', result: 'Exception', review: 'Provider review' },
+  { id: 'UDS-260915-09', patient: 'Logan Mitchell', centerId: 'jackson-tn', type: 'Random UDS', collected: 'Sep 15', result: 'Consistent', review: 'Reviewed' },
 ];
 
 const referrals = [
@@ -237,6 +237,20 @@ function timeOrder(value) {
   let hours = Number(match[1]) % 12;
   if (match[3].toUpperCase() === 'PM') hours += 12;
   return (hours * 60) + Number(match[2]);
+}
+
+function sessionTimestamp(session) {
+  const timestamp = Date.parse(`${session.date} ${session.time}`);
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
+function compareSessionsForWorkflow(a, b) {
+  const aScheduled = a.status === 'Scheduled';
+  const bScheduled = b.status === 'Scheduled';
+  if (aScheduled !== bScheduled) return aScheduled ? -1 : 1;
+  return aScheduled
+    ? sessionTimestamp(a) - sessionTimestamp(b)
+    : sessionTimestamp(b) - sessionTimestamp(a);
 }
 
 const centerLabels = {
@@ -771,7 +785,7 @@ function Table({ columns, rows, render }) {
     </div>
   );
 }
-function AdminSearchBar({ value, onChange, placeholder = 'Search...', onClear, actionButton, style }) {
+function AdminSearchBar({ value, onChange, placeholder = 'Search...', label, onClear, actionButton, style }) {
   return (
     <div style={{ display: 'flex', gap: 12, marginBottom: 14, flexWrap: 'wrap', width: '100%', ...style }}>
       <div className="search-bar bhg-admin-search" style={{ flex: 1, minWidth: 260, background: 'white' }}>
@@ -780,10 +794,18 @@ function AdminSearchBar({ value, onChange, placeholder = 'Search...', onClear, a
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
+          aria-label={label || placeholder}
           style={{ width: '100%', border: 'none', outline: 'none', background: 'transparent', fontSize: '13.5px' }}
         />
         {value && (
-          <X size={14} style={{ cursor: 'pointer', color: '#64748B' }} onClick={onClear || (() => onChange(''))} />
+          <button
+            type="button"
+            className="bhg-admin-search-clear"
+            aria-label="Clear search"
+            onClick={onClear || (() => onChange(''))}
+          >
+            <X size={14} />
+          </button>
         )}
       </div>
       {actionButton}
@@ -896,7 +918,6 @@ export function AdminDashboard() {
   const missedVisitRecords = centerOutcomes.filter((item) => item.outcome === 'Patient did not attend');
   const missedVisits = missedVisitRecords.length;
   const pendingOffers = centerProposals.filter((item) => item.status === 'Awaiting patient response').length;
-  const reviewedReports = centerUds.filter((item) => item.review === 'Reviewed').length;
   const reportsNeedingReview = centerUds.filter((item) => item.review !== 'Reviewed').length;
   const clinicianAppointments = centerAppointments.filter((item) => /Morgan Reed/i.test(item.resource)).sort((a, b) => timeOrder(a.time) - timeOrder(b.time));
   const upcomingAppointment = clinicianAppointments[0];
@@ -916,6 +937,66 @@ export function AdminDashboard() {
     });
   }, [dashboardHomework, selectedTreatmentCenterId]);
   const submittedHw = centerHomework.filter((h) => h.status === 'Submitted');
+  const priorityItems = [
+    ...missedVisitRecords.map((item) => ({
+      id: `missed-${item.id || `${item.patient}-${item.date}`}`,
+      priority: 1,
+      tone: 'urgent',
+      icon: AlertTriangle,
+      category: 'Missed visit',
+      title: item.patient,
+      detail: `${item.date} · ${item.service}`,
+      action: 'Review outcome',
+      onClick: () => navigate('admin-appointments'),
+    })),
+    ...centerOpenWorkItems.map((item) => ({
+      id: `response-${item.id}`,
+      priority: item.status === 'New' ? 1 : 2,
+      tone: item.status === 'New' ? 'urgent' : 'review',
+      icon: MessageSquareText,
+      category: item.type,
+      title: item.patient,
+      detail: `${item.status} · ${item.created}`,
+      action: 'Open request',
+      onClick: () => navigate('admin-care-coordination'),
+    })),
+    ...centerUds.filter((item) => item.review !== 'Reviewed').map((item) => ({
+      id: `uds-${item.patient}-${item.collected}`,
+      priority: 2,
+      tone: 'review',
+      icon: TestTube2,
+      category: 'UDS & lab review',
+      title: item.patient,
+      detail: `${item.type} · Collected ${item.collected}`,
+      action: 'Review result',
+      onClick: () => navigate('admin-labs'),
+    })),
+    ...submittedHw.map((item) => ({
+      id: `cbt-${item.id}`,
+      priority: 2,
+      tone: 'review',
+      icon: BookOpen,
+      category: 'CBT practice review',
+      title: item.patient,
+      detail: item.title,
+      action: 'Review practice',
+      onClick: () => {
+        setSelectedDashboardHw(item);
+        setCounselorFeedbackDraft(item.counselorFeedback || '');
+      },
+    })),
+    ...centerProposals.filter((item) => item.status === 'Awaiting patient response').map((item) => ({
+      id: `offer-${item.id || `${item.patient}-${item.date}`}`,
+      priority: 3,
+      tone: 'waiting',
+      icon: CalendarDays,
+      category: 'Appointment offer',
+      title: item.patient,
+      detail: 'Awaiting patient response',
+      action: 'View offer',
+      onClick: () => navigate('admin-care-coordination'),
+    })),
+  ].sort((a, b) => a.priority - b.priority).slice(0, 6);
 
   return (
     <div className="bhg-page">
@@ -964,67 +1045,41 @@ export function AdminDashboard() {
         <Stat icon={AlertTriangle} label="Missed Visits" value={missedVisits} note="Follow-up and rescheduling" items={missedVisitRecords.slice(0, 3).map((item) => ({ primary: item.patient, secondary: `${item.date} · ${item.service}` }))} action="Review outcomes" onClick={() => navigate('admin-appointments')} tone="warning" />
         <Stat icon={MessageSquareText} label="Patient Responses" value={openWorkItems + pendingOffers} note={`${centerOpenWorkItems.filter((item) => item.status === 'New').length} new · ${centerOpenWorkItems.filter((item) => item.status === 'In review').length} in review`} items={responseRecords.slice(0, 3)} action="Open response queue" onClick={() => navigate('admin-care-coordination')} tone="warning" />
       </div>
-      <div className="bhg-admin-dashboard-bottom-row">
-        <section className="bhg-card bhg-admin-dashboard-equal-card">
-          <div className="bhg-section-title"><div><h2>UDS & lab review status</h2><p>Reports requiring clinician review in this center view.</p></div><Status>{reportsNeedingReview} need review</Status></div>
-          <div className="bhg-dashboard-record-list">
-            {centerUds.slice(0, 3).map((item) => <div key={`${item.patient}-${item.collected}`}><span><strong>{item.patient}</strong><small>{item.type} · Collected {item.collected}</small></span><span><Status>{item.review}</Status><small>{item.result}</small></span></div>)}
+      <section className="bhg-card bhg-clinician-priority-card" aria-labelledby="clinician-priority-heading">
+        <div className="bhg-section-title">
+          <div>
+            <h2 id="clinician-priority-heading">Needs my attention</h2>
+            <p>One prioritized list for clinical reviews, missed visits, and patient follow-up.</p>
           </div>
-          <div className="bhg-admin-progress"><span style={{ width: `${centerUds.length ? Math.round((reviewedReports / centerUds.length) * 100) : 0}%` }} /></div>
-          <div className="bhg-admin-progress-label"><span>{reviewedReports} reviewed</span><strong>{reportsNeedingReview} need review</strong></div>
-          <button className="bhg-link-row" onClick={() => navigate('admin-labs')}>Open UDS & lab review <ArrowRight size={14} /></button>
-        </section>
-
-        <section className="bhg-card bhg-admin-dashboard-equal-card">
-          <div className="bhg-section-title">
-            <div>
-              <h2>CBT practice review</h2>
-              <p>Between-session logs & thought records awaiting review.</p>
-            </div>
-            <Status>{submittedHw.length ? `${submittedHw.length} need review` : 'Up to date'}</Status>
+          <Status>{priorityItems.length} prioritized</Status>
+        </div>
+        <div className="bhg-clinician-priority-summary" aria-label="Attention queue summary">
+          <span><strong>{missedVisits}</strong> missed visits</span>
+          <span><strong>{openWorkItems}</strong> patient requests</span>
+          <span><strong>{reportsNeedingReview}</strong> lab reviews</span>
+          <span><strong>{submittedHw.length}</strong> CBT reviews</span>
+        </div>
+        {priorityItems.length ? (
+          <div className="bhg-clinician-priority-list">
+            {priorityItems.map((item) => {
+              const PriorityIcon = item.icon;
+              return (
+                <button key={item.id} type="button" className="bhg-clinician-priority-item" onClick={item.onClick}>
+                  <span className={`bhg-clinician-priority-icon ${item.tone}`}><PriorityIcon size={16} /></span>
+                  <span className="bhg-clinician-priority-copy">
+                    <small>{item.category}</small>
+                    <strong>{item.title}</strong>
+                    <span>{item.detail}</span>
+                  </span>
+                  <span className="bhg-clinician-priority-action">{item.action}<ArrowRight size={14} /></span>
+                </button>
+              );
+            })}
           </div>
-          <div className="bhg-dashboard-record-list">
-            {centerHomework.slice(0, 3).map((item) => (
-              <div
-                key={item.id}
-                style={{ cursor: 'pointer' }}
-                onClick={() => {
-                  setSelectedDashboardHw(item);
-                  setCounselorFeedbackDraft(item.counselorFeedback || '');
-                }}
-                title="Click to review log"
-              >
-                <span>
-                  <strong>{item.patient}</strong>
-                  <small>{item.title}</small>
-                </span>
-                <span>
-                  <Status>{item.status}</Status>
-                  <small style={{ color: item.status === 'Submitted' ? '#005A70' : '#64748B', fontWeight: item.status === 'Submitted' ? 600 : 400 }}>
-                    {item.status === 'Submitted' ? 'Review log' : item.category}
-                  </small>
-                </span>
-              </div>
-            ))}
-          </div>
-          <div className="bhg-admin-progress">
-            <span style={{ width: `${centerHomework.length ? Math.round((centerHomework.filter((h) => h.status === 'Completed').length / centerHomework.length) * 100) : 0}%`, background: '#059669' }} />
-          </div>
-          <div className="bhg-admin-progress-label">
-            <span>{centerHomework.filter((h) => h.status === 'Completed').length} completed</span>
-            <strong>{submittedHw.length} pending review</strong>
-          </div>
-          <button className="bhg-link-row" onClick={() => navigate('admin-patients')}>
-            View all caseload practice <ArrowRight size={14} />
-          </button>
-        </section>
-
-        <section className="bhg-card bhg-admin-work-queue bhg-admin-dashboard-equal-card">
-          <div className="bhg-section-title"><div><h2>Patient response queue</h2><p>Top requests requiring a counselor response.</p></div><Status>{openWorkItems} open</Status></div>
-          <WorkQueue limit={3} compact />
-          <button className="bhg-link-row" onClick={() => navigate('admin-care-coordination')}>Open all patient responses <ArrowRight size={14} /></button>
-        </section>
-      </div>
+        ) : (
+          <div className="bhg-admin-empty"><CheckCircle2 size={22} /><strong>Nothing needs attention</strong><span>New clinical and patient follow-up tasks will appear here.</span></div>
+        )}
+      </section>
 
       {selectedDashboardHw && (
         <WorkflowModal
@@ -1353,6 +1408,7 @@ export function AdminMessages() {
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}
                     placeholder={`Write a secure reply to ${selected.patient}…`}
+                    aria-label={`Secure reply to ${selected.patient}`}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter' && !event.shiftKey) {
                         event.preventDefault();
@@ -2057,12 +2113,15 @@ export function AdminPatientProfile() {
   );
 }
 export function AdminCheckIns() {
-  const { selectedTreatmentCenterId, selectedTreatmentCenter, addToast } = useApp();
+  const { selectedTreatmentCenterId, selectedTreatmentCenter, addToast, createReferral } = useApp();
   const [checkInsData, setCheckInsData] = useState(checkIns);
   const [query, setQuery] = useState('');
   const [stageFilter, setStageFilter] = useState('All');
   const [selectedHoldItem, setSelectedHoldItem] = useState(null);
   const [clearanceNote, setClearanceNote] = useState('Attended scheduled counseling session with Morgan Reed, LPC-MHSP. Treatment engagement and coping routine reviewed. Patient cleared for daily dosing window.');
+  const [selectedSupportItem, setSelectedSupportItem] = useState(null);
+  const [supportNeed, setSupportNeed] = useState('Transportation support');
+  const [supportDetails, setSupportDetails] = useState('');
 
   const centerCheckIns = rowsForCenter(checkInsData, selectedTreatmentCenterId);
   const filteredCheckIns = useMemo(() => centerCheckIns.filter((item) => {
@@ -2084,6 +2143,31 @@ export function AdminCheckIns() {
     )));
     addToast(`Clinical hold cleared for ${selectedHoldItem.patient}. Dosing nurse notified.`, 'success');
     setSelectedHoldItem(null);
+  };
+
+  const submitSupportReferral = () => {
+    if (!selectedSupportItem) return;
+    const ownerByNeed = {
+      'Transportation support': 'Care coordination',
+      'Housing resources': 'Social services',
+      'Peer recovery support': 'Morgan Reed',
+      'Coverage or financial support': 'Patient financial counselor',
+      'Guest dosing or travel support': 'Nursing / care coordination',
+      'Other access barrier': 'Care coordination',
+    };
+    createReferral({
+      patient: selectedSupportItem.patient,
+      patientId: selectedSupportItem.id,
+      centerId: selectedSupportItem.centerId,
+      need: supportNeed,
+      owner: ownerByNeed[supportNeed],
+      notes: supportDetails.trim() || `Support need identified during ${selectedSupportItem.visit.toLowerCase()} workflow.`,
+      source: 'Medication Visit Status',
+      linkedRecordId: selectedSupportItem.id,
+    });
+    addToast(`Support referral created for ${selectedSupportItem.patient}.`, 'success');
+    setSelectedSupportItem(null);
+    setSupportDetails('');
   };
 
   return (
@@ -2119,23 +2203,33 @@ export function AdminCheckIns() {
               <td>{row.detail}</td>
               <td><Status>{row.stage}</Status></td>
               <td>
-                {row.stage === 'Hold' ? (
+                <div className="bhg-admin-row-actions">
+                  {row.stage === 'Hold' ? (
+                    <button
+                      type="button"
+                      className="bhg-button"
+                      onClick={() => {
+                        setSelectedHoldItem(row);
+                        setClearanceNote('Attended scheduled counseling session with Morgan Reed, LPC-MHSP. Treatment engagement and coping routine reviewed. Patient cleared for daily dosing window.');
+                      }}
+                    >
+                      <CheckCircle2 size={13} /> Clear for dosing
+                    </button>
+                  ) : row.stage === 'Cleared by Counselor' ? (
+                    <span className="bhg-admin-cleared-label">Cleared by counselor</span>
+                  ) : null}
                   <button
                     type="button"
-                    className="bhg-button"
-                    style={{ minHeight: 28, padding: '3px 8px', fontSize: '11px', whiteSpace: 'nowrap' }}
+                    className="bhg-text-button"
                     onClick={() => {
-                      setSelectedHoldItem(row);
-                      setClearanceNote('Attended scheduled counseling session with Morgan Reed, LPC-MHSP. Treatment engagement and coping routine reviewed. Patient cleared for daily dosing window.');
+                      setSelectedSupportItem(row);
+                      setSupportNeed('Transportation support');
+                      setSupportDetails('');
                     }}
                   >
-                    <CheckCircle2 size={13} style={{ marginRight: 4 }} /> Clear for Dosing
+                    <HeartHandshake size={14} /> Refer for support
                   </button>
-                ) : row.stage === 'Cleared by Counselor' ? (
-                  <span style={{ fontSize: '11.5px', color: '#059669', fontWeight: 600 }}>Cleared by Counselor</span>
-                ) : (
-                  <span className="bhg-table-muted">—</span>
-                )}
+                </div>
               </td>
             </>
           )}
@@ -2181,6 +2275,48 @@ export function AdminCheckIns() {
           </div>
         </WorkflowModal>
       )}
+
+      {selectedSupportItem && (
+        <WorkflowModal
+          title={`Refer for support · ${selectedSupportItem.patient}`}
+          subtitle={`${selectedSupportItem.visit} · ${selectedSupportItem.id}`}
+          onClose={() => setSelectedSupportItem(null)}
+          footer={
+            <>
+              <button type="button" className="bhg-button bhg-button-secondary" onClick={() => setSelectedSupportItem(null)}>Cancel</button>
+              <button type="button" className="bhg-button" onClick={submitSupportReferral}>
+                <HeartHandshake size={15} /> Create referral
+              </button>
+            </>
+          }
+        >
+          <DemoBanner>This creates a linked Care Coordination record. It does not change the medication order or dosing status.</DemoBanner>
+          <div className="bhg-referral-form">
+            <Field label="Support need">
+              <select value={supportNeed} onChange={(event) => setSupportNeed(event.target.value)}>
+                <option>Transportation support</option>
+                <option>Housing resources</option>
+                <option>Peer recovery support</option>
+                <option>Coverage or financial support</option>
+                <option>Guest dosing or travel support</option>
+                <option>Other access barrier</option>
+              </select>
+            </Field>
+            <Field label="Referral details" hint="Include only the information needed by the receiving care team.">
+              <textarea
+                rows="4"
+                value={supportDetails}
+                onChange={(event) => setSupportDetails(event.target.value)}
+                placeholder="Describe the barrier, timing, and requested follow-up…"
+              />
+            </Field>
+            <div className="bhg-referral-source">
+              <strong>Linked source</strong>
+              <span>Medication Visit Status · {selectedSupportItem.id} · {selectedSupportItem.stage}</span>
+            </div>
+          </div>
+        </WorkflowModal>
+      )}
     </div>
   );
 }
@@ -2219,13 +2355,15 @@ export function AdminAppointments() {
     setQuery('');
   };
 
-  const filteredSessions = useMemo(() => rowsForCenter(sessionRecords, selectedTreatmentCenterId).filter((session) => {
-    const searchValue = `${session.patients.join(' ')} ${session.type} ${session.service} ${session.status} ${session.modality}`.toLowerCase();
-    return searchValue.includes(query.trim().toLowerCase())
-      && (statusFilter === 'All' || session.status === statusFilter)
-      && (modalityFilter === 'All' || session.modality === modalityFilter)
-      && (typeFilter === 'All' || session.type === typeFilter);
-  }), [modalityFilter, query, selectedTreatmentCenterId, statusFilter, typeFilter]);
+  const filteredSessions = useMemo(() => rowsForCenter(sessionRecords, selectedTreatmentCenterId)
+    .filter((session) => {
+      const searchValue = `${session.patients.join(' ')} ${session.type} ${session.service} ${session.status} ${session.modality}`.toLowerCase();
+      return searchValue.includes(query.trim().toLowerCase())
+        && (statusFilter === 'All' || session.status === statusFilter)
+        && (modalityFilter === 'All' || session.modality === modalityFilter)
+        && (typeFilter === 'All' || session.type === typeFilter);
+    })
+    .sort(compareSessionsForWorkflow), [modalityFilter, query, selectedTreatmentCenterId, statusFilter, typeFilter]);
 
   const openNote = (session, patientName = session.patients[0]) => navigate(`admin-session-note?session=${encodeURIComponent(session.id)}&patient=${encodeURIComponent(patientName)}`);
 
@@ -2272,13 +2410,19 @@ export function AdminAppointments() {
       </section>
 
       <section className="bhg-card bhg-session-table-card">
-        <div className="bhg-section-title"><div><h2>Session history</h2><p>Notes are available only for completed sessions and remain locked.</p></div><Status>{filteredSessions.length} sessions</Status></div>
-        {filteredSessions.length ? <Table columns={['Date', 'Patient(s)', 'Treatment center', 'Service', 'Type', 'Modality', 'Status', 'Action']} rows={filteredSessions} render={(session) => <>
+        <div className="bhg-section-title">
+          <div>
+            <h2>Session history</h2>
+            <p>Scheduled sessions appear first by start time; completed and not-held sessions follow newest first. Completed notes remain locked.</p>
+          </div>
+          <div className="bhg-session-table-summary"><span><Clock3 size={12} /> Workflow order</span><Status>{filteredSessions.length} sessions</Status></div>
+        </div>
+        {filteredSessions.length ? <Table columns={['Date', 'Patient(s)', 'Treatment center', 'Service', 'Format', 'Status', 'Action']} rows={filteredSessions} render={(session) => <>
           <td><strong>{session.date}</strong><small>{session.time}</small></td>
           <td><strong>{session.type === 'Group' ? `${session.patients.length} patients` : session.patients[0]}</strong>{session.type === 'Group' && <small>{session.patients.join(', ')}</small>}</td>
-          <td>{centerLabels[session.centerId]}</td><td>{session.service}</td><td>{session.type}</td><td><Status>{session.modality}</Status></td><td><Status>{session.status}</Status></td>
+          <td>{centerLabels[session.centerId]}</td><td>{session.service}</td><td><strong>{session.type}</strong><small>{session.modality}</small></td><td><Status>{session.status}</Status></td>
           <td><div className="bhg-session-actions">
-            {session.type === 'Individual' && (
+            {session.status === 'Scheduled' && session.type === 'Individual' && (
               <button
                 type="button"
                 className="bhg-text-button"
@@ -2597,6 +2741,7 @@ export function AdminLabs() {
   const { selectedTreatmentCenterId, selectedTreatmentCenter } = useApp();
   const [query, setQuery] = useState('');
   const [reviewFilter, setReviewFilter] = useState('All');
+  const [selectedReport, setSelectedReport] = useState(null);
   const centerUds = rowsForCenter(uds, selectedTreatmentCenterId);
   const filteredUds = useMemo(() => centerUds.filter((item) => {
     const matchesFilter = reviewFilter === 'All'
@@ -2625,20 +2770,61 @@ export function AdminLabs() {
             label="Filter UDS and labs"
           />
         </div>
-        <Table columns={['Patient', 'Test', 'Collected', 'Result category', 'Review']} rows={filteredUds} render={(row) => <>
+        <Table columns={['Patient', 'Test', 'Collected', 'Result category', 'Review', 'Action']} rows={filteredUds} render={(row) => <>
           <td><strong>{row.patient}</strong></td><td>{row.type}</td><td>{row.collected}</td><td><Status>{row.result}</Status></td><td><Status>{row.review}</Status></td>
+          <td><button type="button" className="bhg-text-button" onClick={() => setSelectedReport(row)}>View lab report</button></td>
         </>} />
       </section>
+
+      {selectedReport && (() => {
+        const patient = patients.find((item) => item.name === selectedReport.patient);
+        const isProcessing = selectedReport.result === 'Processing';
+        const isException = selectedReport.result === 'Exception';
+        const summary = isProcessing
+          ? 'The specimen has been collected and received by the laboratory. Final result categorization is not yet available.'
+          : isException
+            ? 'One or more findings require clinical correlation. This report is routed for provider review before follow-up is documented with the patient.'
+            : 'The reported category is consistent with the documented treatment plan. Review completion is shown above.';
+
+        return (
+          <WorkflowModal
+            title={`${selectedReport.type} · ${selectedReport.patient}`}
+            subtitle={`Collected ${selectedReport.collected}`}
+            onClose={() => setSelectedReport(null)}
+            footer={<button type="button" className="bhg-button" onClick={() => setSelectedReport(null)}>Close</button>}
+          >
+            <DemoBanner>
+              This read-only report is available for every collection status. Detailed analytes remain in the access-controlled laboratory record.
+            </DemoBanner>
+            <ProfileDetails items={[
+              ['Patient', `${selectedReport.patient}${patient ? ` · ${patient.id}` : ''}`],
+              ['Accession / report ID', selectedReport.id],
+              ['Test', selectedReport.type],
+              ['Collected', selectedReport.collected],
+              ['Result category', selectedReport.result],
+              ['Review status', selectedReport.review],
+              ['Report source', isProcessing ? 'Laboratory interface · processing' : 'BHG laboratory interface'],
+            ]} />
+            <div className="bhg-report-summary">
+              <strong>{isProcessing ? 'Processing update' : isException ? 'Clinical review summary' : 'Report summary'}</strong>
+              <p>{summary}</p>
+            </div>
+            <div className="bhg-info-banner">
+              <LockKeyhole size={16} /> Result categories support counselor workflow; medication decisions and medical interpretation remain with authorized medical providers.
+            </div>
+          </WorkflowModal>
+        );
+      })()}
     </div>
   );
 }
 
 export function AdminCareCoordination() {
-  const { workItems, selectedTreatmentCenterId, selectedTreatmentCenter } = useApp();
+  const { workItems, careReferrals = [], selectedTreatmentCenterId, selectedTreatmentCenter, navigate } = useApp();
   const [refQuery, setRefQuery] = useState('');
   const [refFilter, setRefFilter] = useState('All');
   const openWorkItems = workItems.filter((item) => item.status !== 'Resolved' && (selectedTreatmentCenterId === 'all' || (item.centerId || 'knoxville-bernard') === selectedTreatmentCenterId)).length;
-  const centerReferrals = rowsForCenter(referrals, selectedTreatmentCenterId);
+  const centerReferrals = rowsForCenter([...careReferrals, ...referrals], selectedTreatmentCenterId);
   const filteredReferrals = useMemo(() => centerReferrals.filter((item) => {
     const matchesFilter = refFilter === 'All'
       || (refFilter === 'Connected' && item.status === 'Connected')
@@ -2668,8 +2854,13 @@ export function AdminCareCoordination() {
             label="Filter referrals"
           />
         </div>
-        <Table columns={['Patient', 'Need', 'Owner', 'Status']} rows={filteredReferrals} render={(row) => <>
-          <td><strong>{row.patient}</strong></td><td>{row.need}</td><td>{row.owner}</td><td><Status>{row.status}</Status></td>
+        <Table columns={['Patient', 'Need', 'Source', 'Owner', 'Status', 'Action']} rows={filteredReferrals} render={(row) => <>
+          <td><strong>{row.patient}</strong>{row.patientId && <small>{row.patientId}</small>}</td>
+          <td>{row.need}{row.notes && <small>{row.notes}</small>}</td>
+          <td>{row.source || 'Care Coordination'}{row.linkedRecordId && <small>{row.linkedRecordId}</small>}</td>
+          <td>{row.owner}</td>
+          <td><Status>{row.status}</Status></td>
+          <td>{row.source === 'Medication Visit Status' ? <button type="button" className="bhg-text-button" onClick={() => navigate('admin-check-ins')}>Open source</button> : <span className="bhg-table-muted">—</span>}</td>
         </>} />
       </section>
     </div>
@@ -2955,6 +3146,7 @@ export function AdminGroupSessions() {
   const [activeNotesGroup, setActiveNotesGroup] = useState(null);
   const [selectedPatientId, setSelectedPatientId] = useState(null);
   const [activeNotHeldGroup, setActiveNotHeldGroup] = useState(null);
+  const [expandedGroupIds, setExpandedGroupIds] = useState(() => new Set());
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -3054,6 +3246,15 @@ export function AdminGroupSessions() {
     setSelectedPatientId(null);
   };
 
+  const toggleGroupDetails = (groupId) => {
+    setExpandedGroupIds((current) => {
+      const next = new Set(current);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  };
+
   return (
     <div className="bhg-page clinician-content">
       <AdminHeader
@@ -3103,6 +3304,8 @@ export function AdminGroupSessions() {
             const prevAppt = grp.previousAppointment;
             const isNotHeld = grp.status === 'Session not held';
             const isScheduled = grp.status === 'Scheduled';
+            const isExpanded = expandedGroupIds.has(grp.id);
+            const detailsId = `group-details-${grp.id}`;
 
             return (
               <div className="bhg-group-card" key={grp.id}>
@@ -3150,11 +3353,11 @@ export function AdminGroupSessions() {
                       <div className="bhg-group-not-held-header">
                         <AlertTriangle size={13} /> Session Not Held
                       </div>
-                      <p className="bhg-group-not-held-text">{grp.reason}</p>
-                      <div style={{ fontSize: 11, color: '#b45309', display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                      <p className={`bhg-group-not-held-text${isExpanded ? ' expanded' : ''}`}>{grp.reason}</p>
+                      {isExpanded && <div className="bhg-group-not-held-followup">
                         <span>{grp.outreachStatus}</span>
                         {grp.rescheduledDate && <strong>Makeup: {grp.rescheduledDate}</strong>}
-                      </div>
+                      </div>}
                     </div>
                   ) : (
                     <>
@@ -3163,49 +3366,58 @@ export function AdminGroupSessions() {
                         <p>{grp.focusTopic || grp.currentTopic}</p>
                       </div>
 
-                      {prevAppt && (
-                        <div
-                          className="bhg-group-previous-box"
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => setActivePrevModal(grp)}
-                          title="Click to view previous appointment details and locked clinical note"
-                        >
-                          <div className="bhg-group-previous-header">
-                            <small>
-                              <Clock3 size={11} /> Previous Appointment
-                            </small>
-                            <span>{prevAppt.date}</span>
-                          </div>
-                          <p className="bhg-group-previous-topic">
-                            <strong>Focus:</strong> {prevAppt.topic}
-                          </p>
-                          <div className="bhg-group-previous-meta">
-                            <span>👥 {prevAppt.attendance}</span>
-                            <span style={{ fontWeight: 600, color: '#0d9488' }}>
-                              ✓ {prevAppt.status}
-                            </span>
-                          </div>
-                        </div>
-                      )}
                     </>
                   )}
 
-                  <div className="bhg-group-roster-preview">
-                    <div className="bhg-group-roster-preview-header">
-                      <span>Enrolled Cohort ({roster.length} members)</span>
-                      <span style={{ color: '#0284c7' }}>{grp.capacity || 'Active'}</span>
-                    </div>
-                    <div className="bhg-group-roster-chips">
-                      {roster.map((member) => (
-                        <span
-                          key={member.id}
-                          className={`bhg-group-roster-chip ${(member.status || 'Present').toLowerCase()}`}
-                        >
-                          <strong>{member.name}</strong> ({member.status || 'Present'})
-                        </span>
-                      ))}
-                    </div>
+                  <div className="bhg-group-details-summary">
+                    <span><UsersRound size={13} /> {roster.length} members · {grp.capacity || 'Active cohort'}</span>
+                    {prevAppt && <span><Clock3 size={13} /> Previous: {prevAppt.date}</span>}
+                    <button
+                      type="button"
+                      className="bhg-group-details-toggle"
+                      aria-expanded={isExpanded}
+                      aria-controls={detailsId}
+                      onClick={() => toggleGroupDetails(grp.id)}
+                    >
+                      {isExpanded ? 'Hide details' : 'View details'}
+                      <ChevronDown size={14} aria-hidden="true" />
+                    </button>
                   </div>
+
+                  {isExpanded && <div id={detailsId} className="bhg-group-expanded-details">
+                    {prevAppt && (
+                      <button
+                        type="button"
+                        className="bhg-group-previous-box"
+                        onClick={() => setActivePrevModal(grp)}
+                        aria-label={`Open previous appointment for ${grp.name} on ${prevAppt.date}`}
+                      >
+                        <span className="bhg-group-previous-header">
+                          <small><Clock3 size={11} /> Previous Appointment</small>
+                          <span>{prevAppt.date}</span>
+                        </span>
+                        <span className="bhg-group-previous-topic"><strong>Focus:</strong> {prevAppt.topic}</span>
+                        <span className="bhg-group-previous-meta">
+                          <span>👥 {prevAppt.attendance}</span>
+                          <span className="bhg-group-previous-status">✓ {prevAppt.status}</span>
+                        </span>
+                      </button>
+                    )}
+
+                    <div className="bhg-group-roster-preview">
+                      <div className="bhg-group-roster-preview-header">
+                        <span>Enrolled Cohort ({roster.length} members)</span>
+                        <span>{grp.capacity || 'Active'}</span>
+                      </div>
+                      <div className="bhg-group-roster-chips">
+                        {roster.map((member) => (
+                          <span key={member.id} className={`bhg-group-roster-chip ${(member.status || 'Present').toLowerCase()}`}>
+                            <strong>{member.name}</strong> ({member.status || 'Present'})
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>}
                 </div>
 
                 <div className="bhg-group-card-actions">
@@ -3262,7 +3474,7 @@ export function AdminGroupSessions() {
                         </button>
                       )}
 
-                      {isZoom ? (
+                      {isScheduled && isZoom && (
                         <button
                           type="button"
                           className="bhg-button secondary bhg-btn-full"
@@ -3271,7 +3483,9 @@ export function AdminGroupSessions() {
                         >
                           <Video size={14} /> Launch Zoom Telehealth
                         </button>
-                      ) : (
+                      )}
+
+                      {!isScheduled && (
                         <button
                           type="button"
                           className="bhg-button secondary bhg-btn-full"

@@ -152,6 +152,7 @@ export function createInitialDemoState() {
       },
     ],
     notifications: notifications.map((item) => ({ ...item })),
+    careReferrals: [],
     workItems: [
       {
         id: 'REQ-1106',

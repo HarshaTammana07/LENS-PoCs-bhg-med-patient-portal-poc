@@ -263,6 +263,27 @@ export function AppProvider({ children }) {
     return requestId;
   }, []);
 
+  const createReferral = useCallback(({ patient, patientId, centerId, need, owner, notes, source, linkedRecordId }) => {
+    const referralId = `REF-${Date.now()}`;
+    setDemoState((state) => ({
+      ...state,
+      careReferrals: [{
+        id: referralId,
+        patient,
+        patientId,
+        centerId,
+        need,
+        owner,
+        notes,
+        source,
+        linkedRecordId,
+        status: 'Pending',
+        created: 'Just now',
+      }, ...(state.careReferrals || [])],
+    }));
+    return referralId;
+  }, []);
+
   const updatePatient = useCallback((changes) => {
     setDemoState((state) => ({
       ...state,
@@ -464,6 +485,7 @@ export function AppProvider({ children }) {
       markClinicianMessageRead,
       sendClinicianMessage,
       createRequest,
+      createReferral,
       updatePatient,
       acknowledgeDocument,
       resolveWorkItem,
@@ -500,6 +522,7 @@ export function AppProvider({ children }) {
       markClinicianMessageRead,
       sendClinicianMessage,
       createRequest,
+      createReferral,
       updatePatient,
       acknowledgeDocument,
       resolveWorkItem,
