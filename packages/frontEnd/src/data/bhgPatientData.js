@@ -670,6 +670,17 @@ export const progress = {
 
 export const notifications = [
   {
+    id: 'N-0',
+    category: 'Appointments',
+    title: '⏰ Check-In Reminder: Counseling Visit at 10:30 AM Today',
+    detail: 'Your individual counseling session with Alicia Monroe, LPC is today Sep 17 at 10:30 AM in Room 204. Please check in at the front desk by 9:30 AM.',
+    time: 'Today, 9:30 AM',
+    unread: true,
+    page: 'appointments',
+    iconType: 'calendar',
+  },
+  {
+
     id: 'N-1',
     category: 'Appointments',
     title: 'Counseling Session Confirmed: Sep 17, 2026',

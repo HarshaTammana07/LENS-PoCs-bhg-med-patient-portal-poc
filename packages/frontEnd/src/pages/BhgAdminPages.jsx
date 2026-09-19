@@ -19,6 +19,9 @@ import {
   LockKeyhole,
   MessageCircle,
   MessageSquareText,
+  Mic,
+  Pause,
+  Play,
   Plus,
   Printer,
   RotateCcw,
@@ -29,6 +32,7 @@ import {
   SlidersHorizontal,
   Sparkles,
   TestTube2,
+  Trash2,
   TrendingDown,
   UserRound,
   UserRoundCheck,
@@ -1204,7 +1208,108 @@ export function AdminMessages() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('All');
   const [showResourceModal, setShowResourceModal] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [playingVoiceId, setPlayingVoiceId] = useState(null);
+  const [playProgress, setPlayProgress] = useState(0);
+  const [expandedTranscripts, setExpandedTranscripts] = useState({});
+  const recordingTimerRef = useRef(null);
+  const playIntervalRef = useRef(null);
   const threadScrollRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      if (playIntervalRef.current) clearInterval(playIntervalRef.current);
+    };
+  }, []);
+
+  const formatSecs = (totalSecs) => {
+    const m = Math.floor(totalSecs / 60);
+    const s = totalSecs % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  const startRecording = () => {
+    setIsRecording(true);
+    setRecordingSeconds(0);
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    recordingTimerRef.current = setInterval(() => {
+      setRecordingSeconds((prev) => prev + 1);
+    }, 1000);
+  };
+
+  const cancelRecording = () => {
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    setIsRecording(false);
+    setRecordingSeconds(0);
+  };
+
+  const sendVoiceNote = () => {
+    if (!selected) return;
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    const finalSecs = Math.max(recordingSeconds, 4);
+    const durationStr = formatSecs(finalSecs);
+
+    const clinicianTranscripts = [
+      `Hi ${selected.patient.split(' ')[0]}, I'm sending a quick audio note to check in. I reviewed your updates and look forward to going over your recovery goals in our upcoming session.`,
+      `Hi ${selected.patient.split(' ')[0]}, thank you for checking in. Remember to pace yourself today and use the coping strategies we talked about. See you soon!`,
+      `Hi ${selected.patient.split(' ')[0]}, great progress on maintaining your routine this week. Bring your take-home questions to our next session and we will discuss them in detail.`,
+    ];
+    const transcript = clinicianTranscripts[Math.floor(Math.random() * clinicianTranscripts.length)];
+
+    const voiceNote = {
+      duration: durationStr,
+      durationSeconds: finalSecs,
+      transcript,
+      audioWave: [28, 48, 72, 90, 65, 42, 78, 92, 85, 52, 68, 88, 92, 72, 48, 62, 82, 58, 42, 28],
+    };
+
+    sendClinicianMessage({
+      patient: selected.patient,
+      patientId: selected.patientId,
+      centerId: selected.centerId,
+      program: selected.program,
+      subject: selected.subject,
+      body: `🎤 Voice note (${durationStr})`,
+      threadId: selected.id,
+      voiceNote,
+    });
+
+    addToast(`Voice note sent to ${selected.patient} (${durationStr}). 42 CFR Part 2 encrypted.`, 'success');
+    setIsRecording(false);
+    setRecordingSeconds(0);
+  };
+
+  const togglePlayVoice = (entry) => {
+    if (playingVoiceId === entry.id) {
+      if (playIntervalRef.current) clearInterval(playIntervalRef.current);
+      setPlayingVoiceId(null);
+    } else {
+      if (playIntervalRef.current) clearInterval(playIntervalRef.current);
+      setPlayingVoiceId(entry.id);
+      setPlayProgress(0);
+      const totalSeconds = entry.voiceNote?.durationSeconds || 20;
+      const stepMs = 100;
+      const totalSteps = (totalSeconds * 1000) / stepMs;
+      let currentStep = 0;
+
+      playIntervalRef.current = setInterval(() => {
+        currentStep += 1;
+        const pct = Math.min(100, Math.round((currentStep / totalSteps) * 100));
+        setPlayProgress(pct);
+        if (pct >= 100) {
+          clearInterval(playIntervalRef.current);
+          setPlayingVoiceId(null);
+          setPlayProgress(0);
+        }
+      }, stepMs);
+    }
+  };
+
+  const toggleTranscript = (entryId) => {
+    setExpandedTranscripts((prev) => ({ ...prev, [entryId]: !prev[entryId] }));
+  };
 
   const filteredMessages = useMemo(() => visibleMessages.filter((item) => {
     const matchesFilter = filter === 'All'
@@ -1370,11 +1475,94 @@ export function AdminMessages() {
               <div className="bhg-messages-thread-wrap">
                 <div ref={threadScrollRef} className="bhg-messages-thread">
                   {selected.thread.map((entry) => {
-                    const mine = entry.sender === 'Morgan Reed';
+                    const mine = entry.sender === 'Morgan Reed' || entry.sender === 'Alicia Monroe';
+                    const hasVoice = Boolean(entry.voiceNote);
+                    const isVoicePlaying = playingVoiceId === entry.id;
+                    const showTranscript = Boolean(expandedTranscripts[entry.id]);
+
                     return (
                       <div key={entry.id} className={`bhg-messages-bubble-row ${mine ? 'mine' : ''}`}>
                         {!mine && <span className="bhg-messages-bubble-label">{entry.sender}</span>}
-                        <div className={`bhg-messages-bubble ${mine ? 'sent' : 'received'}`}>{entry.text}</div>
+                        <div className={`bhg-messages-bubble ${mine ? 'sent' : 'received'}`}>
+                          {hasVoice ? (
+                            <div className="bhg-voice-bubble">
+                              <div className="bhg-voice-bubble-main">
+                                <button
+                                  type="button"
+                                  className="bhg-voice-play-btn"
+                                  onClick={() => togglePlayVoice(entry)}
+                                  style={{
+                                    background: mine ? '#FFFFFF' : 'var(--primary, #005A70)',
+                                    color: mine ? '#005A70' : '#FFFFFF',
+                                  }}
+                                  aria-label={isVoicePlaying ? 'Pause voice message' : 'Play voice message'}
+                                >
+                                  {isVoicePlaying ? <Pause size={16} /> : <Play size={16} style={{ marginLeft: 2 }} />}
+                                </button>
+                                <div className="bhg-voice-waveform-wrap">
+                                  <div
+                                    className="bhg-voice-waveform"
+                                    onClick={() => togglePlayVoice(entry)}
+                                    title="Click to play voice note"
+                                  >
+                                    {(entry.voiceNote.audioWave || [30, 45, 70, 85, 60, 40, 75, 90, 80, 50, 65, 85, 95, 70, 45, 60, 80, 55, 40, 30]).map((h, i, arr) => {
+                                      const threshold = (playProgress / 100) * arr.length;
+                                      const isPlayed = isVoicePlaying && i <= threshold;
+                                      return (
+                                        <div
+                                          key={i}
+                                          className="bhg-voice-bar"
+                                          style={{
+                                            height: `${Math.max(16, h)}%`,
+                                            background: mine
+                                              ? (isPlayed ? '#FFFFFF' : 'rgba(255, 255, 255, 0.45)')
+                                              : (isPlayed ? 'var(--primary, #005A70)' : '#CBD5E1'),
+                                          }}
+                                        />
+                                      );
+                                    })}
+                                  </div>
+                                  <div className="bhg-voice-bubble-meta">
+                                    <span>{isVoicePlaying ? `${Math.ceil((playProgress / 100) * (entry.voiceNote.durationSeconds || 20))}s / ${entry.voiceNote.duration}` : entry.voiceNote.duration}</span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                      <LockKeyhole size={10} /> 42 CFR Part 2 Encrypted
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {entry.voiceNote.transcript && (
+                                <div style={{ borderTop: mine ? '1px solid rgba(255,255,255,0.2)' : '1px solid #E2E8F0', paddingTop: 6 }}>
+                                  <button
+                                    type="button"
+                                    className="bhg-voice-transcript-toggle"
+                                    onClick={() => toggleTranscript(entry.id)}
+                                    style={{ color: mine ? '#FFFFFF' : 'var(--primary, #005A70)' }}
+                                  >
+                                    <Sparkles size={11} /> {showTranscript ? 'Hide transcript' : 'View AI transcript'}
+                                  </button>
+                                  {showTranscript && (
+                                    <div
+                                      className="bhg-voice-transcript-box"
+                                      style={{
+                                        background: mine ? 'rgba(0,0,0,0.14)' : '#F8FAFC',
+                                        color: mine ? '#F1F5F9' : '#334155',
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3, fontSize: 10, opacity: 0.85 }}>
+                                        <strong>Audio transcription</strong>
+                                        <span>AI · 99% confidence</span>
+                                      </div>
+                                      "{entry.voiceNote.transcript}"
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            entry.text
+                          )}
+                        </div>
                         <span className={`bhg-messages-bubble-time ${mine ? '' : 'received'}`}>{entry.time}</span>
                       </div>
                     );
@@ -1403,21 +1591,82 @@ export function AdminMessages() {
                   {clinicianMessageQuickReplies.map((reply) => <button key={reply} type="button" className="bhg-messages-quick-chip" onClick={() => submitReply(reply)}>{reply}</button>)}
                 </div>
                 <footer className="bhg-messages-compose">
-                  <textarea
-                    rows="1"
-                    value={draft}
-                    onChange={(event) => setDraft(event.target.value)}
-                    placeholder={`Write a secure reply to ${selected.patient}…`}
-                    aria-label={`Secure reply to ${selected.patient}`}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' && !event.shiftKey) {
-                        event.preventDefault();
-                        submitReply();
-                      }
-                    }}
-                  />
-                  <button type="button" className="bhg-button bhg-messages-send" disabled={!draft.trim()} onClick={() => submitReply()} aria-label="Send secure reply"><Send size={16} /></button>
-                  <p>Secure messages · Clinic hours only · Not for emergencies (911 / 988)</p>
+                  {isRecording ? (
+                    <div className="bhg-voice-recorder-bar">
+                      <div className="bhg-voice-rec-left">
+                        <span className="bhg-voice-rec-dot" />
+                        <span className="bhg-voice-rec-timer">{formatSecs(recordingSeconds)}</span>
+                        <div className="bhg-voice-wave-anim">
+                          <span className="bhg-voice-wave-bar" style={{ animationDelay: '0.1s' }} />
+                          <span className="bhg-voice-wave-bar" style={{ animationDelay: '0.35s' }} />
+                          <span className="bhg-voice-wave-bar" style={{ animationDelay: '0.15s' }} />
+                          <span className="bhg-voice-wave-bar" style={{ animationDelay: '0.45s' }} />
+                          <span className="bhg-voice-wave-bar" style={{ animationDelay: '0.2s' }} />
+                          <span className="bhg-voice-wave-bar" style={{ animationDelay: '0.5s' }} />
+                          <span className="bhg-voice-wave-bar" style={{ animationDelay: '0.25s' }} />
+                        </div>
+                      </div>
+                      <div className="bhg-voice-rec-actions">
+                        <button
+                          type="button"
+                          className="bhg-voice-discard-btn"
+                          onClick={cancelRecording}
+                          title="Discard recording"
+                        >
+                          <Trash2 size={13} /> Discard
+                        </button>
+                        <button
+                          type="button"
+                          className="bhg-voice-send-btn"
+                          onClick={sendVoiceNote}
+                          title="Send voice note"
+                        >
+                          <Send size={13} /> Send Voice Note ({formatSecs(recordingSeconds)})
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <textarea
+                        rows="1"
+                        value={draft}
+                        onChange={(event) => setDraft(event.target.value)}
+                        placeholder={`Write a secure reply to ${selected.patient}, or record a voice note…`}
+                        aria-label={`Secure reply to ${selected.patient}`}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' && !event.shiftKey) {
+                            event.preventDefault();
+                            submitReply();
+                          }
+                        }}
+                      />
+                      <div className="bhg-messages-compose-actions">
+                        <button
+                          type="button"
+                          className="bhg-voice-mic-btn"
+                          title="Record voice note for patient"
+                          onClick={startRecording}
+                          aria-label="Record voice note"
+                        >
+                          <Mic size={18} />
+                        </button>
+                        <button
+                          type="button"
+                          className="bhg-button bhg-messages-send"
+                          disabled={!draft.trim()}
+                          onClick={() => submitReply()}
+                          aria-label="Send secure reply"
+                        >
+                          <Send size={16} />
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  <p>
+                    {isRecording
+                      ? `🎙️ Recording clinician voice note for ${selected.patient} · HIPAA & 42 CFR Part 2 encrypted`
+                      : `Secure messages · Clinic hours only · Voice notes & text · Not for emergencies (911 / 988)`}
+                  </p>
                 </footer>
               </div>
             </>

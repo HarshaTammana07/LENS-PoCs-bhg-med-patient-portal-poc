@@ -129,31 +129,60 @@ export function AppProvider({ children }) {
     }));
   }, []);
 
-  const sendMessage = useCallback(({ recipient, subject, body, threadId }) => {
+  const sendMessage = useCallback(({ recipient, subject, body, threadId, voiceNote }) => {
     const now = 'Just now';
     const messageId = threadId || `MSG-${Date.now()}`;
+    const previewText = voiceNote ? `🎤 Voice note (${voiceNote.duration})` : body;
     setDemoState((state) => {
       const existing = state.messages.find((item) => item.id === messageId);
-      const reply = { id: `reply-${Date.now()}`, sender: 'You', time: now, text: body };
+      const reply = {
+        id: `reply-${Date.now()}`,
+        sender: 'You',
+        time: now,
+        text: body || previewText,
+        voiceNote: voiceNote || null,
+      };
       const messages = existing
         ? state.messages.map((item) => item.id === messageId
-          ? { ...item, preview: body, time: now, unread: false, thread: [...item.thread, reply] }
+          ? { ...item, preview: previewText, time: now, unread: false, thread: [...item.thread, reply] }
           : item)
         : [{
           id: messageId,
           from: recipient,
           role: 'BHG Care Team',
           subject,
-          preview: body,
+          preview: previewText,
           time: now,
           unread: false,
           thread: [reply],
         }, ...state.messages];
+
+      // Mirror to clinician thread if patient is Jordan Williams communicating with counselor
+      const cmReply = {
+        id: `cm-reply-${Date.now()}`,
+        sender: state.patient.name,
+        time: now,
+        text: body || previewText,
+        voiceNote: voiceNote || null,
+      };
+      const clinicianMessages = (state.clinicianMessages || []).map((cm) => {
+        if (cm.id === 'CM-502' || cm.patient === state.patient.name) {
+          return {
+            ...cm,
+            preview: previewText,
+            time: now,
+            unreadCount: (cm.unreadCount || 0) + 1,
+            thread: [...cm.thread, cmReply],
+          };
+        }
+        return cm;
+      });
+
       const workItem = {
         id: `REQ-${Date.now()}`,
-        type: 'Patient message',
+        type: voiceNote ? 'Voice note' : 'Patient message',
         title: subject,
-        detail: body,
+        detail: voiceNote ? `[Voice Note - ${voiceNote.duration}] ${voiceNote.transcript}` : body,
         patient: state.patient.name,
         centerId: 'knoxville-bernard',
         created: now,
@@ -161,7 +190,7 @@ export function AppProvider({ children }) {
         response: '',
         messageId,
       };
-      return { ...state, messages, workItems: [workItem, ...state.workItems] };
+      return { ...state, messages, clinicianMessages, workItems: [workItem, ...state.workItems] };
     });
   }, []);
 
@@ -189,14 +218,21 @@ export function AppProvider({ children }) {
     }));
   }, []);
 
-  const sendClinicianMessage = useCallback(({ patient: recipient, patientId, centerId, program, subject, body, threadId }) => {
+  const sendClinicianMessage = useCallback(({ patient: recipient, patientId, centerId, program, subject, body, threadId, voiceNote }) => {
     const now = 'Just now';
+    const previewText = voiceNote ? `🎤 Voice note (${voiceNote.duration})` : body;
     setDemoState((state) => {
       const existing = (state.clinicianMessages || []).find((item) => item.id === threadId);
-      const reply = { id: `clinician-reply-${Date.now()}`, sender: 'Morgan Reed', time: now, text: body };
+      const reply = {
+        id: `clinician-reply-${Date.now()}`,
+        sender: 'Morgan Reed',
+        time: now,
+        text: body || previewText,
+        voiceNote: voiceNote || null,
+      };
       const clinicianMessages = existing
         ? state.clinicianMessages.map((item) => item.id === threadId
-          ? { ...item, preview: body, time: now, unreadCount: 0, thread: [...item.thread, reply] }
+          ? { ...item, preview: previewText, time: now, unreadCount: 0, thread: [...item.thread, reply] }
           : item)
         : [{
           id: `CM-${Date.now()}`,
@@ -205,12 +241,34 @@ export function AppProvider({ children }) {
           centerId,
           program,
           subject,
-          preview: body,
+          preview: previewText,
           time: now,
           unreadCount: 0,
           thread: [reply],
         }, ...(state.clinicianMessages || [])];
-      return { ...state, clinicianMessages };
+
+      // Mirror to patient thread if recipient is Jordan Williams
+      const patientReply = {
+        id: `counselor-reply-${Date.now()}`,
+        sender: 'Alicia Monroe',
+        time: now,
+        text: body || previewText,
+        voiceNote: voiceNote || null,
+      };
+      const messages = state.messages.map((m) => {
+        if (m.id === 'MSG-301' || /counsel/i.test(m.subject)) {
+          return {
+            ...m,
+            preview: previewText,
+            time: now,
+            unread: true,
+            thread: [...m.thread, patientReply],
+          };
+        }
+        return m;
+      });
+
+      return { ...state, clinicianMessages, messages };
     });
   }, []);
 
