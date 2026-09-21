@@ -8,7 +8,9 @@ function withTrailingSlash(path) {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const base = withTrailingSlash(env.VITE_BASE_PATH || '/bhg-patientportal/')
+  const isVercel = Boolean(process.env.VERCEL)
+  const defaultBase = isVercel ? '/' : '/bhg-patientportal/'
+  const base = withTrailingSlash(env.VITE_BASE_PATH || defaultBase)
 
   return {
     plugins: [react()],

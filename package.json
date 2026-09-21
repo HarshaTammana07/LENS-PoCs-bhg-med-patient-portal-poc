@@ -1,0 +1,10 @@
+{
+  "name": "bhg-connected-care-portal-workspace",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npm --prefix packages/frontEnd run dev",
+    "build": "npm --prefix packages/frontEnd run build",
+    "preview": "npm --prefix packages/frontEnd run preview"
+  }
+}
