@@ -41,7 +41,7 @@ import {
   X,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { defaultCbtHomework } from '../data/bhgPatientData';
+import { defaultCbtHomework, formatFullDate, formatShortDate } from '../data/bhgPatientData';
 import { DemoBanner, Field, WorkflowModal } from '../components/PrototypeUI';
 
 const patients = [
@@ -85,7 +85,7 @@ const dailyAppointments = [
 ];
 
 const counseling = [
-  { patient: 'Jordan Williams', centerId: 'knoxville-bernard', service: 'Individual counseling', counselor: 'Morgan Reed', due: 'Sep 17', completion: 'On track', followUp: 'Review coping routine' },
+  { patient: 'Jordan Williams', centerId: 'knoxville-bernard', service: 'Individual counseling', counselor: 'Morgan Reed', due: formatShortDate(new Date()), completion: 'On track', followUp: 'Review coping routine' },
   { patient: 'Taylor Brooks', centerId: 'knoxville-citico', service: 'Treatment plan review', counselor: 'Morgan Reed', due: 'Today', completion: 'Due today', followUp: 'Confirm patient goals' },
   { patient: 'Casey Morgan', centerId: 'jackson-tn', service: 'Individual counseling', counselor: 'Morgan Reed', due: 'Sep 16', completion: 'On track', followUp: 'Transportation referral offered' },
   { patient: 'Riley Parker', centerId: 'knoxville-bernard', service: 'Initial treatment plan', counselor: 'Morgan Reed', due: 'Overdue', completion: 'Attention', followUp: 'Outreach required' },
@@ -206,7 +206,7 @@ function createSessionNote(patientName, focus, finalized) {
 }
 
 const sessionRecords = [
-  { id: 'SESSION-101', centerId: 'knoxville-bernard', date: 'September 17, 2026', time: '10:30 AM', patients: ['Jordan Williams'], service: 'Individual counseling', type: 'Individual', modality: 'Zoom', status: 'Scheduled' },
+  { id: 'SESSION-101', centerId: 'knoxville-bernard', date: formatFullDate(new Date()), time: '10:30 AM', patients: ['Jordan Williams'], service: 'Individual counseling', type: 'Individual', modality: 'Zoom', status: 'Scheduled' },
   { id: 'SESSION-102', centerId: 'knoxville-citico', date: 'September 14, 2026', time: '1:00 PM', patients: ['Taylor Brooks'], service: 'Treatment plan review', type: 'Individual', modality: 'Zoom', status: 'Completed', note: createSessionNote('Taylor Brooks', 'treatment-plan goals and attendance progress', 'September 14, 2026 at 1:54 PM') },
   { id: 'SESSION-103', centerId: 'knoxville-bernard', date: 'September 18, 2026', time: '9:00 AM', patients: ['Riley Parker'], service: 'Individual counseling', type: 'Individual', modality: 'Zoom', status: 'Scheduled' },
   {
@@ -460,7 +460,7 @@ const defaultGroupPrograms = [
     name: 'Recovery Skills Group',
     status: 'Scheduled',
     schedule: 'Tuesdays & Thursdays · 1:00 PM – 2:00 PM',
-    sessionDate: 'Thursday, Sep 17, 2026',
+    sessionDate: 'Tuesday, Sep 22, 2026',
     sessionTime: '1:00 PM – 2:00 PM',
     modality: 'In person',
     location: 'Knoxville Bernard · Group Room A',

@@ -84,12 +84,124 @@ export const treatment = {
     'Take medication exactly as directed. Contact your treatment center before changing how you take it.',
 };
 
-export const weeklySchedule = [
-  { date: 'Mon, Sep 14', day: 'Monday', type: 'Observed medication visit', time: 'Before 11:30 AM', status: 'Due today', active: true },
-  { date: 'Tue, Sep 15', day: 'Tuesday', type: 'Approved take-home day', time: 'Follow care plan', status: 'Take-home' },
-  { date: 'Wed, Sep 16', day: 'Wednesday', type: 'Approved take-home day', time: 'Follow care plan', status: 'Take-home' },
-  { date: 'Sat, Sep 19', day: 'Saturday', type: 'Observed medication visit', time: '6:00-9:00 AM', status: 'Upcoming' },
+// --- Dynamic Date Calculations & Helpers ---
+export function addDays(baseDate, days) {
+  const result = new Date(baseDate);
+  result.setDate(result.getDate() + days);
+  return result;
+}
+
+export function getMondayOfCurrentWeek(d = new Date()) {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(date.setDate(diff));
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+}
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
 ];
+
+const MONTH_SHORT = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+];
+
+const DAY_NAMES = [
+  'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
+];
+
+const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+export function formatFullDate(d = new Date()) {
+  const date = typeof d === 'string' ? new Date(d) : d;
+  return `${MONTH_NAMES[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+}
+
+export function formatShortDate(d = new Date()) {
+  const date = typeof d === 'string' ? new Date(d) : d;
+  return `${MONTH_SHORT[date.getMonth()].toUpperCase()} ${String(date.getDate()).padStart(2, '0')}`;
+}
+
+export function formatMonthDay(d = new Date()) {
+  const date = typeof d === 'string' ? new Date(d) : d;
+  return `${MONTH_NAMES[date.getMonth()]} ${date.getDate()}`;
+}
+
+export function formatDateWithDay(d = new Date()) {
+  const date = typeof d === 'string' ? new Date(d) : d;
+  return `${DAY_SHORT[date.getDay()]}, ${MONTH_SHORT[date.getMonth()]} ${date.getDate()}`;
+}
+
+export function formatDayOfWeek(d = new Date()) {
+  const date = typeof d === 'string' ? new Date(d) : d;
+  return DAY_NAMES[date.getDay()];
+}
+
+export function formatEyebrowDate(d = new Date()) {
+  const date = typeof d === 'string' ? new Date(d) : d;
+  return `${DAY_NAMES[date.getDay()]}, ${MONTH_NAMES[date.getMonth()]} ${date.getDate()}`;
+}
+
+// Generate dynamic weekly schedule for current week
+export function generateWeeklySchedule(now = new Date()) {
+  const mon = getMondayOfCurrentWeek(now);
+  const tue = addDays(mon, 1);
+  const wed = addDays(mon, 2);
+  const sat = addDays(mon, 5);
+
+  const currentDayOfWeek = now.getDay();
+  const isMonToday = currentDayOfWeek === 1;
+  const isTueToday = currentDayOfWeek === 2;
+  const isWedToday = currentDayOfWeek === 3;
+  const isSatToday = currentDayOfWeek === 6;
+
+  return [
+    {
+      date: formatDateWithDay(mon),
+      day: 'Monday',
+      type: 'Observed medication visit',
+      time: 'Before 11:30 AM',
+      status: isMonToday ? 'Due today' : (currentDayOfWeek > 1 && currentDayOfWeek !== 0 ? 'Completed' : 'Upcoming'),
+      active: isMonToday,
+    },
+    {
+      date: formatDateWithDay(tue),
+      day: 'Tuesday',
+      type: 'Approved take-home day',
+      time: 'Follow care plan',
+      status: isTueToday ? 'Due today' : (currentDayOfWeek > 2 && currentDayOfWeek !== 0 ? 'Completed' : 'Take-home'),
+      active: isTueToday,
+    },
+    {
+      date: formatDateWithDay(wed),
+      day: 'Wednesday',
+      type: 'Approved take-home day',
+      time: 'Follow care plan',
+      status: isWedToday ? 'Due today' : (currentDayOfWeek > 3 && currentDayOfWeek !== 0 ? 'Completed' : 'Take-home'),
+      active: isWedToday,
+    },
+    {
+      date: formatDateWithDay(sat),
+      day: 'Saturday',
+      type: 'Observed medication visit',
+      time: '6:00-9:00 AM',
+      status: isSatToday ? 'Due today' : (currentDayOfWeek === 0 ? 'Completed' : 'Upcoming'),
+      active: isSatToday,
+    },
+  ];
+}
+
+export const weeklySchedule = generateWeeklySchedule();
+
+const TODAY = new Date();
+const counselingDate = TODAY;
+const groupDate = addDays(TODAY, 8);
+const planReviewDate = addDays(TODAY, 11);
+const pastDate = addDays(TODAY, -20);
 
 export const sharedCounselingSessionNotes = {
   focus: 'Recovery supports and updated treatment plan',
@@ -107,8 +219,8 @@ export const sharedCounselingSessionNotes = {
 export const appointments = [
   {
     id: 'APT-1042',
-    date: 'September 17, 2026',
-    dateShort: 'SEP 17',
+    date: formatFullDate(counselingDate),
+    dateShort: formatShortDate(counselingDate),
     time: '10:30 AM',
     title: 'Individual Counseling',
     provider: 'Alicia Monroe',
@@ -121,8 +233,8 @@ export const appointments = [
   },
   {
     id: 'APT-1088',
-    date: 'September 24, 2026',
-    dateShort: 'SEP 24',
+    date: formatFullDate(groupDate),
+    dateShort: formatShortDate(groupDate),
     time: '2:00 PM',
     title: 'Recovery Skills Group',
     provider: 'Alicia Monroe',
@@ -135,8 +247,8 @@ export const appointments = [
   },
   {
     id: 'APT-1104',
-    date: 'October 2, 2026',
-    dateShort: 'OCT 02',
+    date: formatFullDate(planReviewDate),
+    dateShort: formatShortDate(planReviewDate),
     time: '8:15 AM',
     title: 'Medication Plan Review',
     provider: 'Dr. Marcus Hill',
@@ -244,13 +356,13 @@ export const labStatus = {
       'Your counselor will review this result privately at your next counseling visit. Detailed results are not shown here.',
     collectionSite: 'BHG Knoxville · Specimen collection window',
     reviewWith: 'Alicia Monroe',
-    reviewWhen: 'September 17, 2026 · Individual Counseling',
+    reviewWhen: `${formatFullDate(counselingDate)} · Individual Counseling`,
   },
   workflow: [
-    { step: 'Collected', status: 'done', detail: 'Specimen collected during your clinic visit on September 8.' },
+    { step: 'Collected', status: 'done', detail: `Specimen collected during your clinic visit on ${formatMonthDay(addDays(TODAY, -13))}.` },
     { step: 'Lab processing', status: 'done', detail: 'Sent to the treatment monitoring lab — processing complete.' },
     { step: 'Ready for review', status: 'current', detail: 'Waiting for a private review with your counselor.' },
-    { step: 'Reviewed with you', status: 'pending', detail: 'Planned at your September 17 counseling session.' },
+    { step: 'Reviewed with you', status: 'pending', detail: `Planned at your ${formatFullDate(counselingDate)} counseling session.` },
   ],
   nextExpected: 'Next screen scheduled according to your MMT care plan',
   privacy:
@@ -268,8 +380,8 @@ export const labStatus = {
   history: [
     {
       id: 'UDS-0926',
-      date: 'September 8, 2026',
-      dateShort: 'SEP 08',
+      date: formatFullDate(addDays(TODAY, -13)),
+      dateShort: formatShortDate(addDays(TODAY, -13)),
       type: 'Routine UDS',
       panelName: '8-Panel OTP Monitoring Panel',
       status: 'Ready to review',
@@ -277,7 +389,7 @@ export const labStatus = {
       collectionSite: 'BHG Knoxville · Specimen Window',
       reviewedBy: null,
       reviewedDate: null,
-      reviewPlan: 'Scheduled for private 1-on-1 review with Alicia Monroe during your next individual counseling visit on September 17, 2026.',
+      reviewPlan: `Scheduled for private 1-on-1 review with Alicia Monroe during your next individual counseling visit on ${formatFullDate(counselingDate)}.`,
       privacyNote: 'Protected under 42 CFR Part 2 federal regulations. Detailed results are discussed privately with your clinical care team.',
     },
     {
@@ -398,24 +510,24 @@ export const requiredActions = [
   {
     id: 'action-uds',
     title: 'Review your recent UDS',
-    detail: 'Discuss the September 8 result privately at your counseling visit.',
-    due: 'September 17',
+    detail: `Discuss the ${formatMonthDay(addDays(TODAY, -13))} result privately at your counseling visit.`,
+    due: formatMonthDay(counselingDate),
     page: 'labs',
     priority: 'normal',
   },
   {
     id: 'action-counseling',
     title: 'Prepare for individual counseling',
-    detail: 'Session with Alicia Monroe on September 17 at 10:30 AM — arrive 10 minutes early.',
-    due: 'September 17',
+    detail: `Session with Alicia Monroe on ${formatMonthDay(counselingDate)} at 10:30 AM — arrive 10 minutes early.`,
+    due: formatMonthDay(counselingDate),
     page: 'appointments',
     priority: 'normal',
   },
   {
     id: 'action-telehealth',
     title: 'Confirm telehealth setup for group',
-    detail: 'Recovery skills group on September 24 — join from a private location in Tennessee.',
-    due: 'September 24',
+    detail: `Recovery skills group on ${formatMonthDay(groupDate)} — join from a private location in Tennessee.`,
+    due: formatMonthDay(groupDate),
     page: 'appointments',
     priority: 'normal',
   },
@@ -442,8 +554,8 @@ export const messages = [
     id: 'MSG-301',
     from: 'Alicia Monroe',
     role: 'Primary Counselor',
-    subject: 'Thursday counseling visit',
-    preview: 'Hi Jordan, I’m looking forward to seeing you Thursday at 10:30 AM.',
+    subject: `${formatDayOfWeek(counselingDate)} counseling visit`,
+    preview: 'Hi Jordan, I’m looking forward to seeing you today at 10:30 AM.',
     time: 'Today · 8:12 AM',
     unread: true,
   },
@@ -672,8 +784,8 @@ export const notifications = [
   {
     id: 'N-0',
     category: 'Appointments',
-    title: '⏰ Check-In Reminder: Counseling Visit at 10:30 AM Today',
-    detail: 'Your individual counseling session with Alicia Monroe, LPC is today Sep 17 at 10:30 AM in Room 204. Please check in at the front desk by 9:30 AM.',
+    title: '⏰ Check-In Reminder: Counseling Visit Today at 10:30 AM',
+    detail: `Your individual counseling session with Alicia Monroe, LPC is today ${formatShortDate(counselingDate)} at 10:30 AM in Room 204. Please check in online or at the front desk by 9:30 AM.`,
     time: 'Today, 9:30 AM',
     unread: true,
     page: 'appointments',
@@ -683,8 +795,8 @@ export const notifications = [
 
     id: 'N-1',
     category: 'Appointments',
-    title: 'Counseling Session Confirmed: Sep 17, 2026',
-    detail: 'Individual counseling visit with Alicia Monroe, LPC in Room 204 at 10:30 AM is confirmed. Arrive 10 minutes early.',
+    title: `Counseling Session Confirmed: ${formatShortDate(counselingDate)}, ${counselingDate.getFullYear()}`,
+    detail: `Individual counseling visit with Alicia Monroe, LPC in Room 204 on ${formatDateWithDay(counselingDate)} at 10:30 AM is confirmed. Arrive 10 minutes early.`,
     time: 'Yesterday, 4:15 PM',
     unread: true,
     page: 'appointments',
@@ -1120,8 +1232,8 @@ export const defaultCbtHomework = [
     patientId: 'BHG-20481',
     title: '3-Column Automatic Thought Record',
     category: 'Cognitive Restructuring',
-    assignedDate: 'Sep 10, 2026',
-    dueDate: 'Sep 17, 2026',
+    assignedDate: `${MONTH_SHORT[addDays(TODAY, -11).getMonth()]} ${addDays(TODAY, -11).getDate()}, ${TODAY.getFullYear()}`,
+    dueDate: `${MONTH_SHORT[counselingDate.getMonth()]} ${counselingDate.getDate()}, ${counselingDate.getFullYear()}`,
     status: 'Reviewed',
     situation: 'High stress shift at work on Monday; colleague called in sick and medication delivery was delayed.',
     automaticThought: '"I can\'t manage this pressure without using. Everything will fall apart."',
@@ -1136,8 +1248,8 @@ export const defaultCbtHomework = [
     patientId: 'BHG-20481',
     title: 'Urge Surfing & Craving Wave Protocol',
     category: 'Craving Management',
-    assignedDate: 'Sep 10, 2026',
-    dueDate: 'Sep 17, 2026',
+    assignedDate: `${MONTH_SHORT[addDays(TODAY, -11).getMonth()]} ${addDays(TODAY, -11).getDate()}, ${TODAY.getFullYear()}`,
+    dueDate: `${MONTH_SHORT[counselingDate.getMonth()]} ${counselingDate.getDate()}, ${counselingDate.getFullYear()}`,
     status: 'Reviewed',
     situation: 'Driving past former neighborhood on Tuesday evening.',
     automaticThought: '"Just driving by won\'t hurt, I just want to see who is around."',
