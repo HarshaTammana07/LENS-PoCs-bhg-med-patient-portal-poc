@@ -62,6 +62,7 @@ import {
   medicationHistory,
   counselingSessions,
   defaultCbtHomework,
+  formatEyebrowDate,
 } from '../data/bhgPatientData';
 import { DemoBanner, Field, RequestStatus, WorkflowDrawer, WorkflowModal } from '../components/PrototypeUI';
 
@@ -697,7 +698,7 @@ export function Dashboard() {
     <div className="bhg-page bhg-dashboard animate-fade-in">
       <div className="bhg-dashboard-header">
         <div>
-          <div className="bhg-eyebrow">Monday, September 14</div>
+          <div className="bhg-eyebrow">{formatEyebrowDate()}</div>
           <h1>Good morning, {patient.firstName}</h1>
           <p>Here’s what you need for your treatment today.</p>
         </div>
@@ -939,7 +940,7 @@ export function Dashboard() {
                 className="bhg-button"
                 onClick={() => {
                   setCheckedIn(true);
-                  addToast('You have successfully checked in for your Sep 17 counseling visit!', 'success');
+                  addToast(`You have successfully checked in for your ${nextAppointment?.dateShort || 'SEP 21'} counseling visit!`, 'success');
                 }}
               >
                 <Check size={16} /> Confirm Check-In
@@ -4567,7 +4568,7 @@ function GoalRing({ progress: pct, size = 72, stroke = 7, color = 'var(--accent)
 }
 
 export function Progress() {
-  const { progress, treatment, navigate } = useApp();
+  const { progress, treatment, appointments = [], navigate } = useApp();
   const [milestoneOrder, setMilestoneOrder] = useState('journey'); // 'journey' (Start -> Latest) or 'newest' (Latest -> Start)
 
   const milestoneMeta = {
@@ -4719,7 +4720,7 @@ export function Progress() {
               </div>
               <div>
                 <div style={{ fontSize: 14.5, fontWeight: 700, color: '#0F172A' }}>
-                  Thursday, September 17 at 10:30 AM
+                  {appointments[0] ? `${appointments[0].date} at ${appointments[0].time}` : '10:30 AM'}
                 </div>
                 <div style={{ fontSize: 12, color: '#64748B' }}>
                   Individual Counseling · BHG Knoxville Room 204
