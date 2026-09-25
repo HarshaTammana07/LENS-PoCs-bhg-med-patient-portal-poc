@@ -8,6 +8,9 @@ An interactive, browser-persistent proof of concept for Behavioral Health Group�
 
 | Document | Description | Target Audience |
 | :--- | :--- | :--- |
+| 💼 **[BHG_DR_AZURE_SQL_INTEGRATION_PROPOSAL.md](BHG_DR_AZURE_SQL_INTEGRATION_PROPOSAL.md)** | **Executive Solution Proposal & Pitch**: Complete client pitch and technical architecture leveraging the `bhg_dr` Azure SQL replica as the operational data tier. | **Clients, Executives, CTOs & DBAs** |
+| ⚡ **[MICROSOFT_FABRIC_MIGRATION_AND_INTEGRATION_PLAN.md](MICROSOFT_FABRIC_MIGRATION_AND_INTEGRATION_PLAN.md)** | **Microsoft Fabric (F128) Evolution Strategy**: Next-generation integration architecture connecting the portal to OneLake Delta tables & SQL endpoints as `bhg_dr` offloads to Fabric. | **CIOs, CTOs, Fabric Leads & Data Architects** |
+| 🔄 **[FABRIC_REAL_TIME_EVENTSTREAM_ARCHITECTURE.md](FABRIC_REAL_TIME_EVENTSTREAM_ARCHITECTURE.md)** | **Fabric Eventstream & Two-Speed Architecture**: Technical solution for 120+ clinic database scale, combining nightly batch loops with real-time CDC streaming for holds & check-ins. | **CTOs, Data Engineers & DBAs** |
 | 📑 **[FEATURE_DATA_REQUIREMENTS_SPECIFICATION.md](FEATURE_DATA_REQUIREMENTS_SPECIFICATION.md)** | **Feature-to-Database Requirements Specification**: Complete user stories, business rules, acceptance criteria, and exact SAMMS production tables/columns (1,333 columns across 39 tables). | **BAs, Product Managers & Engineers** |
 | 📋 **[REQUIREMENTS.md](REQUIREMENTS.md)** | **Product & Technical Requirements Specification**: Comprehensive system goals, RBAC definitions, module scope, and security standards. | **All Stakeholders** |
 | 🏗️ **[PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)** | **Clinical Mission & Platform Overview**: Outpatient addiction medicine context (OTP/OBOT/MAT), connected dual-portal architecture, and key workflows. | **Executive, Clinical & Technical Leads** |
