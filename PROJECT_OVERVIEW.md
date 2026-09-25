@@ -117,6 +117,9 @@ The application models real-world clinic workflows across personas:
 ## 📂 Project Structure & Documentation Hub
 
 ```text
+├── BHG_DR_AZURE_SQL_INTEGRATION_PROPOSAL.md   # Executive solution proposal & client pitch for bhg_dr
+├── MICROSOFT_FABRIC_MIGRATION_AND_INTEGRATION_PLAN.md # Strategic plan for Microsoft Fabric (F128) OneLake evolution
+├── FABRIC_REAL_TIME_EVENTSTREAM_ARCHITECTURE.md # Two-speed Fabric architecture (Cold Batch + Hot Eventstream)
 ├── COMPLETE_PORTAL_DOCUMENTATION.md           # Master screen-by-screen guide & clinical rationale
 ├── FEATURE_DATA_REQUIREMENTS_SPECIFICATION.md # BA requirements & SAMMS technical data dictionary
 ├── REQUIREMENTS.md                            # Comprehensive product & technical requirements specification
